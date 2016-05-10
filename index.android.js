@@ -1,6 +1,12 @@
 /**
  * Sample React Native App
  * https://github.com/facebook/react-native
+ * Using this library you will only need to call:
+    1 - import SharedPrefsGetter from './SharedPrefsGet';
+    2 - SharedPrefsGetter.getSharedPrefs(function(data){
+          alert(data);
+        }
+ });
  */
 
 import React, { Component } from 'react';
@@ -16,7 +22,7 @@ import SharedPrefsGetter from './SharedPrefsGet';
 class SharedGetter extends Component {
   render() {
     SharedPrefsGetter.getSharedPrefs(function(data){
-      alert(data.luis);
+      alert(data);
     });
     return (
       <View style={styles.container}>
