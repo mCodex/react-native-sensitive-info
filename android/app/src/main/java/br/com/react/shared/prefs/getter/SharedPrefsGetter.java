@@ -31,11 +31,10 @@ public class SharedPrefsGetter extends ReactContextBaseJavaModule {
     public void getSharedPrefs(Callback cb) {
         try {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getReactApplicationContext());
+
             Map<String, ?> allEntries = prefs.getAll();
             WritableMap resultData = new WritableNativeMap();
-            SharedPreferences.Editor edit = prefs.edit();
-            edit.putString("luis", "coelho");
-            edit.commit();
+
             for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
                 resultData.putString(entry.getKey(), entry.getValue().toString());
             }

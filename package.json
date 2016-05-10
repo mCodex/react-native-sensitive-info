@@ -1,5 +1,5 @@
 {
-  "name": "SharedGetter",
+  "name": "react-native-get-shared-prefs",
   "version": "0.0.1",
   "private": true,
   "author": "ClassApp",

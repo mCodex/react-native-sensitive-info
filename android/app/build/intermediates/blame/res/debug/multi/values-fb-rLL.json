@@ -1,5 +1,162 @@
 [
     {
+        "outputFile": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/res/merged/debug/values-fb-rLL/values-fb-rLL.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 2,
+                    "startColumn": 4,
+                    "startOffset": 55,
+                    "endColumn": 53,
+                    "endOffset": 104
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 2,
+                        "startColumn": 4,
+                        "startOffset": 55,
+                        "endColumn": 53,
+                        "endOffset": 104
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 3,
+                    "startColumn": 4,
+                    "startOffset": 109,
+                    "endColumn": 80,
+                    "endOffset": 185
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 3,
+                        "startColumn": 4,
+                        "startOffset": 109,
+                        "endColumn": 80,
+                        "endOffset": 185
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 4,
+                    "startColumn": 4,
+                    "startOffset": 190,
+                    "endColumn": 78,
+                    "endOffset": 264
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 190,
+                        "endColumn": 78,
+                        "endOffset": 264
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 5,
+                    "startColumn": 4,
+                    "startOffset": 269,
+                    "endColumn": 70,
+                    "endOffset": 335
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 269,
+                        "endColumn": 70,
+                        "endOffset": 335
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 6,
+                    "startColumn": 4,
+                    "startOffset": 340,
+                    "endColumn": 78,
+                    "endOffset": 414
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 340,
+                        "endColumn": 78,
+                        "endOffset": 414
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 7,
+                    "startColumn": 4,
+                    "startOffset": 419,
+                    "endColumn": 55,
+                    "endOffset": 470
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 7,
+                        "startColumn": 4,
+                        "startOffset": 419,
+                        "endColumn": 55,
+                        "endOffset": 470
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 8,
+                    "startColumn": 4,
+                    "startOffset": 475,
+                    "endColumn": 58,
+                    "endOffset": 529
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 8,
+                        "startColumn": 4,
+                        "startOffset": 475,
+                        "endColumn": 58,
+                        "endOffset": 529
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 9,
+                    "startColumn": 4,
+                    "startOffset": 534,
+                    "endColumn": 73,
+                    "endOffset": 603
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.20.1/res/values-fb-rLL/values-fb-rLL.xml",
+                    "position": {
+                        "startLine": 9,
+                        "startColumn": 4,
+                        "startOffset": 534,
+                        "endColumn": 73,
+                        "endOffset": 603
+                    }
+                }
+            }
+        ]
+    },
+    {
         "outputFile": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/res/merged/debug/values-fb-rLL/values-fb-rLL.xml",
         "map": [
             {
