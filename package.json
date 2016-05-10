@@ -6,6 +6,19 @@
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },
+  "author": {
+    "name": "ClassApp",
+    "email": "i@classapp.com.br"
+  },
+  "homepage": "https://github.com/classapp/react-native-get-shared-prefs",
+  "bugs": {
+    "url": "https://github.com/classapp/react-native-get-shared-prefs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/classapp/react-native-get-shared-prefs.git"
+  },
+  "license": "MIT",
   "dependencies": {
     "react": "^0.14.8",
     "react-native": "^0.25.1"
