@@ -1,0 +1,2 @@
+CHANGED,/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/transforms/instantRun/debug/folders/1/5/main/br/com/react/shared/prefs/getter/SharedPrefsGetter.class
+REMOVED,/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/transforms/instantRun/debug/folders/1/5/main/com/sharedgetter/MainActivity.class

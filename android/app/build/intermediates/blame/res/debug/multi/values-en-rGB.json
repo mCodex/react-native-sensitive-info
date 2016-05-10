@@ -1,0 +1,501 @@
+[
+    {
+        "outputFile": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/res/merged/debug/values-en-rGB/values-en-rGB.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 2,
+                    "startColumn": 4,
+                    "startOffset": 55,
+                    "endColumn": 103,
+                    "endOffset": 154
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 284,
+                        "endColumn": 103,
+                        "endOffset": 383
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 3,
+                    "startColumn": 4,
+                    "startOffset": 159,
+                    "endColumn": 107,
+                    "endOffset": 262
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 388,
+                        "endColumn": 107,
+                        "endOffset": 491
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 4,
+                    "startColumn": 4,
+                    "startOffset": 267,
+                    "endColumn": 122,
+                    "endOffset": 385
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 496,
+                        "endColumn": 122,
+                        "endOffset": 614
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 5,
+                    "startColumn": 4,
+                    "startOffset": 390,
+                    "endColumn": 99,
+                    "endOffset": 485
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 7,
+                        "startColumn": 4,
+                        "startOffset": 619,
+                        "endColumn": 99,
+                        "endOffset": 714
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 6,
+                    "startColumn": 4,
+                    "startOffset": 490,
+                    "endColumn": 107,
+                    "endOffset": 593
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 8,
+                        "startColumn": 4,
+                        "startOffset": 719,
+                        "endColumn": 107,
+                        "endOffset": 822
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 7,
+                    "startColumn": 4,
+                    "startOffset": 598,
+                    "endColumn": 83,
+                    "endOffset": 677
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 9,
+                        "startColumn": 4,
+                        "startOffset": 827,
+                        "endColumn": 83,
+                        "endOffset": 906
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 8,
+                    "startColumn": 4,
+                    "startOffset": 682,
+                    "endColumn": 99,
+                    "endOffset": 777
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 10,
+                        "startColumn": 4,
+                        "startOffset": 911,
+                        "endColumn": 99,
+                        "endOffset": 1006
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 9,
+                    "startColumn": 4,
+                    "startOffset": 782,
+                    "endColumn": 114,
+                    "endOffset": 892
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 11,
+                        "startColumn": 4,
+                        "startOffset": 1011,
+                        "endColumn": 114,
+                        "endOffset": 1121
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 10,
+                    "startColumn": 4,
+                    "startOffset": 897,
+                    "endColumn": 81,
+                    "endOffset": 974
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 12,
+                        "startColumn": 4,
+                        "startOffset": 1126,
+                        "endColumn": 81,
+                        "endOffset": 1203
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 11,
+                    "startColumn": 4,
+                    "startOffset": 979,
+                    "endColumn": 102,
+                    "endOffset": 1077
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 13,
+                        "startColumn": 4,
+                        "startOffset": 1208,
+                        "endColumn": 102,
+                        "endOffset": 1306
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 12,
+                    "startColumn": 4,
+                    "startOffset": 1082,
+                    "endColumn": 103,
+                    "endOffset": 1181
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 14,
+                        "startColumn": 4,
+                        "startOffset": 1311,
+                        "endColumn": 103,
+                        "endOffset": 1410
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 13,
+                    "startColumn": 4,
+                    "startOffset": 1186,
+                    "endColumn": 98,
+                    "endOffset": 1280
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 15,
+                        "startColumn": 4,
+                        "startOffset": 1415,
+                        "endColumn": 98,
+                        "endOffset": 1509
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 14,
+                    "startColumn": 4,
+                    "startOffset": 1285,
+                    "endColumn": 104,
+                    "endOffset": 1385
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 16,
+                        "startColumn": 4,
+                        "startOffset": 1514,
+                        "endColumn": 104,
+                        "endOffset": 1614
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 15,
+                    "startColumn": 4,
+                    "startOffset": 1390,
+                    "endColumn": 102,
+                    "endOffset": 1488
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 17,
+                        "startColumn": 4,
+                        "startOffset": 1619,
+                        "endColumn": 102,
+                        "endOffset": 1717
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 16,
+                    "startColumn": 4,
+                    "startOffset": 1493,
+                    "endColumn": 103,
+                    "endOffset": 1592
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 18,
+                        "startColumn": 4,
+                        "startOffset": 1722,
+                        "endColumn": 103,
+                        "endOffset": 1821
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 17,
+                    "startColumn": 4,
+                    "startOffset": 1597,
+                    "endColumn": 118,
+                    "endOffset": 1711
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 19,
+                        "startColumn": 4,
+                        "startOffset": 1826,
+                        "endColumn": 118,
+                        "endOffset": 1940
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 18,
+                    "startColumn": 4,
+                    "startOffset": 1716,
+                    "endColumn": 99,
+                    "endOffset": 1811
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 20,
+                        "startColumn": 4,
+                        "startOffset": 1945,
+                        "endColumn": 99,
+                        "endOffset": 2040
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 19,
+                    "startColumn": 4,
+                    "startOffset": 1816,
+                    "endColumn": 53,
+                    "endOffset": 1865
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 2,
+                        "startColumn": 4,
+                        "startOffset": 55,
+                        "endColumn": 53,
+                        "endOffset": 104
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 20,
+                    "startColumn": 4,
+                    "startOffset": 1870,
+                    "endColumn": 69,
+                    "endOffset": 1935
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 3,
+                        "startColumn": 4,
+                        "startOffset": 109,
+                        "endColumn": 69,
+                        "endOffset": 174
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 21,
+                    "startColumn": 4,
+                    "startOffset": 1940,
+                    "endColumn": 78,
+                    "endOffset": 2014
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 179,
+                        "endColumn": 78,
+                        "endOffset": 253
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 22,
+                    "startColumn": 4,
+                    "startOffset": 2019,
+                    "endColumn": 70,
+                    "endOffset": 2085
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 258,
+                        "endColumn": 70,
+                        "endOffset": 324
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 23,
+                    "startColumn": 4,
+                    "startOffset": 2090,
+                    "endColumn": 64,
+                    "endOffset": 2150
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 329,
+                        "endColumn": 64,
+                        "endOffset": 389
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 24,
+                    "startColumn": 4,
+                    "startOffset": 2155,
+                    "endColumn": 55,
+                    "endOffset": 2206
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 7,
+                        "startColumn": 4,
+                        "startOffset": 394,
+                        "endColumn": 55,
+                        "endOffset": 445
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 25,
+                    "startColumn": 4,
+                    "startOffset": 2211,
+                    "endColumn": 58,
+                    "endOffset": 2265
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 8,
+                        "startColumn": 4,
+                        "startOffset": 450,
+                        "endColumn": 58,
+                        "endOffset": 504
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 26,
+                    "startColumn": 4,
+                    "startOffset": 2270,
+                    "endColumn": 73,
+                    "endOffset": 2339
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.facebook.react/react-native/0.25.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 9,
+                        "startColumn": 4,
+                        "startOffset": 509,
+                        "endColumn": 73,
+                        "endOffset": 578
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 27,
+                    "startColumn": 4,
+                    "startOffset": 2344,
+                    "endColumn": 100,
+                    "endOffset": 2440
+                },
+                "from": {
+                    "file": "/Users/classapp/Desktop/react-native-shared-preferences-getter/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/23.0.1/res/values-en-rGB/values-en-rGB.xml",
+                    "position": {
+                        "startLine": 21,
+                        "startColumn": 4,
+                        "startOffset": 2045,
+                        "endColumn": 100,
+                        "endOffset": 2141
+                    }
+                }
+            }
+        ]
+    }
+]
