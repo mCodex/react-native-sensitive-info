@@ -26,6 +26,12 @@ build/Release
 # Dependency directory
 node_modules
 
+# Android/IJ
+#
+.idea
+.gradle
+local.properties
+
 # Optional npm cache directory
 .npm
 
