@@ -1990,10 +1990,14 @@
   <component name="ToolWindowManager">
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     <frame x="0" y="23" width="1920" height="1002" extended-state="6" />
 =======
     <frame x="0" y="23" width="1920" height="1002" extended-state="0" />
 >>>>>>> parent of dbaf48a... trying to fix some errors
+=======
+    <frame x="0" y="23" width="1920" height="1002" extended-state="1" />
+>>>>>>> parent of 0821dca... adding more items into .gitignore
 =======
     <frame x="0" y="23" width="1920" height="1002" extended-state="1" />
 >>>>>>> parent of 0821dca... adding more items into .gitignore
