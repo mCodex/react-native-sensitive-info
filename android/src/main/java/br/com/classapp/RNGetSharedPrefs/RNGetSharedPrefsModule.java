@@ -1,19 +1,17 @@
 package br.com.classapp.RNGetSharedPrefs;
 
-import android.bluetooth.BluetoothAdapter;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.provider.Settings.Secure;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeMap;
+import com.facebook.react.uimanager.IllegalViewOperationException;
 
-import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-
-import javax.annotation.Nullable;
 
 public class RNGetSharedPrefsModule extends ReactContextBaseJavaModule {
 
