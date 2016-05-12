@@ -21,7 +21,7 @@ public class RNGetSharedPrefsModule extends ReactContextBaseJavaModule {
 
   @Override
   public String getName() {
-    return "SharedPrefsGetter";
+    return "RNGetSharedPrefs";
   }
 
   @ReactMethod
