@@ -57,7 +57,7 @@ SharedPrefs.getSharedPrefs(function(result){
 
 Here is an output example:
 
-![example](https://github.com/classapp/react-native-get-shared-prefs/example.png "Result Example")
+![example](https://github.com/classapp/react-native-get-shared-prefs/blob/master/example.png "Result Example")
 
 # Future Works
 
