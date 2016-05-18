@@ -1,0 +1,254 @@
+[
+    {
+        "outputFile": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/res/merged/androidTest/debug/values-lo-rLA/values-lo-rLA.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 2,
+                    "startColumn": 4,
+                    "startOffset": 55,
+                    "endColumn": 102,
+                    "endOffset": 153
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 295,
+                        "endColumn": 102,
+                        "endOffset": 393
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 3,
+                    "startColumn": 4,
+                    "startOffset": 158,
+                    "endColumn": 96,
+                    "endOffset": 250
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 398,
+                        "endColumn": 96,
+                        "endOffset": 490
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 4,
+                    "startColumn": 4,
+                    "startOffset": 255,
+                    "endColumn": 106,
+                    "endOffset": 357
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 495,
+                        "endColumn": 106,
+                        "endOffset": 597
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 5,
+                    "startColumn": 4,
+                    "startOffset": 362,
+                    "endColumn": 84,
+                    "endOffset": 442
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 7,
+                        "startColumn": 4,
+                        "startOffset": 602,
+                        "endColumn": 84,
+                        "endOffset": 682
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 6,
+                    "startColumn": 4,
+                    "startOffset": 447,
+                    "endColumn": 104,
+                    "endOffset": 547
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 8,
+                        "startColumn": 4,
+                        "startOffset": 687,
+                        "endColumn": 104,
+                        "endOffset": 787
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 7,
+                    "startColumn": 4,
+                    "startOffset": 552,
+                    "endColumn": 111,
+                    "endOffset": 659
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 9,
+                        "startColumn": 4,
+                        "startOffset": 792,
+                        "endColumn": 111,
+                        "endOffset": 899
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 8,
+                    "startColumn": 4,
+                    "startOffset": 664,
+                    "endColumn": 106,
+                    "endOffset": 766
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 10,
+                        "startColumn": 4,
+                        "startOffset": 904,
+                        "endColumn": 106,
+                        "endOffset": 1006
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 9,
+                    "startColumn": 4,
+                    "startOffset": 771,
+                    "endColumn": 96,
+                    "endOffset": 863
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 11,
+                        "startColumn": 4,
+                        "startOffset": 1011,
+                        "endColumn": 96,
+                        "endOffset": 1103
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 10,
+                    "startColumn": 4,
+                    "startOffset": 868,
+                    "endColumn": 97,
+                    "endOffset": 961
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 12,
+                        "startColumn": 4,
+                        "startOffset": 1108,
+                        "endColumn": 97,
+                        "endOffset": 1201
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 11,
+                    "startColumn": 4,
+                    "startOffset": 966,
+                    "endColumn": 104,
+                    "endOffset": 1066
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 13,
+                        "startColumn": 4,
+                        "startOffset": 1206,
+                        "endColumn": 104,
+                        "endOffset": 1306
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 12,
+                    "startColumn": 4,
+                    "startOffset": 1071,
+                    "endColumn": 102,
+                    "endOffset": 1169
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 14,
+                        "startColumn": 4,
+                        "startOffset": 1311,
+                        "endColumn": 102,
+                        "endOffset": 1409
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 13,
+                    "startColumn": 4,
+                    "startOffset": 1174,
+                    "endColumn": 103,
+                    "endOffset": 1273
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 15,
+                        "startColumn": 4,
+                        "startOffset": 1414,
+                        "endColumn": 103,
+                        "endOffset": 1513
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 14,
+                    "startColumn": 4,
+                    "startOffset": 1278,
+                    "endColumn": 121,
+                    "endOffset": 1395
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-lo-rLA/values-lo-rLA.xml",
+                    "position": {
+                        "startLine": 16,
+                        "startColumn": 4,
+                        "startOffset": 1518,
+                        "endColumn": 121,
+                        "endOffset": 1635
+                    }
+                }
+            }
+        ]
+    }
+]

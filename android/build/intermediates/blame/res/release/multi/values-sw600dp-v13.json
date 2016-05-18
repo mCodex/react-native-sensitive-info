@@ -1,0 +1,178 @@
+[
+    {
+        "outputFile": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/res/merged/release/values-sw600dp-v13/values-sw600dp-v13.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 2,
+                    "startColumn": 4,
+                    "startOffset": 55,
+                    "endColumn": 68,
+                    "endOffset": 119
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 4,
+                        "startColumn": 4,
+                        "startOffset": 295,
+                        "endColumn": 68,
+                        "endOffset": 359
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 3,
+                    "startColumn": 4,
+                    "startOffset": 124,
+                    "endColumn": 69,
+                    "endOffset": 189
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 5,
+                        "startColumn": 4,
+                        "startOffset": 364,
+                        "endColumn": 69,
+                        "endOffset": 429
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 4,
+                    "startColumn": 4,
+                    "startOffset": 194,
+                    "endColumn": 69,
+                    "endOffset": 259
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 6,
+                        "startColumn": 4,
+                        "startOffset": 434,
+                        "endColumn": 69,
+                        "endOffset": 499
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 5,
+                    "startColumn": 4,
+                    "startOffset": 264,
+                    "endColumn": 78,
+                    "endOffset": 338
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 7,
+                        "startColumn": 4,
+                        "startOffset": 504,
+                        "endColumn": 78,
+                        "endOffset": 578
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 6,
+                    "startColumn": 4,
+                    "startOffset": 343,
+                    "endColumn": 75,
+                    "endOffset": 414
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 8,
+                        "startColumn": 4,
+                        "startOffset": 583,
+                        "endColumn": 75,
+                        "endOffset": 654
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 7,
+                    "startColumn": 4,
+                    "startOffset": 419,
+                    "endColumn": 58,
+                    "endOffset": 473
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 11,
+                        "startColumn": 4,
+                        "startOffset": 899,
+                        "endColumn": 58,
+                        "endOffset": 953
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 8,
+                    "startColumn": 4,
+                    "startOffset": 478,
+                    "endColumn": 70,
+                    "endOffset": 544
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 14,
+                        "startColumn": 4,
+                        "startOffset": 1198,
+                        "endColumn": 70,
+                        "endOffset": 1264
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 9,
+                    "startColumn": 4,
+                    "startOffset": 549,
+                    "endColumn": 67,
+                    "endOffset": 612
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 15,
+                        "startColumn": 4,
+                        "startOffset": 1269,
+                        "endColumn": 67,
+                        "endOffset": 1332
+                    }
+                }
+            },
+            {
+                "to": {
+                    "startLine": 10,
+                    "startColumn": 4,
+                    "startOffset": 617,
+                    "endColumn": 54,
+                    "endOffset": 667
+                },
+                "from": {
+                    "file": "/Users/classapp/Github/react-native-get-shared-prefs/android/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/res/values-sw600dp/values-sw600dp.xml",
+                    "position": {
+                        "startLine": 16,
+                        "startColumn": 4,
+                        "startOffset": 1337,
+                        "endColumn": 54,
+                        "endOffset": 1387
+                    }
+                }
+            }
+        ]
+    }
+]
