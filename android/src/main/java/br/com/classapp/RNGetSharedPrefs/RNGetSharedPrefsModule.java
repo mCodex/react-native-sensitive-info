@@ -4,6 +4,7 @@ import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.WritableMap;
 
 public class RNGetSharedPrefsModule extends ReactContextBaseJavaModule {
 
@@ -29,12 +30,13 @@ public class RNGetSharedPrefsModule extends ReactContextBaseJavaModule {
   public void setPrefs(String key, String value) {
 
     SharedPrefsHandler.init(getReactApplicationContext());
-    SharedDataProvider.putSharedValue(key,value);
+    SharedDataProvider.putSharedValue(key, value);
 
   }
 
-  @ReactMethod
+  /*@ReactMethod
   public void getAllPrefs(Callback cb) {
-
-  }
+    WritableMap value = SharedPrefsGetAll.getAllPrefs(getReactApplicationContext());
+    cb(value);
+  }*/
 }

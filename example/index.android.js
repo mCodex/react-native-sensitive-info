@@ -11,11 +11,12 @@ import {
   View
 } from 'react-native';
 
-import SpfsManager from '../index.android.js';
+import SpfsManager from 'react-native-get-shared-prefs';
 
 class example extends Component {
   render() {
-    SpfsManager.getAll(function(data){
+    SpfsManager.setKey('teste', 'teste');
+    SpfsManager.getKey('teste', function(data){
       console.log(data);
     });
     return (

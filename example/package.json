@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "react": "^0.14.8",
-    "react-native": "^0.25.1"
+    "react-native": "^0.25.1",
+    "react-native-get-shared-prefs": "git+https://github.com/classapp/react-native-get-shared-prefs.git"
   }
 }
