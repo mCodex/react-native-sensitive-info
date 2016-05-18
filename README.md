@@ -29,12 +29,12 @@ compile project(':react-native-sensitive-info')
 
 In your `MainActivity.java` add:
 ```java
-import br.com.classapp.RNGetSInfo.RNGetSInfoPackage; //<- You must import this
+import br.com.classapp.RNGetSInfo.RNSensitiveInfoPackage; //<- You must import this
 
 protected List<ReactPackage> getPackages() {
     return Arrays.<ReactPackage>asList(
         new MainReactPackage(),
-        new RNGetSInfoPackage(), // <- Add this line
+        new RNSensitiveInfoPackage(), // <- Add this line
     );
 }
 ```

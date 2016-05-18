@@ -1,4 +1,4 @@
-package br.com.classapp.RNGetSharedPrefs;
+package br.com.classapp.RNSensitiveInfo;
 
 
 import android.content.Context;

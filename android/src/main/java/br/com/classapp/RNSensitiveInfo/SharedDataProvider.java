@@ -1,6 +1,6 @@
-package br.com.classapp.RNGetSharedPrefs;
+package br.com.classapp.RNSensitiveInfo;
 
-import br.com.classapp.RNGetSharedPrefs.SharedPrefsHandler;
+import br.com.classapp.RNSensitiveInfo.SharedPrefsHandler;
 
 public class SharedDataProvider {
 

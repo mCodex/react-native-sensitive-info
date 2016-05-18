@@ -1,16 +1,16 @@
-package br.com.classapp.RNGetSharedPrefs;
+package br.com.classapp.RNSensitiveInfo;
 
 import com.facebook.react.bridge.*;
 
-public class RNGetSharedPrefsModule extends ReactContextBaseJavaModule {
+public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
-  public RNGetSharedPrefsModule(ReactApplicationContext reactContext) {
+  public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
     super(reactContext);
   }
 
   @Override
   public String getName() {
-    return "RNGetSharedPrefs";
+    return "RNSensitiveInfo";
   }
 
   @ReactMethod

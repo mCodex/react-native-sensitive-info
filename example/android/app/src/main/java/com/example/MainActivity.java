@@ -3,7 +3,7 @@ package com.example;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
-import br.com.classapp.RNGetSharedPrefs.RNGetSharedPrefsPackage;
+import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,7 +36,7 @@ public class MainActivity extends ReactActivity {
     protected List<ReactPackage> getPackages() {
         return Arrays.<ReactPackage>asList(
             new MainReactPackage(),
-                new RNGetSharedPrefsPackage()
+                new RNSensitiveInfoPackage()
         );
     }
 }

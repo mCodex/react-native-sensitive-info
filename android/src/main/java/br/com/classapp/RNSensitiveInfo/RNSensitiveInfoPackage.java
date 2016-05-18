@@ -1,4 +1,4 @@
-package br.com.classapp.RNGetSharedPrefs;
+package br.com.classapp.RNSensitiveInfo;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -11,14 +11,14 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ViewManager;
 import com.facebook.react.bridge.JavaScriptModule;
 
-public class RNGetSharedPrefsPackage implements ReactPackage {
+public class RNSensitiveInfoPackage implements ReactPackage {
 
   @Override
   public List<NativeModule> createNativeModules(
                               ReactApplicationContext reactContext) {
     List<NativeModule> modules = new ArrayList<>();
 
-    modules.add(new RNGetSharedPrefsModule(reactContext));
+    modules.add(new RNSensitiveInfoModule(reactContext));
 
     return modules;
   }
