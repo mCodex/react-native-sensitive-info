@@ -1,5 +1,5 @@
 {
-  "name": "react-native-get-shared-prefs",
+  "name": "react-native-sensitive-info",
   "version": "1.0.7",
   "main": "index.android.js",
   "scripts": {
@@ -9,14 +9,19 @@
     "name": "ClassApp",
     "email": "i@classapp.com.br"
   },
-  "homepage": "https://github.com/classapp/react-native-get-shared-prefs",
+  "homepage": "https://github.com/classapp/react-native-sensitive-info",
   "bugs": {
-    "url": "https://github.com/classapp/react-native-get-shared-prefs/issues"
+    "url": "https://github.com/classapp/react-native-sensitive-info/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/classapp/react-native-get-shared-prefs.git"
+    "url": "git://github.com/classapp/react-native-sensitive-info.git"
   },
+  "keywords": [
+  "android",
+  "shared-preferences",
+  "react-native"
+  ],
   "license": "MIT",
   "dependencies": {
     "react": "^0.14.8",

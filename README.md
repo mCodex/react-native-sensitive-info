@@ -1,64 +1,75 @@
 # Introduction
 
-This module was produced by ClassApp Team and will be improved in future updates. `react-native-get-shared-prefs` gets all information stored in Android shared preferences.
+This module was produced by ClassApp Team and will be improved in future updates. `react-native-sensitive-info` manage all data stored in Android shared preferences. You can grab, set and get all keys/values using only one line of code.
 
 # Install
 
-Install `react-native-get-shared-prefs` using:
+Install `react-native-sensitive-info` using:
 
-``npm i -S react-native-get-shared-prefs``
+``npm i -S react-native-sensitive-info``
 
-After that, you should link `react-native-get-shared-prefs` in your project, to do so:
+After that, you should link `react-native-sensitive-info` in your project, to do so:
 
-`rnpm link react-native-get-shared-prefs`
+`rnpm link react-native-sensitive-info`
 
 or
 
 Go to `settings.gradle` inside your android project folder and paste this lines there:
+
 ```java
-include ':react-native-get-shared-prefs'
-project(':react-native-get-shared-prefs').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-get-shared-prefs/android')
+include ':react-native-sensitive-info'
+project(':react-native-sensitive-info').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sensitive-info/android')
 ```
 
 and paste it into `build.gradle`:
 
 ```java
-compile project(':react-native-get-shared-prefs')
+compile project(':react-native-sensitive-info')
 ```
 
 In your `MainActivity.java` add:
 ```java
-import br.com.classapp.RNGetSharedPrefs.RNGetSharedPrefsPackage; //<- You must import this
+import br.com.classapp.RNGetSInfo.RNGetSInfoPackage; //<- You must import this
 
 protected List<ReactPackage> getPackages() {
     return Arrays.<ReactPackage>asList(
         new MainReactPackage(),
-        new RNGetSharedPrefsPackage(), // <- Add this line
+        new RNGetSInfoPackage(), // <- Add this line
     );
 }
 ```
 
 Sync gradle and go :)
 
+#Methods
+
+`setPrefs(key, value)`: You can insert data into shared preferences using this method.
+`getPrefs('key').then(function(result){});)`: This promise will get value from given key.
+`getAllPrefs(Callback)`: Will retrieve all keys and values from Shared Preferences
+
 # How to use?
 
 Here is a simple example:
 
 ```javascript
-import SharedPrefs from 'react-native-get-shared-prefs';
+import SInfo from 'react-native-sensitive-info';
 
-SharedPrefs.getSharedPrefs(function(result){
-    //result = { 'key1':'value1', 'key2': 'value2', 'key3': 'value3'}
+SInfo.setPrefs('key1', 'value1');
+SInfo.setPrefs('key2', 'value2');
+SInfo.setPrefs('key3', 'value3');
+SInfo.setPrefs('key4', 'value4');
+SInfo.setPrefs('key5', 'value5');
 
-    console.log(result); //It will display your data from Shared Preferences
+SInfo.getPrefs('key1', function(value){
+  console.log(value);
+});
 
+SInfo.getAllPrefs(function(result){
+  console.log(result);
 });
 ```
 
-Here is an output example:
-
-![example](https://github.com/classapp/react-native-get-shared-prefs/blob/master/example.png "Result Example")
-
 # Future Works
 
-  * Add more features
+  * Add support for iOS's keychain
+  * Add support for Android's keystore

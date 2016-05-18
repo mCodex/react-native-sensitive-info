@@ -11,14 +11,25 @@ import {
   View
 } from 'react-native';
 
-import SpfsManager from 'react-native-get-shared-prefs';
+import SpfsManager from 'react-native-sensitive-info'; //<-- Add this line
 
 class example extends Component {
   render() {
-    SpfsManager.setKey('teste', 'teste');
-    SpfsManager.getKey('teste', function(data){
-      console.log(data);
+
+    SpfsManager.setPrefs('key1', 'value1');
+    SpfsManager.setPrefs('key2', 'value2');
+    SpfsManager.setPrefs('key3', 'value3');
+    SpfsManager.setPrefs('key4', 'value4');
+    SpfsManager.setPrefs('key5', 'value5');
+
+    SpfsManager.getKey('teste').then(function(data) {
+        console.log(data);
     });
+
+    SpfsManager.getAllPrefs(function(result){
+      console.log(result.key1);
+    });
+
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>

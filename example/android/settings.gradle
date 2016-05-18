@@ -1,4 +1,4 @@
 rootProject.name = 'example'
 include ':app'
-include ':react-native-get-shared-prefs'
-project(':react-native-get-shared-prefs').projectDir = new File(rootProject.projectDir, '../../android')
+include ':react-native-sensitive-info'
+project(':react-native-sensitive-info').projectDir = new File(rootProject.projectDir, '../../android')
