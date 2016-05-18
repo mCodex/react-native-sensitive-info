@@ -44,7 +44,9 @@ Sync gradle and go :)
 #Methods
 
 `setPrefs(key, value)`: You can insert data into shared preferences using this method.
+
 `getPrefs('key').then(function(result){});)`: This promise will get value from given key.
+
 `getAllPrefs(Callback)`: Will retrieve all keys and values from Shared Preferences
 
 # How to use?
