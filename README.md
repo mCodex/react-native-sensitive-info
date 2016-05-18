@@ -60,8 +60,8 @@ SInfo.setPrefs('key3', 'value3');
 SInfo.setPrefs('key4', 'value4');
 SInfo.setPrefs('key5', 'value5');
 
-SInfo.getPrefs('key1', function(value){
-  console.log(value);
+SInfo.getKey('key1').then(function(data) {
+  console.log(data);
 });
 
 SInfo.getAllPrefs(function(result){
