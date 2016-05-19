@@ -2,6 +2,7 @@ package com.example;
 
 import com.facebook.react.ReactActivity;
 import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage;
+import com.devfd.RNGeocoder.RNGeocoderPackage;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
 
@@ -37,6 +38,7 @@ public class MainActivity extends ReactActivity {
         return Arrays.<ReactPackage>asList(
             new MainReactPackage(),
             new RNSensitiveInfoPackage(),
+            new RNGeocoderPackage(),
                 new RNSensitiveInfoPackage()
         );
     }

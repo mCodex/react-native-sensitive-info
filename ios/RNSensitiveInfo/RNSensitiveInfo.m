@@ -65,12 +65,9 @@ NSDictionary * makeError(NSError *error)
 }
 
 
-RCT_EXPORT_METHOD(setItem:(NSString*)service withUsername:(NSString*)username withPassword:(NSString*)password){
-  if(service == nil) {
-    service = [[NSBundle mainBundle] bundleIdentifier];
-  }
-
-  // Create dictionary of search parameters
+RCT_EXPORT_METHOD(setItem: withUsername:(NSString*)username withPassword:(NSString*)password){
+NSString *service = @"shared_preferences";
+// Create dictionary of search parameters
   NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword),  kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, nil];
 
   // Remove any old values from the keychain
@@ -107,12 +104,12 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)re
 
   if (osStatus != noErr && osStatus != errSecItemNotFound) {
     NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    reject(@[makeError(error)]);
+    reject(@"no_events", @"There were no events", @[makeError(error)]);
   }
 
   found = (__bridge NSDictionary*)(foundTypeRef);
   if (!found) {
-    reject(@[[NSNull null]]);
+    reject(@"no_events", @"There were no events", @[[NSNull null]]);
   }
 
   // Found
