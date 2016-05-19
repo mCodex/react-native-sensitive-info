@@ -1,7 +1,7 @@
 {
   "name": "react-native-sensitive-info",
   "version": "2.0.3",
-  "main": "index.android.js",
+  "main": "RNSensitiveInfo.js",
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },
@@ -19,6 +19,8 @@
   },
   "keywords": [
     "android",
+    "ios",
+    "keychain",
     "shared-preferences",
     "react-native"
   ],
