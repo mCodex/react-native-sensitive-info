@@ -7,8 +7,12 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  */
 
- #import "RCTBridgeModule.h"
+#import <UIKit/UIKit.h>
 
- @interface RNSensitiveInfo : NSObject <RCTBridgeModule>
+#import "AppDelegate.h"
 
- @end
+int main(int argc, char * argv[]) {
+  @autoreleasepool {
+    return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+  }
+}

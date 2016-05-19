@@ -1,7 +1,7 @@
 /* Adapted From https://github.com/oblador/react-native-keychain */
 
 #import <Security/Security.h>
-#import "AppDelegate.h"
+#import "RNSensitiveInfo.h"
 #import "RCTConvert.h"
 #import "RCTBridge.h"
 #import "RCTUtils.h"
@@ -122,7 +122,7 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)re
   resolve(@[[NSNull null], username, password]);
 
 }
-
+/*
 RCT_EXPORT_METHOD(resetGenericPasswordForService:(NSString*)service callback:(RCTResponseSenderBlock)callback){
   if(service == nil) {
     service = [[NSBundle mainBundle] bundleIdentifier];
@@ -140,5 +140,5 @@ RCT_EXPORT_METHOD(resetGenericPasswordForService:(NSString*)service callback:(RC
 
   callback(@[[NSNull null]]);
 
-}
+}*/
 @end

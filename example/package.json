@@ -8,6 +8,6 @@
   "dependencies": {
     "react": "^0.14.8",
     "react-native": "^0.25.1",
-    "react-native-sensitive-info": "git+https://github.com/classapp/react-native-sensitive-info.git"
+    "react-native-sensitive-info": "file:../"
   }
 }
