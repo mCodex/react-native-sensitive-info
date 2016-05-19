@@ -1,7 +1,7 @@
 /* Adapted From https://github.com/oblador/react-native-keychain */
 
 #import <Security/Security.h>
-#import "RNSensitiveInfo.h"
+#import "AppDelegate.h"
 #import "RCTConvert.h"
 #import "RCTBridge.h"
 #import "RCTUtils.h"
@@ -65,7 +65,7 @@ NSDictionary * makeError(NSError *error)
 }
 
 
-RCT_EXPORT_METHOD(ForService:(NSString*)service withUsername:(NSString*)username withPassword:(NSString*)password){
+RCT_EXPORT_METHOD(setItem:(NSString*)service withUsername:(NSString*)username withPassword:(NSString*)password){
   if(service == nil) {
     service = [[NSBundle mainBundle] bundleIdentifier];
   }
@@ -92,7 +92,7 @@ RCT_EXPORT_METHOD(ForService:(NSString*)service withUsername:(NSString*)username
 
 }
 
-RCT_EXPORT_METHOD(getGenericPasswordForService:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
   if(service == nil) {
     service = [[NSBundle mainBundle] bundleIdentifier];
   }
