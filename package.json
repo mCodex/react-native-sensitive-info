@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "main": "RNSensitiveInfo.js",
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
@@ -9,6 +9,9 @@
     "name": "ClassApp",
     "email": "i@classapp.com.br"
   },
+  "contributors": [
+    "Mateus Andrade <mateus@classapp.co>"
+  ],
   "homepage": "https://github.com/classapp/react-native-sensitive-info",
   "bugs": {
     "url": "https://github.com/classapp/react-native-sensitive-info/issues"
