@@ -16,7 +16,7 @@ import RNSensitiveInfo from 'react-native-sensitive-info'; //<-- Add this line
 class example extends Component {
   render() {
 
-    RNSensitiveInfo.setItemForService('key1', 'value1');
+    RNSensitiveInfo.setItem('key1', 'value1');
     /*RNSensitiveInfo.setItem('key2', 'value2');
     RNSensitiveInfo.setItem('key3', 'value3');
     RNSensitiveInfo.setItem('key4', 'value4');
@@ -26,7 +26,7 @@ class example extends Component {
         console.log(data);
     });*/
 
-    /*RNSensitiveInfo.getAllPrefs(function(result){
+    /*RNSensitiveInfo.getAllItems(function(result){
       console.log(result.key1);
     });*/
 

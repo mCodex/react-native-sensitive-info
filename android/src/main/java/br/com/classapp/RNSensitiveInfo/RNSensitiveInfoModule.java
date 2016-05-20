@@ -14,7 +14,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getPrefs(String key, Promise pm) {
+  public void getItem(String key, Promise pm) {
 
     SharedPrefsHandler.init(getReactApplicationContext());
     String value = SharedDataProvider.getSharedValue(key);
@@ -23,7 +23,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void setPrefs(String key, String value) {
+  public void setItem(String key, String value) {
 
     SharedPrefsHandler.init(getReactApplicationContext());
     SharedDataProvider.putSharedValue(key, value);
@@ -31,10 +31,10 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getAllPrefs(Callback cb) {
+  public void getAllItems(Callback cb) {
     WritableMap data;
     new WritableNativeMap();
-    data = SharedPrefsGetAll.getAllPrefs(getReactApplicationContext());
+    data = SharedPrefsGetAll.getAllItems(getReactApplicationContext());
     cb.invoke(data);
   }
 }

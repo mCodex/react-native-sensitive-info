@@ -1,6 +1,6 @@
 # Introduction
 
-This module was produced by ClassApp Team and will be improved in future updates. `react-native-sensitive-info` manage all data stored in Android shared preferences. You can grab, set and get all keys/values using only one line of code.
+`react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
 
 # Install
 
@@ -8,16 +8,38 @@ Install `react-native-sensitive-info` using:
 
 ``npm i -S react-native-sensitive-info``
 
-After that, you should link `react-native-sensitive-info` in your project, to do so:
+## Linking project
+
+### Automatically
 
 `rnpm link react-native-sensitive-info`
 
-or
+### Manually
+
+#### iOS
+
+In XCode, in the project navigator:
+
+* Right click Libraries
+* Add Files to [your project's name]
+* Go to node_modules/react-native-sensitive-info
+* Add the .xcodeproj file
+
+In XCode, in the project navigator, select your project.
+
+* Add the libRNSensitiveInfo.a from the RNSensitiveInfo project to your project's Build Phases ➜ Link Binary With Libraries
+* Click .xcodeproj file you added before in the project navigator and go the Build Settings tab. Make sure 'All' is toggled on (instead of 'Basic').
+* Look for Header Search Paths and make sure it contains both $(SRCROOT)/../react-native/React and $(SRCROOT)/../../React - mark both as recursive. (Should be OK by default.)
+
+Run your project (Cmd+R)
+
+#### Android
 
 Go to `settings.gradle` inside your android project folder and paste this lines there:
 
 ```java
 include ':react-native-sensitive-info'
+
 project(':react-native-sensitive-info').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sensitive-info/android')
 ```
 
@@ -29,7 +51,7 @@ compile project(':react-native-sensitive-info')
 
 In your `MainActivity.java` add:
 ```java
-import br.com.classapp.RNGetSInfo.RNSensitiveInfoPackage; //<- You must import this
+import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
 
 protected List<ReactPackage> getPackages() {
     return Arrays.<ReactPackage>asList(
@@ -43,11 +65,11 @@ Sync gradle and go :)
 
 #Methods
 
-`setPrefs(key, value)`: You can insert data into shared preferences using this method.
+`setItem(key, value)`: You can insert data into shared preferences using this method.
 
-`getPrefs('key').then(function(result){});)`: This promise will get value from given key.
+`setItem('key').then(function(result){});)`: This promise will get value from given key.
 
-`getAllPrefs(Callback)`: Will retrieve all keys and values from Shared Preferences
+`getAllItems(Callback)`: Will retrieve all keys and values from Shared Preferences or Keychain
 
 # How to use?
 
@@ -56,22 +78,21 @@ Here is a simple example:
 ```javascript
 import SInfo from 'react-native-sensitive-info';
 
-SInfo.setPrefs('key1', 'value1');
-SInfo.setPrefs('key2', 'value2');
-SInfo.setPrefs('key3', 'value3');
-SInfo.setPrefs('key4', 'value4');
-SInfo.setPrefs('key5', 'value5');
+SInfo.setItem('key1', 'value1');
+SInfo.setItem('key2', 'value2');
+SInfo.setItem('key3', 'value3');
+SInfo.setItem('key4', 'value4');
+SInfo.setItem('key5', 'value5');
 
-SInfo.getPrefs('key1').then(function(data) {
+SInfo.setItem('key1').then(function(data) {
   console.log(data);
 });
 
-SInfo.getAllPrefs(function(result){
+SInfo.getAllItems(function(result){
   console.log(result);
 });
 ```
 
 # Future Works
 
-  * Add support for iOS's keychain
   * Add support for Android's keystore
