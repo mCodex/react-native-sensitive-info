@@ -65,8 +65,7 @@ NSDictionary * makeError(NSError *error)
 }
 
 
-RCT_EXPORT_METHOD(setItem: withUsername:(NSString*)username withPassword:(NSString*)password){
-NSString *service = @"shared_preferences";
+RCT_EXPORT_METHOD(setItem:(NSString*)service username:(NSString*)username password:(NSString*)password){
 // Create dictionary of search parameters
   NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword),  kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, nil];
 
@@ -90,9 +89,6 @@ NSString *service = @"shared_preferences";
 }
 
 RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
-  if(service == nil) {
-    service = [[NSBundle mainBundle] bundleIdentifier];
-  }
 
   // Create dictionary of search parameters
   NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, kCFBooleanTrue, kSecReturnData, nil];
@@ -116,7 +112,7 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)re
   NSString* username = (NSString*) [found objectForKey:(__bridge id)(kSecAttrAccount)];
   NSString* password = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
 
-  resolve(@[[NSNull null], username, password]);
+  resolve(@[username, password]);
 
 }
 /*
