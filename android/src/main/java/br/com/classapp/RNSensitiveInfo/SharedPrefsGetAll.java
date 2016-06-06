@@ -12,7 +12,7 @@ import java.util.Map;
 public class SharedPrefsGetAll {
     private static final String SHARED_NAME = "shared_preferences";
 
-    public static WritableMap getAllPrefs(Context context){
+    public static WritableMap getAllItems(Context context){
         SharedPreferences prefs = context.getSharedPreferences(SHARED_NAME, Context.MODE_PRIVATE);
         Map<String, ?> allEntries = prefs.getAll();
         WritableMap resultData = new WritableNativeMap();
