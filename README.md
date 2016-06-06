@@ -69,7 +69,7 @@ Sync gradle and go :)
 
 `setItem('key').then(function(result){});)`: This promise will get value from given key.
 
-`getAllItems(Callback)`: Will retrieve all keys and values from Shared Preferences or Keychain
+`getAllItems(Callback)`: Will retrieve all keys and values from Shared Preferences (Only Android)
 
 # How to use?
 
