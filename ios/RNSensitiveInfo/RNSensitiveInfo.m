@@ -1,7 +1,7 @@
 /* Adapted From https://github.com/oblador/react-native-keychain */
 
 #import <Security/Security.h>
-#import "AppDelegate.h"
+#import "RNSensitiveInfo.h"
 #import "RCTConvert.h"
 #import "RCTBridge.h"
 #import "RCTUtils.h"
@@ -65,12 +65,8 @@ NSDictionary * makeError(NSError *error)
 }
 
 
-RCT_EXPORT_METHOD(setItem:(NSString*)service withUsername:(NSString*)username withPassword:(NSString*)password){
-  if(service == nil) {
-    service = [[NSBundle mainBundle] bundleIdentifier];
-  }
-
-  // Create dictionary of search parameters
+RCT_EXPORT_METHOD(setItem:(NSString*)service username:(NSString*)username password:(NSString*)password){
+// Create dictionary of search parameters
   NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword),  kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, nil];
 
   // Remove any old values from the keychain
@@ -93,9 +89,6 @@ RCT_EXPORT_METHOD(setItem:(NSString*)service withUsername:(NSString*)username wi
 }
 
 RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
-  if(service == nil) {
-    service = [[NSBundle mainBundle] bundleIdentifier];
-  }
 
   // Create dictionary of search parameters
   NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, kCFBooleanTrue, kSecReturnData, nil];
@@ -107,22 +100,22 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)re
 
   if (osStatus != noErr && osStatus != errSecItemNotFound) {
     NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    reject(@[makeError(error)]);
+    reject(@"no_events", @"There were no events", @[makeError(error)]);
   }
 
   found = (__bridge NSDictionary*)(foundTypeRef);
   if (!found) {
-    reject(@[[NSNull null]]);
+    reject(@"no_events", @"There were no events", @[[NSNull null]]);
   }
 
   // Found
   NSString* username = (NSString*) [found objectForKey:(__bridge id)(kSecAttrAccount)];
   NSString* password = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
 
-  resolve(@[[NSNull null], username, password]);
+  resolve(@[username, password]);
 
 }
-
+/*
 RCT_EXPORT_METHOD(resetGenericPasswordForService:(NSString*)service callback:(RCTResponseSenderBlock)callback){
   if(service == nil) {
     service = [[NSBundle mainBundle] bundleIdentifier];
@@ -140,5 +133,5 @@ RCT_EXPORT_METHOD(resetGenericPasswordForService:(NSString*)service callback:(RC
 
   callback(@[[NSNull null]]);
 
-}
+}*/
 @end

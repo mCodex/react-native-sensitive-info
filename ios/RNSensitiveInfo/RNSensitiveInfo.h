@@ -8,7 +8,6 @@
  */
 
  #import "RCTBridgeModule.h"
- #import "RCTLog.h"
 
  @interface RNSensitiveInfo : NSObject <RCTBridgeModule>
 

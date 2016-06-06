@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		00C302E51ABCBA2D00DB3ED1 /* libRCTActionSheet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 00C302AC1ABCB8CE00DB3ED1 /* libRCTActionSheet.a */; };
 		00C302E71ABCBA2D00DB3ED1 /* libRCTGeolocation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 00C302BA1ABCB90400DB3ED1 /* libRCTGeolocation.a */; };
 		00C302E81ABCBA2D00DB3ED1 /* libRCTImage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 00C302C01ABCB91800DB3ED1 /* libRCTImage.a */; };
 		00C302E91ABCBA2D00DB3ED1 /* libRCTNetwork.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 00C302DC1ABCB9D200DB3ED1 /* libRCTNetwork.a */; };
@@ -21,18 +20,13 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		146834051AC3E58100842450 /* libReact.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 146834041AC3E56700842450 /* libReact.a */; };
-		244C7564C7D34424BD70F862 /* libRCTActionSheet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BA1A4092918A4160A34CB692 /* libRCTActionSheet.a */; };
+		217A7EAEFC8B44EBB58CB7AD /* libRNSensitiveInfo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1184D49DDF79406BA38595A5 /* libRNSensitiveInfo.a */; };
+		714FD4B01BE14F5CBC95790A /* libRNGeocoder.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DB6F4AD37EB34E4B93BD75A7 /* libRNGeocoder.a */; };
 		832341BD1AAA6AB300B99B32 /* libRCTText.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 832341B51AAA6A8300B99B32 /* libRCTText.a */; };
+		AAFE6673ED5A49CE8F4B1E03 /* libRCTActionSheet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C0F48A391E1F41F7A7B70F93 /* libRCTActionSheet.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		00C302AB1ABCB8CE00DB3ED1 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 00C302A71ABCB8CE00DB3ED1 /* RCTActionSheet.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 134814201AA4EA6300B7C361;
-			remoteInfo = RCTActionSheet;
-		};
 		00C302B91ABCB90400DB3ED1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 00C302B51ABCB90400DB3ED1 /* RCTGeolocation.xcodeproj */;
@@ -103,33 +97,26 @@
 			remoteGlobalIDString = 58B5119B1A9E6C1200147676;
 			remoteInfo = RCTText;
 		};
-		F0D66CBD1CEDE4D300B750FE /* PBXContainerItemProxy */ = {
+		F09135AD1CEE435900FAEFD0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F0D66CAE1CEDE4D300B750FE /* RNSensitiveInfo.xcodeproj */;
+			containerPortal = D54D4F68B5D946AC8AA7F342 /* RNSensitiveInfo.xcodeproj */;
 			proxyType = 2;
-			remoteGlobalIDString = 13B07F961A680F5B00A75B9A;
+			remoteGlobalIDString = BF8FCF941BFFB184000FCD37;
 			remoteInfo = RNSensitiveInfo;
 		};
-		F0D66CBF1CEDE4D300B750FE /* PBXContainerItemProxy */ = {
+		F0CB54E61CEE3C2200C08A20 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = F0D66CAE1CEDE4D300B750FE /* RNSensitiveInfo.xcodeproj */;
+			containerPortal = DD4C70CAEA9C487B8CA83D2C /* RNGeocoder.xcodeproj */;
 			proxyType = 2;
-			remoteGlobalIDString = 00E356EE1AD99517003FC87E;
-			remoteInfo = RNSensitiveInfoTests;
+			remoteGlobalIDString = BF8FCF941BFFB184000FCD37;
+			remoteInfo = RNGeocoder;
 		};
-		F0D66CEE1CEDE79000B750FE /* PBXContainerItemProxy */ = {
+		F0CB550D1CEE3D0700C08A20 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = DE18022451B34BD6BC75CA84 /* RNSensitiveInfo.xcodeproj */;
+			containerPortal = 00C302A71ABCB8CE00DB3ED1 /* RCTActionSheet.xcodeproj */;
 			proxyType = 2;
-			remoteGlobalIDString = 13B07F961A680F5B00A75B9A;
-			remoteInfo = RNSensitiveInfo;
-		};
-		F0D66CF01CEDE79000B750FE /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DE18022451B34BD6BC75CA84 /* RNSensitiveInfo.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 00E356EE1AD99517003FC87E;
-			remoteInfo = RNSensitiveInfoTests;
+			remoteGlobalIDString = 134814201AA4EA6300B7C361;
+			remoteInfo = RCTActionSheet;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -143,6 +130,7 @@
 		00E356EE1AD99517003FC87E /* exampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = exampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* exampleTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = exampleTests.m; sourceTree = "<group>"; };
+		1184D49DDF79406BA38595A5 /* libRNSensitiveInfo.a */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = archive.ar; path = libRNSensitiveInfo.a; sourceTree = "<group>"; };
 		139105B61AF99BAD00B5F7CC /* RCTSettings.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTSettings.xcodeproj; path = "../node_modules/react-native/Libraries/Settings/RCTSettings.xcodeproj"; sourceTree = "<group>"; };
 		139FDEE61B06529A00C62182 /* RCTWebSocket.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTWebSocket.xcodeproj; path = "../node_modules/react-native/Libraries/WebSocket/RCTWebSocket.xcodeproj"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = example.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -155,9 +143,10 @@
 		146833FF1AC3E56700842450 /* React.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = React.xcodeproj; path = "../node_modules/react-native/React/React.xcodeproj"; sourceTree = "<group>"; };
 		78C398B01ACF4ADC00677621 /* RCTLinking.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTLinking.xcodeproj; path = "../node_modules/react-native/Libraries/LinkingIOS/RCTLinking.xcodeproj"; sourceTree = "<group>"; };
 		832341B01AAA6A8300B99B32 /* RCTText.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTText.xcodeproj; path = "../node_modules/react-native/Libraries/Text/RCTText.xcodeproj"; sourceTree = "<group>"; };
-		BA1A4092918A4160A34CB692 /* libRCTActionSheet.a */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = archive.ar; path = libRCTActionSheet.a; sourceTree = "<group>"; };
-		DE18022451B34BD6BC75CA84 /* RNSensitiveInfo.xcodeproj */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = "wrapper.pb-project"; name = RNSensitiveInfo.xcodeproj; path = "../node_modules/react-native-sensitive-info/ios/RNSensitiveInfo.xcodeproj"; sourceTree = "<group>"; };
-		F0D66CAE1CEDE4D300B750FE /* RNSensitiveInfo.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RNSensitiveInfo.xcodeproj; path = ../../ios/RNSensitiveInfo.xcodeproj; sourceTree = "<group>"; };
+		C0F48A391E1F41F7A7B70F93 /* libRCTActionSheet.a */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = archive.ar; path = libRCTActionSheet.a; sourceTree = "<group>"; };
+		D54D4F68B5D946AC8AA7F342 /* RNSensitiveInfo.xcodeproj */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = "wrapper.pb-project"; name = RNSensitiveInfo.xcodeproj; path = "../node_modules/react-native-sensitive-info/ios/RNSensitiveInfo.xcodeproj"; sourceTree = "<group>"; };
+		DB6F4AD37EB34E4B93BD75A7 /* libRNGeocoder.a */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = archive.ar; path = libRNGeocoder.a; sourceTree = "<group>"; };
+		DD4C70CAEA9C487B8CA83D2C /* RNGeocoder.xcodeproj */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = "wrapper.pb-project"; name = RNGeocoder.xcodeproj; path = "../node_modules/react-native-geocoder/ios/RNGeocoder.xcodeproj"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -173,7 +162,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				146834051AC3E58100842450 /* libReact.a in Frameworks */,
-				00C302E51ABCBA2D00DB3ED1 /* libRCTActionSheet.a in Frameworks */,
 				00C302E71ABCBA2D00DB3ED1 /* libRCTGeolocation.a in Frameworks */,
 				00C302E81ABCBA2D00DB3ED1 /* libRCTImage.a in Frameworks */,
 				133E29F31AD74F7200F7D852 /* libRCTLinking.a in Frameworks */,
@@ -182,7 +170,9 @@
 				832341BD1AAA6AB300B99B32 /* libRCTText.a in Frameworks */,
 				00C302EA1ABCBA2D00DB3ED1 /* libRCTVibration.a in Frameworks */,
 				139FDEF61B0652A700C62182 /* libRCTWebSocket.a in Frameworks */,
-				244C7564C7D34424BD70F862 /* libRCTActionSheet.a in Frameworks */,
+				714FD4B01BE14F5CBC95790A /* libRNGeocoder.a in Frameworks */,
+				AAFE6673ED5A49CE8F4B1E03 /* libRCTActionSheet.a in Frameworks */,
+				217A7EAEFC8B44EBB58CB7AD /* libRNSensitiveInfo.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,7 +182,7 @@
 		00C302A81ABCB8CE00DB3ED1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				00C302AC1ABCB8CE00DB3ED1 /* libRCTActionSheet.a */,
+				F0CB550E1CEE3D0700C08A20 /* libRCTActionSheet.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -305,7 +295,8 @@
 				832341B01AAA6A8300B99B32 /* RCTText.xcodeproj */,
 				00C302DF1ABCB9EE00DB3ED1 /* RCTVibration.xcodeproj */,
 				139FDEE61B06529A00C62182 /* RCTWebSocket.xcodeproj */,
-				DE18022451B34BD6BC75CA84 /* RNSensitiveInfo.xcodeproj */,
+				DD4C70CAEA9C487B8CA83D2C /* RNGeocoder.xcodeproj */,
+				D54D4F68B5D946AC8AA7F342 /* RNSensitiveInfo.xcodeproj */,
 			);
 			name = Libraries;
 			sourceTree = "<group>";
@@ -321,7 +312,6 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				F0D66CAE1CEDE4D300B750FE /* RNSensitiveInfo.xcodeproj */,
 				13B07FAE1A68108700A75B9A /* example */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				00E356EF1AD99517003FC87E /* exampleTests */,
@@ -340,20 +330,18 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		F0D66CAF1CEDE4D300B750FE /* Products */ = {
+		F091359F1CEE435900FAEFD0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F0D66CBE1CEDE4D300B750FE /* RNSensitiveInfo.app */,
-				F0D66CC01CEDE4D300B750FE /* RNSensitiveInfoTests.xctest */,
+				F09135AE1CEE435900FAEFD0 /* libRNSensitiveInfo.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		F0D66CE01CEDE79000B750FE /* Products */ = {
+		F0CB54D91CEE3C2200C08A20 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F0D66CEF1CEDE79000B750FE /* RNSensitiveInfo.app */,
-				F0D66CF11CEDE79000B750FE /* RNSensitiveInfoTests.xctest */,
+				F0CB54E71CEE3C2200C08A20 /* libRNGeocoder.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -465,12 +453,12 @@
 					ProjectRef = 146833FF1AC3E56700842450 /* React.xcodeproj */;
 				},
 				{
-					ProductGroup = F0D66CE01CEDE79000B750FE /* Products */;
-					ProjectRef = DE18022451B34BD6BC75CA84 /* RNSensitiveInfo.xcodeproj */;
+					ProductGroup = F0CB54D91CEE3C2200C08A20 /* Products */;
+					ProjectRef = DD4C70CAEA9C487B8CA83D2C /* RNGeocoder.xcodeproj */;
 				},
 				{
-					ProductGroup = F0D66CAF1CEDE4D300B750FE /* Products */;
-					ProjectRef = F0D66CAE1CEDE4D300B750FE /* RNSensitiveInfo.xcodeproj */;
+					ProductGroup = F091359F1CEE435900FAEFD0 /* Products */;
+					ProjectRef = D54D4F68B5D946AC8AA7F342 /* RNSensitiveInfo.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -482,13 +470,6 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		00C302AC1ABCB8CE00DB3ED1 /* libRCTActionSheet.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libRCTActionSheet.a;
-			remoteRef = 00C302AB1ABCB8CE00DB3ED1 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		00C302BA1ABCB90400DB3ED1 /* libRCTGeolocation.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -552,32 +533,25 @@
 			remoteRef = 832341B41AAA6A8300B99B32 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F0D66CBE1CEDE4D300B750FE /* RNSensitiveInfo.app */ = {
+		F09135AE1CEE435900FAEFD0 /* libRNSensitiveInfo.a */ = {
 			isa = PBXReferenceProxy;
-			fileType = wrapper.application;
-			path = RNSensitiveInfo.app;
-			remoteRef = F0D66CBD1CEDE4D300B750FE /* PBXContainerItemProxy */;
+			fileType = archive.ar;
+			path = libRNSensitiveInfo.a;
+			remoteRef = F09135AD1CEE435900FAEFD0 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F0D66CC01CEDE4D300B750FE /* RNSensitiveInfoTests.xctest */ = {
+		F0CB54E71CEE3C2200C08A20 /* libRNGeocoder.a */ = {
 			isa = PBXReferenceProxy;
-			fileType = wrapper.cfbundle;
-			path = RNSensitiveInfoTests.xctest;
-			remoteRef = F0D66CBF1CEDE4D300B750FE /* PBXContainerItemProxy */;
+			fileType = archive.ar;
+			path = libRNGeocoder.a;
+			remoteRef = F0CB54E61CEE3C2200C08A20 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		F0D66CEF1CEDE79000B750FE /* RNSensitiveInfo.app */ = {
+		F0CB550E1CEE3D0700C08A20 /* libRCTActionSheet.a */ = {
 			isa = PBXReferenceProxy;
-			fileType = wrapper.application;
-			path = RNSensitiveInfo.app;
-			remoteRef = F0D66CEE1CEDE79000B750FE /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		F0D66CF11CEDE79000B750FE /* RNSensitiveInfoTests.xctest */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.cfbundle;
-			path = RNSensitiveInfoTests.xctest;
-			remoteRef = F0D66CF01CEDE79000B750FE /* PBXContainerItemProxy */;
+			fileType = archive.ar;
+			path = libRCTActionSheet.a;
+			remoteRef = F0CB550D1CEE3D0700C08A20 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -705,6 +679,7 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(SRCROOT)/../node_modules/react-native/React/**",
+					"$(SRCROOT)/../node_modules/react-native-geocoder/ios/RNGeocoder",
 					"$(SRCROOT)/../node_modules/react-native-sensitive-info/ios/RNSensitiveInfo/**",
 				);
 				INFOPLIST_FILE = example/Info.plist;
@@ -725,6 +700,7 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(SRCROOT)/../node_modules/react-native/React/**",
+					"$(SRCROOT)/../node_modules/react-native-geocoder/ios/RNGeocoder",
 					"$(SRCROOT)/../node_modules/react-native-sensitive-info/ios/RNSensitiveInfo/**",
 				);
 				INFOPLIST_FILE = example/Info.plist;
@@ -775,6 +751,7 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(SRCROOT)/../node_modules/react-native/React/**",
+					"$(SRCROOT)/../node_modules/react-native-geocoder/ios/RNGeocoder",
 					"$(SRCROOT)/../node_modules/react-native-sensitive-info/ios/RNSensitiveInfo/**",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
@@ -816,6 +793,7 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					"$(SRCROOT)/../node_modules/react-native/React/**",
+					"$(SRCROOT)/../node_modules/react-native-geocoder/ios/RNGeocoder",
 					"$(SRCROOT)/../node_modules/react-native-sensitive-info/ios/RNSensitiveInfo/**",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 7.0;

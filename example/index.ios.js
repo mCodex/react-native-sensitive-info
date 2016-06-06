@@ -16,15 +16,23 @@ import RNSensitiveInfo from 'react-native-sensitive-info'; //<-- Add this line
 class example extends Component {
   render() {
 
+<<<<<<< HEAD
+    RNSensitiveInfo.setItem('test1','key1', 'value3');
+    //RNSensitiveInfo.setItem('key2', 'value2');
+    //RNSensitiveInfo.setItem('key3', 'value3');
+    //RNSensitiveInfo.setItem('key4', 'value4');
+    //RNSensitiveInfo.setItem('key5', 'value5');
+=======
     RNSensitiveInfo.setItem('key1', 'value1');
     /*RNSensitiveInfo.setItem('key2', 'value2');
     RNSensitiveInfo.setItem('key3', 'value3');
     RNSensitiveInfo.setItem('key4', 'value4');
     RNSensitiveInfo.setItem('key5', 'value5');
+>>>>>>> master
 
-    RNSensitiveInfo.setItem('key1').then(function(data) {
+    RNSensitiveInfo.getItem('test1').then(function(data) {
         console.log(data);
-    });*/
+    });
 
     /*RNSensitiveInfo.getAllItems(function(result){
       console.log(result.key1);
@@ -45,6 +53,7 @@ class example extends Component {
     );
   }
 }
+
 
 const styles = StyleSheet.create({
   container: {
