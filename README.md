@@ -92,6 +92,9 @@ SInfo.getAllItems(function(result){
   console.log(result);
 });
 ```
+#Contributing
+
+Pull requests are welcome :)
 
 # Future Works
 

@@ -88,10 +88,15 @@ RCT_EXPORT_METHOD(setItem:(NSString*)service username:(NSString*)username passwo
 
 }
 
-RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+RCT_EXPORT_METHOD(getItem:(NSString*)service key:(NSString *)key resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
 
   // Create dictionary of search parameters
-  NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, kCFBooleanTrue, kSecReturnData, nil];
+  NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
+                        service, kSecAttrService,
+                        key, kSecAttrAccount,
+                        kCFBooleanTrue, kSecReturnAttributes,
+                        kCFBooleanTrue, kSecReturnData,
+                        nil];
 
   // Look up server in the keychain
   NSDictionary* found = nil;
@@ -109,10 +114,9 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)re
   }
 
   // Found
-  NSString* username = (NSString*) [found objectForKey:(__bridge id)(kSecAttrAccount)];
   NSString* password = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
 
-  resolve(@[username, password]);
+  resolve(password);
 
 }
 
@@ -123,6 +127,7 @@ RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
     NSMutableDictionary *query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                   (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnAttributes,
                                   (__bridge id)kSecMatchLimitAll, (__bridge id)kSecMatchLimit,
+                                  (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnData,
                                   nil];
 
     NSArray *secItemClasses = [NSArray arrayWithObjects:
@@ -139,12 +144,6 @@ RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
         CFTypeRef result = NULL;
 
         SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
-        //[result removeObjectAtIndex:3];
-        NSLog(@"%@", (__bridge id)result);
-
-        //OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
-        //if (osStatus != noErr && osStatus != errSecItemNotFound) {
-
 
         if(result!=NULL){
             //[finalResult removeObjectAtIndex:3];
@@ -152,15 +151,20 @@ RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
             for (NSDictionary* item in (__bridge id)result) {
                 NSMutableDictionary *finalItem = [[NSMutableDictionary alloc] init];
 
-                [finalItem setObject:item[@"svce"] forKey:@"service"];
-                [finalItem setObject:item[@"acct"] forKey:@"key"];
+                [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrService)] forKey:@"service"];
+                [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrAccount)] forKey:@"key"];
+                [finalItem setObject:[[NSString alloc] initWithData:[item objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding] forKey:@"value"];
+
                 [finalResult addObject: finalItem];
 
             }
 
         }
-        //}
     }
+    if(finalResult != nil){
     resolve(@[finalResult]);
+    } else {
+        reject(@"no_events", @"There were no events", @[[NSNull null]]);
+    }
 }
 @end
