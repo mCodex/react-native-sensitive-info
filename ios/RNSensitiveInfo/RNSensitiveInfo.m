@@ -115,23 +115,52 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service resolver:(RCTPromiseResolveBlock)re
   resolve(@[username, password]);
 
 }
-/*
-RCT_EXPORT_METHOD(resetGenericPasswordForService:(NSString*)service callback:(RCTResponseSenderBlock)callback){
-  if(service == nil) {
-    service = [[NSBundle mainBundle] bundleIdentifier];
-  }
 
-  // Create dictionary of search parameters
-  NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, kCFBooleanTrue, kSecReturnData, nil];
+RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
 
-  // Remove any old values from the keychain
-  OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) dict);
-  if (osStatus != noErr && osStatus != errSecItemNotFound) {
-    NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    return callback(@[makeError(error)]);
-  }
+    NSMutableArray* finalResult = [[NSMutableArray alloc] init];
 
-  callback(@[[NSNull null]]);
+    NSMutableDictionary *query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                  (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnAttributes,
+                                  (__bridge id)kSecMatchLimitAll, (__bridge id)kSecMatchLimit,
+                                  nil];
 
-}*/
+    NSArray *secItemClasses = [NSArray arrayWithObjects:
+                               (__bridge id)kSecClassGenericPassword,
+                               (__bridge id)kSecClassInternetPassword,
+                               (__bridge id)kSecClassCertificate,
+                               (__bridge id)kSecClassKey,
+                               (__bridge id)kSecClassIdentity,
+                               nil];
+
+    for (id secItemClass in secItemClasses) {
+        [query setObject:secItemClass forKey:(__bridge id)kSecClass];
+
+        CFTypeRef result = NULL;
+
+        SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
+        //[result removeObjectAtIndex:3];
+        NSLog(@"%@", (__bridge id)result);
+
+        //OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
+        //if (osStatus != noErr && osStatus != errSecItemNotFound) {
+
+
+        if(result!=NULL){
+            //[finalResult removeObjectAtIndex:3];
+
+            for (NSDictionary* item in (__bridge id)result) {
+                NSMutableDictionary *finalItem = [[NSMutableDictionary alloc] init];
+
+                [finalItem setObject:item[@"svce"] forKey:@"service"];
+                [finalItem setObject:item[@"acct"] forKey:@"key"];
+                [finalResult addObject: finalItem];
+
+            }
+
+        }
+        //}
+    }
+    resolve(@[finalResult]);
+}
 @end
