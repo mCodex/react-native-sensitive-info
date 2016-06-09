@@ -1,3 +1,9 @@
+#React-Native-Sensitive-Info
+
+[![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
+
+This module is the next generation of [react-native-sensitive-info](https://www.npmjs.com/package/react-native-get-shared-prefs).
+
 # Introduction
 
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
@@ -63,17 +69,38 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-#Methods
+##Versions < 2.2.0
 
-`setItem(key, value)`: You can insert data into shared preferences using this method.
+###Android & iOS
 
-`setItem('key').then(function(result){});)`: This promise will get value from given key.
+`setItem('key', 'value')`: You can insert data into shared preferences/keychain using this method.
 
-`getAllItems(Callback)`: Will retrieve all keys and values from Shared Preferences (Only Android)
+`getItem('key').then(function(value){});)`: This promise will get value from given key.
+
+`getAllItems().then(function(result){});)`: Will retrieve all keys and values from Shared Preferences (Only for Android)
+
+
+##Since version >= 2.2.0 -> Currently master branch only
+
+###Android Methods
+
+`setItem('key', 'value')`: You can insert data into shared preferences using this method.
+
+`getItem('key').then(function(result){});)`: This promise will get value from given key.
+
+`getAllItems().then(function(result){});)`: Will retrieve all keys and values from Shared Preferences
+
+###iOS Methods
+
+`setItem('service', 'key', 'value')`: You can insert data into keychain using this method.
+
+`getItem('service', 'key').then(function(result){});)`: This promise will get value from given key.
+
+`getAllItems().then(function(result){});)`: Will retrieve all keys and values from keychain
 
 # How to use?
 
-Here is a simple example:
+Here is a simple Android example:
 
 ```javascript
 import SInfo from 'react-native-sensitive-info';
