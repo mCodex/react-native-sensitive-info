@@ -79,13 +79,6 @@ RCT_EXPORT_METHOD(setItem:(NSString*)service username:(NSString*)username passwo
   // Try to save to keychain
   osStatus = SecItemAdd((__bridge CFDictionaryRef) dict, NULL);
 
-  /*if (osStatus != noErr && osStatus != errSecItemNotFound) {
-    NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    return callback(@[makeError(error)]);
-  }
-
-  callback(@[[NSNull null]]);*/
-
 }
 
 RCT_EXPORT_METHOD(getItem:(NSString*)service key:(NSString *)key resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
@@ -110,7 +103,7 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service key:(NSString *)key resolver:(RCTPr
 
   found = (__bridge NSDictionary*)(foundTypeRef);
   if (!found) {
-    reject(@"no_events", @"There were no events", @[[NSNull null]]);
+    reject(@"no_events", @"There were no events", @"not found");
   }
 
   // Found
@@ -166,5 +159,21 @@ RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
     } else {
         reject(@"no_events", @"There were no events", @[[NSNull null]]);
     }
+}
+
+
+RCT_EXPORT_METHOD(deleteItem:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+
+    // Create dictionary of search parameters
+    NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, kCFBooleanTrue, kSecReturnData, nil];
+
+    // Remove any old values from the keychain
+    OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) dict);
+    if (osStatus != noErr && osStatus != errSecItemNotFound) {
+      NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
+      reject(@"no_events", @"There were no events", @[[NSNull null]]);
+    }
+
+    resolve(@[[NSNull null]]);
 }
 @end
