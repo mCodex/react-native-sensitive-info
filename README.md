@@ -1,8 +1,8 @@
-#React-Native-Sensitive-Info
+#React Native Sensitive Info
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
 
-This module is the next generation of [react-native-sensitive-info](https://www.npmjs.com/package/react-native-get-shared-prefs).
+This module is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
 
 # Introduction
 
