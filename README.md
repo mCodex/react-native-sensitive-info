@@ -80,7 +80,7 @@ Sync gradle and go :)
 `getAllItems().then(function(result){});)`: Will retrieve all keys and values from Shared Preferences (Only for Android)
 
 
-##Since version >= 2.2.0 -> Currently master branch only
+##Since version >= 2.2.0
 
 ###Android Methods
 
