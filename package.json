@@ -10,7 +10,8 @@
     "email": "i@classapp.com.br"
   },
   "contributors": [
-    "Mateus Andrade <mateus@classapp.co>"
+    "Mateus Andrade <mateus@classapp.co>",
+    "Samin Shams <samin@classapp.co>"
   ],
   "homepage": "https://github.com/classapp/react-native-sensitive-info",
   "bugs": {
