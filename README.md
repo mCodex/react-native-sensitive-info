@@ -88,7 +88,7 @@ Sync gradle and go :)
 
 `getItem('key').then(function(result){});)`: This promise will get value from given key.
 
-`getAllItems().then(function(result){});)`: Will retrieve all keys and values from Shared Preferences
+`getAllItems(Callback cb)`: Will retrieve all keys and values from Shared Preferences
 
 ###iOS Methods
 
