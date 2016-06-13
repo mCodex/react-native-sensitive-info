@@ -69,18 +69,33 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-##Versions < 2.2.0
+#Methods
 
-###Android & iOS
+##Since version >= 3.0.0 --> Currently master branch
 
-`setItem('key', 'value')`: You can insert data into shared preferences/keychain using this method.
+We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
-`getItem('key').then(function(value){});)`: This promise will get value from given key.
+`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this method.
 
-`getAllItems().then(function(result){});)`: Will retrieve all keys and values from Shared Preferences (Only for Android)
+`getItem(key, options)`: This promise will get value from given key.
 
+`deleteItem(key, options)`: (New method since this version) It will delete value from given key
 
-##Since version >= 2.2.0
+`getAllItems(options)`: Will retrieve all keys and values from Shared Preferences & Keychain
+
+"Options" is a new parameter (optional) that you can pass to our methods. But what does it do? Now, you can select which keychain's service (iOS) and shared preferences name (android) you can use. To do so:
+
+```javascript
+SInfo.setItem('key1', 'value1', {
+sharedPreferencesName: 'mySharedPrefs',
+keychainService: 'myKeychain'});
+```
+
+As I said before our "options" is optional, if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
+
+If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. In other hands if you used iOS's Keychain the default service is: **app** which is our default too.
+
+##Version = 2.2.0
 
 ###Android Methods
 
@@ -90,34 +105,35 @@ Sync gradle and go :)
 
 `getAllItems(Callback cb)`: Will retrieve all keys and values from Shared Preferences
 
-###iOS Methods
-
-`setItem('service', 'key', 'value')`: You can insert data into keychain using this method.
-
-`getItem('service', 'key').then(function(result){});)`: This promise will get value from given key.
-
-`getAllItems().then(function(result){});)`: Will retrieve all keys and values from keychain
-
 # How to use?
 
-Here is a simple Android example:
+Here is a simple example:
 
 ```javascript
 import SInfo from 'react-native-sensitive-info';
 
-SInfo.setItem('key1', 'value1');
+SInfo.setItem('key1', 'value1', {
+sharedPreferencesName: 'mySharedPrefs',
+keychainService: 'myKeychain'});
+
 SInfo.setItem('key2', 'value2');
-SInfo.setItem('key3', 'value3');
-SInfo.setItem('key4', 'value4');
-SInfo.setItem('key5', 'value5');
 
-SInfo.setItem('key1').then(function(data) {
-  console.log(data);
+SInfo.getItem('key1', {
+sharedPreferencesName: 'mySharedPrefs',
+keychainService: 'myKeychain'}).then(value => {
+    console.log(value) //value1
 });
 
-SInfo.getAllItems(function(result){
-  console.log(result);
+SInfo.getItem('key2').then(value => {
+    console.log(value) //value2
 });
+
+SInfo.getAllItems({
+sharedPreferencesName: 'mySharedPrefs',
+keychainService: 'myKeychain'}).then(values => {
+    console.log(values) //value1
+});
+
 ```
 #Contributing
 
