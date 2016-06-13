@@ -65,27 +65,47 @@ NSDictionary * makeError(NSError *error)
 }
 
 
-RCT_EXPORT_METHOD(setItem:(NSString*)service username:(NSString*)username password:(NSString*)password){
+RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDictionary *)options){
+
+    NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
+    if (keychainService == NULL) {
+        keychainService = @"app";
+    }
+
 // Create dictionary of search parameters
-  NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword),  kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, nil];
+  NSDictionary* query = [NSDictionary dictionaryWithObjectsAndKeys:
+                        (__bridge id)(kSecClassGenericPassword),  kSecClass,
+                        keychainService, kSecAttrService,
+                        kCFBooleanTrue, kSecReturnAttributes, nil];
 
   // Remove any old values from the keychain
-  OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) dict);
+  OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
 
   // Create dictionary of parameters to add
-  NSData* passwordData = [password dataUsingEncoding:NSUTF8StringEncoding];
-  dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, passwordData, kSecValueData, username, kSecAttrAccount, nil];
+  NSData* valueData = [value dataUsingEncoding:NSUTF8StringEncoding];
+  query = [NSDictionary dictionaryWithObjectsAndKeys:
+          (__bridge id)(kSecClassGenericPassword), kSecClass,
+          keychainService, kSecAttrService,
+          valueData, kSecValueData,
+          key, kSecAttrAccount, nil];
 
   // Try to save to keychain
-  osStatus = SecItemAdd((__bridge CFDictionaryRef) dict, NULL);
+  osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
 
 }
 
-RCT_EXPORT_METHOD(getItem:(NSString*)service key:(NSString *)key resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+
+
+    NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
+    if (keychainService == NULL) {
+        keychainService = @"app";
+    }
+
 
   // Create dictionary of search parameters
-  NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
-                        service, kSecAttrService,
+  NSDictionary* query = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
+                        keychainService, kSecAttrService,
                         key, kSecAttrAccount,
                         kCFBooleanTrue, kSecReturnAttributes,
                         kCFBooleanTrue, kSecReturnData,
@@ -94,7 +114,7 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service key:(NSString *)key resolver:(RCTPr
   // Look up server in the keychain
   NSDictionary* found = nil;
   CFTypeRef foundTypeRef = NULL;
-  OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef) dict, (CFTypeRef*)&foundTypeRef);
+  OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef) query, (CFTypeRef*)&foundTypeRef);
 
   if (osStatus != noErr && osStatus != errSecItemNotFound) {
     NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
@@ -103,25 +123,30 @@ RCT_EXPORT_METHOD(getItem:(NSString*)service key:(NSString *)key resolver:(RCTPr
 
   found = (__bridge NSDictionary*)(foundTypeRef);
   if (!found) {
-    reject(@"no_events", @"There were no events", @"not found");
+      resolve(nil);
+  } else {
+      // Found
+      NSString* value = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
+      resolve(value);
+
   }
-
-  // Found
-  NSString* password = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
-
-  resolve(password);
 
 }
 
-RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+RCT_EXPORT_METHOD(getAllItems:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+
+    NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
 
     NSMutableArray* finalResult = [[NSMutableArray alloc] init];
-
     NSMutableDictionary *query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                   (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnAttributes,
                                   (__bridge id)kSecMatchLimitAll, (__bridge id)kSecMatchLimit,
                                   (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnData,
                                   nil];
+
+    if (keychainService) {
+        [query setObject:keychainService forKey:kSecAttrService];
+    }
 
     NSArray *secItemClasses = [NSArray arrayWithObjects:
                                (__bridge id)kSecClassGenericPassword,
@@ -162,18 +187,22 @@ RCT_EXPORT_METHOD(getAllItems:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
 }
 
 
-RCT_EXPORT_METHOD(deleteItem:(NSString*)service resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options){
 
-    // Create dictionary of search parameters
-    NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass, service, kSecAttrService, kCFBooleanTrue, kSecReturnAttributes, kCFBooleanTrue, kSecReturnData, nil];
-
-    // Remove any old values from the keychain
-    OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) dict);
-    if (osStatus != noErr && osStatus != errSecItemNotFound) {
-      NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-      reject(@"no_events", @"There were no events", @[[NSNull null]]);
+    NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
+    if (keychainService == NULL) {
+        keychainService = @"app";
     }
 
-    resolve(@[[NSNull null]]);
+    // Create dictionary of search parameters
+    NSDictionary* query = [NSDictionary dictionaryWithObjectsAndKeys:
+                          (__bridge id)(kSecClassGenericPassword), kSecClass,
+                          keychainService, kSecAttrService,
+                          key, kSecAttrAccount,
+                          kCFBooleanTrue, kSecReturnAttributes,
+                          kCFBooleanTrue, kSecReturnData, nil];
+
+    // Remove any old values from the keychain
+    OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
 }
 @end
