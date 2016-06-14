@@ -2,6 +2,7 @@
   "name": "react-native-sensitive-info",
   "version": "2.2.0",
   "main": "RNSensitiveInfo.js",
+  "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },

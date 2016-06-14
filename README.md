@@ -71,7 +71,7 @@ Sync gradle and go :)
 
 #Methods
 
-##Since version >= 3.0.0 --> Currently master branch
+##Since version >= 3.0.0
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
@@ -83,7 +83,7 @@ We unified our library's methods to bring more efficiency and simplify the usabi
 
 `getAllItems(options)`: Will retrieve all keys and values from Shared Preferences & Keychain
 
-"Options" is a new parameter (optional) that you can pass to our methods. But what does it do? Now, you can select which keychain's service (iOS) and shared preferences name (android) you can use. To do so:
+"Options" is a new parameter (optional) that you can pass to our methods. But what does it do? Now, you can select which keychain's service (iOS) and shared preferences's name (android) you can use. To do so:
 
 ```javascript
 SInfo.setItem('key1', 'value1', {
@@ -91,7 +91,7 @@ sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'});
 ```
 
-As I said before our "options" is optional, if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
+But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
 
 If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. In other hands if you used iOS's Keychain the default service is: **app** which is our default too.
 
