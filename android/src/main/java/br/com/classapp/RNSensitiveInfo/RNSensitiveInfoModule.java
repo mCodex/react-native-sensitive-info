@@ -60,7 +60,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     SharedPreferences.Editor editor = mSharedPreferences.edit();
 
-    editor.remove(key);
+    editor.remove(key).apply();
   }
 
 
