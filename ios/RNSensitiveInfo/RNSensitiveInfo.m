@@ -78,9 +78,6 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
                         keychainService, kSecAttrService,
                         kCFBooleanTrue, kSecReturnAttributes, nil];
 
-  // Remove any old values from the keychain
-  OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
-
   // Create dictionary of parameters to add
   NSData* valueData = [value dataUsingEncoding:NSUTF8StringEncoding];
   query = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -90,7 +87,7 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
           key, kSecAttrAccount, nil];
 
   // Try to save to keychain
-  osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
+  OSStatus osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
 
 }
 
