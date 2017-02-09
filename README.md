@@ -8,6 +8,11 @@ This module is the next generation of [react-native-get-shared-prefs](https://ww
 
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
 
+| RN SensitiveInfo Version | Description                      |
+|--------------------------|----------------------------------|
+| 4.0+                     | Compatible with RN 0.40+         |
+| <= 3.0.2                 | Compatible with RN 0.40 or below |
+
 # Install
 
 Install `react-native-sensitive-info` using:
