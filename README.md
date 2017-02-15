@@ -23,7 +23,7 @@ Install `react-native-sensitive-info` using:
 
 ### Automatically
 
-`rnpm link react-native-sensitive-info`
+`react-native link react-native-sensitive-info`
 
 ### Manually
 
