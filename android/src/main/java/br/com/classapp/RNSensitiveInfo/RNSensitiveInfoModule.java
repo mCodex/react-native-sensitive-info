@@ -68,7 +68,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         
         mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
         String value = mSharedPreferences.getString(key, null);
-        if(value != null && options.hasKey("encrypt") && options.getBoolean("encrypt")){
+        if(value != null){
             try{
                 value = decrypt(value);
             } catch (Exception e) {
@@ -90,7 +90,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
         
         try {
-            putExtra(key, value, mSharedPreferences, options.hasKey("encrypt") && options.getBoolean("encrypt") );
+            putExtra(key, value, mSharedPreferences);
             pm.resolve(null);
         } catch (Exception e) {
             Log.d("RNSensitiveInfo", e.getCause().getMessage());
@@ -131,30 +131,22 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         Map<String, ?> allEntries = mSharedPreferences.getAll();
         WritableMap resultData = new WritableNativeMap();
         
-        Boolean encrypt = options.hasKey("encrypt") && options.getBoolean("encrypt");
-        
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             String value = entry.getValue().toString();
-            if(encrypt){
-                try {
-                    value = decrypt(value);
-                } catch (Exception e) {
-                    Log.d("RNSensitiveInfo", e.getCause().getMessage());
-                }
+            try {
+                value = decrypt(value);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", e.getCause().getMessage());
             }
             resultData.putString(entry.getKey(), value);
         }
         pm.resolve(resultData);
     }
     
-    private void putExtra(String key, String value, SharedPreferences mSharedPreferences, Boolean encrypt) throws Exception {
+    private void putExtra(String key, String value, SharedPreferences mSharedPreferences) throws Exception {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
-        if(encrypt) {
-            String encrypted = encrypt(value);
-            editor.putString(key, encrypted).apply();
-        } else {
-            editor.putString(key, value).apply();
-        }
+        String encrypted = encrypt(value);
+        editor.putString(key, encrypted).apply();
     }
     
     private void initKeyStore(Context context) throws Exception{
