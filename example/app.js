@@ -16,13 +16,15 @@ class example extends Component {
 
     SInfo.setItem('key1', 'value1', {
     sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'});
+    keychainService: 'myKeychain',
+    encrypt: true});
 
     SInfo.setItem('key2', 'value2');
 
     SInfo.getItem('key1', {
     sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'}).then(value => {
+    keychainService: 'myKeychain',
+    encrypt: true}).then(value => {
         console.log(value) //value1
     });
 
@@ -32,14 +34,16 @@ class example extends Component {
 
     SInfo.getAllItems({
     sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'}).then(values => {
+    keychainService: 'myKeychain',
+    encrypt: true}).then(values => {
         console.log(values) //value1
     });
 
     SInfo.deleteItem('key2');
     SInfo.deleteItem('key1',{
     sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'});
+    keychainService: 'myKeychain',
+    encrypt: true});
     
     return (
       <View style={styles.container}>
