@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+
 import {
   AppRegistry,
   StyleSheet,
@@ -7,55 +8,6 @@ import {
 } from 'react-native';
 
 import SInfo from 'react-native-sensitive-info';
-
-import RNSensitiveInfo from 'react-native-sensitive-info'; //<-- Add this line
-
-class example extends Component {
-
-  render() {
-
-    SInfo.setItem('key1', 'value1', {
-    sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'});
-
-    SInfo.setItem('key2', 'value2');
-
-    SInfo.getItem('key1', {
-    sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'}).then(value => {
-        console.log(value) //value1
-    });
-
-    SInfo.getItem('key2').then(value => {
-        console.log(value) //value2
-    });
-
-    SInfo.getAllItems({
-    sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'}).then(values => {
-        console.log(values) //value1
-    });
-
-    SInfo.deleteItem('key2');
-    SInfo.deleteItem('key1',{
-    sharedPreferencesName: 'mySharedPrefs',
-    keychainService: 'myKeychain'});
-
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit the values above and be sure debugging mode is enabled to see our magic happening 🌟
-        </Text>
-        <Text style={styles.instructions}>
-          Shake or press menu button for dev menu
-        </Text>
-      </View>
-    );
-  }
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -75,5 +27,55 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
+
+class example extends Component {
+
+  render() {
+    SInfo.setItem('key1', 'value1', {
+      sharedPreferencesName: 'mySharedPrefs',
+      keychainService: 'myKeychain',
+      encrypt: true });
+
+    SInfo.setItem('key2', 'value2');
+
+    SInfo.getItem('key1', {
+      sharedPreferencesName: 'mySharedPrefs',
+      keychainService: 'myKeychain',
+      encrypt: true }).then((value) => {
+        console.log(value); //value1
+      });
+
+    SInfo.getItem('key2').then((value) => {
+      console.log(value); //value2
+    });
+
+    SInfo.getAllItems({
+      sharedPreferencesName: 'mySharedPrefs',
+      keychainService: 'myKeychain',
+      encrypt: true }).then((values) => {
+        console.log(values); //value1
+      });
+
+    SInfo.deleteItem('key2');
+    SInfo.deleteItem('key1', {
+      sharedPreferencesName: 'mySharedPrefs',
+      keychainService: 'myKeychain',
+      encrypt: true });
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.welcome}>
+          Welcome to React Native!
+        </Text>
+        <Text style={styles.instructions}>
+          To get started, edit the values above and be sure debugging mode is enabled to see our magic happening 🌟
+        </Text>
+        <Text style={styles.instructions}>
+          Shake or press menu button for dev menu
+        </Text>
+      </View>
+    );
+  }
+}
 
 AppRegistry.registerComponent('example', () => example);

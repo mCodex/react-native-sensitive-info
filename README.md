@@ -74,9 +74,9 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-#Methods
+# Methods
 
-##Since version >= 3.0.0
+## Since version >= 3.0.0
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
@@ -93,7 +93,8 @@ We unified our library's methods to bring more efficiency and simplify the usabi
 ```javascript
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain'});
+keychainService: 'myKeychain',
+encript: true});
 ```
 
 But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
@@ -130,10 +131,6 @@ keychainService: 'myKeychain'}).then(values => {
 });
 
 ```
-#Contributing
+# Contributing
 
 Pull requests are welcome :)
-
-# Future Works
-
-  * Add support for Android's keystore
