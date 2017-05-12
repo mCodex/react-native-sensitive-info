@@ -40,14 +40,14 @@ class example extends Component {
     SInfo.deleteItem('key1',{
     sharedPreferencesName: 'mySharedPrefs',
     keychainService: 'myKeychain'});
-    
+
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>
           Welcome to React Native!
         </Text>
         <Text style={styles.instructions}>
-          To get started, edit index.android.js
+          To get started, edit the values above and be sure debugging mode is enabled to see our magic happening 🌟
         </Text>
         <Text style={styles.instructions}>
           Shake or press menu button for dev menu
