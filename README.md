@@ -1,4 +1,4 @@
-#React Native Sensitive Info
+# React Native Sensitive Info
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
 
