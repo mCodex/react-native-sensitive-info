@@ -6,10 +6,17 @@ import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
+import android.support.annotation.NonNull;
 import android.util.Base64;
 import android.util.Log;
 
-import com.facebook.react.bridge.*;
+import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,19 +38,18 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
-    
-    private SharedPreferences mSharedPreferences;
+
     private static final String AndroidKeyStore = "AndroidKeyStore";
-    private static final String RSA_MODE =  "RSA/ECB/PKCS1Padding";
+    private static final String RSA_MODE = "RSA/ECB/PKCS1Padding";
     private static final String AES_GCM = "AES/GCM/NoPadding";
     private static final String AES_ECB = "AES/ECB/PKCS7Padding";
     private static KeyStore keyStore;
     private static final String KEY_ALIAS = "SHARED_PREFERENCE_KEY";
     private static final String ENCRYPTED_KEY = "ENCRYPTED_KEY";
     private static final String ENCRYPTION_SHARED_PREFERENCE_NAME = "ENCRYPTION_SHARED_PREFERENCE";
-    private static final byte[] FIXED_IV = {0,1,2,3,4,5,6,7,8,9,0,1};
+    private static final byte[] FIXED_IV = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1};
     private static Key secretKey;
-    
+
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
         try {
@@ -52,85 +58,65 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             Log.d("RNSensitiveInfo", e.getCause().getMessage());
         }
     }
-    
+
     @Override
     public String getName() {
         return "RNSensitiveInfo";
     }
-    
+
     @ReactMethod
     public void getItem(String key, ReadableMap options, Promise pm) {
-        
-        String name = options.getString("sharedPreferencesName");
-        if (name == null) {
-            name = "app";
-        }
-        
-        mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-        String value = mSharedPreferences.getString(key, null);
-        if(value != null){
-            try{
+
+        String name = sharedPreferences(options);
+
+        String value = prefs(name).getString(key, null);
+        if (value != null) {
+            try {
                 value = decrypt(value);
             } catch (Exception e) {
                 Log.d("RNSensitiveInfo", e.getCause().getMessage());
             }
         }
-        
+
         pm.resolve(value);
     }
-    
+
     @ReactMethod
     public void setItem(String key, String value, ReadableMap options, Promise pm) {
-        
-        String name = options.getString("sharedPreferencesName");
-        if (name == null) {
-            name = "app";
-        }
-        
-        mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-        
+
+        String name = sharedPreferences(options);
+
         try {
-            putExtra(key, value, mSharedPreferences);
+            putExtra(key, value, prefs(name));
             pm.resolve(null);
         } catch (Exception e) {
             Log.d("RNSensitiveInfo", e.getCause().getMessage());
             pm.reject(e);
         }
     }
-    
-    
+
+
     @ReactMethod
     public void deleteItem(String key, ReadableMap options, Promise pm) {
-        
-        String name = options.getString("sharedPreferencesName");
-        if (name == null) {
-            name = "app";
-        }
-        
-        mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-        
-        SharedPreferences.Editor editor = mSharedPreferences.edit();
-        
+
+        String name = sharedPreferences(options);
+
+        SharedPreferences.Editor editor = prefs(name).edit();
+
         editor.remove(key).apply();
-        
+
         pm.resolve(null);
     }
-    
-    
-    
+
+
     @ReactMethod
     public void getAllItems(ReadableMap options, Promise pm) {
-        
-        String name = options.getString("sharedPreferencesName");
-        if (name == null) {
-            name = "app";
-        }
-        
-        mSharedPreferences = getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
-        
-        Map<String, ?> allEntries = mSharedPreferences.getAll();
+
+        String name = sharedPreferences(options);
+
+        Map<String, ?> allEntries = prefs(name).getAll();
         WritableMap resultData = new WritableNativeMap();
-        
+
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             String value = entry.getValue().toString();
             try {
@@ -142,14 +128,27 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
         pm.resolve(resultData);
     }
-    
+
+    private SharedPreferences prefs(String name) {
+        return getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
+    }
+
+    @NonNull
+    private String sharedPreferences(ReadableMap options) {
+        String name = options.hasKey("sharedPreferencesName") ? options.getString("sharedPreferencesName") : "app";
+        if (name == null) {
+            name = "app";
+        }
+        return name;
+    }
+
     private void putExtra(String key, String value, SharedPreferences mSharedPreferences) throws Exception {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
         String encrypted = encrypt(value);
         editor.putString(key, encrypted).apply();
     }
-    
-    private void initKeyStore(Context context) throws Exception{
+
+    private void initKeyStore(Context context) throws Exception {
         keyStore = KeyStore.getInstance(AndroidKeyStore);
         keyStore.load(null);
         // Generate the RSA key pairs
@@ -158,31 +157,31 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, AndroidKeyStore);
                 keyGenerator.init(
-                                  new KeyGenParameterSpec.Builder(KEY_ALIAS,
-                                                                  KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                                  .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                                  .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                                  .setRandomizedEncryptionRequired(false)
-                                  .build());
+                        new KeyGenParameterSpec.Builder(KEY_ALIAS,
+                                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                                .setRandomizedEncryptionRequired(false)
+                                .build());
                 keyGenerator.generateKey();
             } else {
                 Calendar start = Calendar.getInstance();
                 Calendar end = Calendar.getInstance();
                 end.add(Calendar.YEAR, 30);
                 KeyPairGeneratorSpec spec = new KeyPairGeneratorSpec.Builder(context)
-                .setAlias(KEY_ALIAS)
-                .setSubject(new X500Principal("CN=" + KEY_ALIAS))
-                .setSerialNumber(BigInteger.TEN)
-                .setStartDate(start.getTime())
-                .setEndDate(end.getTime())
-                .build();
+                        .setAlias(KEY_ALIAS)
+                        .setSubject(new X500Principal("CN=" + KEY_ALIAS))
+                        .setSerialNumber(BigInteger.TEN)
+                        .setStartDate(start.getTime())
+                        .setEndDate(end.getTime())
+                        .build();
                 KeyPairGenerator kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, AndroidKeyStore);
                 kpg.initialize(spec);
                 kpg.generateKeyPair();
             }
-            
+
         }
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             secretKey = ((KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
         } else {
@@ -199,52 +198,52 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 edit.putString(ENCRYPTED_KEY, encryptedKeyB64);
                 edit.commit();
             }
-            
+
             byte[] encryptedKey = Base64.decode(encryptedKeyB64, Base64.DEFAULT);
             byte[] key = rsaDecrypt(encryptedKey);
             secretKey = new SecretKeySpec(key, "AES");
         }
-        
-        
+
+
     }
-    
-    private byte[] rsaEncrypt(byte[] secret) throws Exception{
+
+    private byte[] rsaEncrypt(byte[] secret) throws Exception {
         KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
-        
+
         Cipher inputCipher = Cipher.getInstance(RSA_MODE, "AndroidOpenSSL");
         inputCipher.init(Cipher.ENCRYPT_MODE, privateKeyEntry.getCertificate().getPublicKey());
-        
+
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream, inputCipher);
         cipherOutputStream.write(secret);
         cipherOutputStream.close();
-        
+
         return outputStream.toByteArray();
     }
-    
-    private  byte[] rsaDecrypt(byte[] encrypted) throws Exception {
+
+    private byte[] rsaDecrypt(byte[] encrypted) throws Exception {
         KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
-        
+
         Cipher outputCipher = Cipher.getInstance(RSA_MODE, "AndroidOpenSSL");
         outputCipher.init(Cipher.DECRYPT_MODE, privateKeyEntry.getPrivateKey());
-        
+
         CipherInputStream cipherInputStream = new CipherInputStream(new ByteArrayInputStream(encrypted), outputCipher);
         ArrayList<Byte> values = new ArrayList<>();
         int nextByte;
         while ((nextByte = cipherInputStream.read()) != -1) {
-            values.add((byte)nextByte);
+            values.add((byte) nextByte);
         }
-        
+
         byte[] bytes = new byte[values.size()];
-        for(int i = 0; i < bytes.length; i++) {
+        for (int i = 0; i < bytes.length; i++) {
             bytes[i] = values.get(i).byteValue();
         }
         return bytes;
     }
-    
+
     public String encrypt(String input) throws Exception {
         byte[] bytes = input.getBytes();
-        
+
         Cipher c;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             c = Cipher.getInstance(AES_GCM);
@@ -254,15 +253,15 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             c.init(Cipher.ENCRYPT_MODE, secretKey);
         }
         byte[] encodedBytes = c.doFinal(bytes);
-        String encryptedBase64Encoded =  Base64.encodeToString(encodedBytes, Base64.DEFAULT);
+        String encryptedBase64Encoded = Base64.encodeToString(encodedBytes, Base64.DEFAULT);
         return encryptedBase64Encoded;
     }
-    
-    
+
+
     public String decrypt(String encrypted) throws Exception {
         Cipher c;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            c =Cipher.getInstance(AES_GCM);
+            c = Cipher.getInstance(AES_GCM);
             c.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, FIXED_IV));
         } else {
             c = Cipher.getInstance(AES_ECB, "BC");
