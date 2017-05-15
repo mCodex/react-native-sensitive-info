@@ -1,12 +1,14 @@
 # React Native Sensitive Info
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This module is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
+**react-native-sensitive-info**  is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
 
 # Introduction
 
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
+
 
 | RN SensitiveInfo Version | Description                      |
 |--------------------------|----------------------------------|
@@ -74,7 +76,13 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-# Methods
+# Changelog
+
+## Since version >= 5.0.0
+
+We introduced **Android Keystore** securitY into our library. Also, we've fixed some issues and updated example.
+
+Thanks to all contributors who helped us on our journey :)
 
 ## Since version >= 3.0.0
 
@@ -110,7 +118,9 @@ import SInfo from 'react-native-sensitive-info';
 
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain'});
+keychainService: 'myKeychain',
+encrypt: true
+});
 
 SInfo.setItem('key2', 'value2');
 
@@ -129,8 +139,8 @@ sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'}).then(values => {
     console.log(values) //value1
 });
-
 ```
+
 # Contributing
 
-Pull requests are welcome :)
+Pull requests are always welcome :)
