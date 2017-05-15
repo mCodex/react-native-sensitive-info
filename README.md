@@ -80,7 +80,7 @@ Sync gradle and go :)
 
 ## Since version >= 5.0.0
 
-We introduced **Android Keystore** securitY into our library. Also, we've fixed some issues and updated example.
+We introduced **Android Keystore** security into our library. Also, we've fixed some issues and updated example.
 
 Thanks to all contributors who helped us on our journey :)
 
