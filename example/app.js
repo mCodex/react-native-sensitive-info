@@ -33,34 +33,41 @@ class example extends Component {
   render() {
     SInfo.setItem('key1', 'value1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true });
+      keychainService: 'myKeychain' });
 
-    SInfo.setItem('key2', 'value2');
+    SInfo.setItem('key2', 'value2', {});
+
+    SInfo.setItem('key3', 'value3', {
+      keychainService: 'myKeychain'
+    });
 
     SInfo.getItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true }).then((value) => {
+      keychainService: 'myKeychain' }).then((value) => {
         console.log(value); //value1
       });
 
-    SInfo.getItem('key2').then((value) => {
+    SInfo.getItem('key2', {}).then((value) => {
       console.log(value); //value2
+    });
+
+    SInfo.getItem('key3', {}).then((value) => {
+      console.log(value); //value3
     });
 
     SInfo.getAllItems({
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true }).then((values) => {
-        console.log(values); //value1
+      keychainService: 'myKeychain' }).then((values) => {
+        console.log(values); //value1, value2
       });
 
-    SInfo.deleteItem('key2');
+    SInfo.getAllItems({}).then((values) => {
+      console.log(values); //value3, value2
+    });
+
     SInfo.deleteItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true });
+      keychainService: 'myKeychain' });
 
     return (
       <View style={styles.container}>

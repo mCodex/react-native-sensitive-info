@@ -1,3 +1,1 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="br.com.classapp.RNSensitiveInfo">
-</manifest>
+<manifest package="br.com.classapp.RNSensitiveInfo"></manifest>

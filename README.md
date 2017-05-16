@@ -80,7 +80,7 @@ Sync gradle and go :)
 
 ## Since version >= 5.0.0
 
-We introduced **Android Keystore** security into our library. Also, we've fixed some issues and updated example.
+We've fixed some issues and updated example.
 
 Thanks to all contributors who helped us on our journey :)
 
@@ -101,8 +101,7 @@ We unified our library's methods to bring more efficiency and simplify the usabi
 ```javascript
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain',
-encript: true});
+keychainService: 'myKeychain'});
 ```
 
 But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
@@ -118,11 +117,10 @@ import SInfo from 'react-native-sensitive-info';
 
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain',
-encrypt: true
+keychainService: 'myKeychain'
 });
 
-SInfo.setItem('key2', 'value2');
+SInfo.setItem('key2', 'value2', {});
 
 SInfo.getItem('key1', {
 sharedPreferencesName: 'mySharedPrefs',
@@ -137,7 +135,7 @@ SInfo.getItem('key2').then(value => {
 SInfo.getAllItems({
 sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'}).then(values => {
-    console.log(values) //value1
+    console.log(values) //value1, value2
 });
 ```
 
