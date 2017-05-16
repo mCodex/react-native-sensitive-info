@@ -76,15 +76,7 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-# Changelog
-
-## Since version >= 5.0.0
-
-We've fixed some issues and updated example.
-
-Thanks to all contributors who helped us on our journey :)
-
-## Since version >= 3.0.0
+# Methods
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
@@ -104,7 +96,11 @@ sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'});
 ```
 
-But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
+But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**. For that, use:
+
+```javascript
+SInfo.setItem('key1', 'value1', {});
+```
 
 If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. In other hands if you used iOS's Keychain the default service is: **app** which is our default too.
 
