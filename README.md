@@ -124,7 +124,7 @@ keychainService: 'myKeychain'}).then(value => {
     console.log(value) //value1
 });
 
-SInfo.getItem('key2').then(value => {
+SInfo.getItem('key2',{}).then(value => {
     console.log(value) //value2
 });
 
