@@ -2,6 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.png?v=103)](https://github.com/ellerbrock/open-source-badges/)
+
 
 **react-native-sensitive-info**  is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
 
@@ -19,7 +21,7 @@
 
 Install `react-native-sensitive-info` using:
 
-``npm i -S react-native-sensitive-info``
+``npm i -S react-native-sensitive-info`` or ``yarn add react-native-sensitive-info``
 
 ## Linking project
 
