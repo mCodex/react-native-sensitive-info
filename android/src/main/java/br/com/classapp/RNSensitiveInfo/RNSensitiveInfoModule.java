@@ -43,7 +43,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         try {
             putExtra(key, value, prefs(name));
-            pm.resolve(null);
+            pm.resolve(value);
         } catch (Exception e) {
             Log.d("RNSensitiveInfo", e.getCause().getMessage());
             pm.reject(e);
