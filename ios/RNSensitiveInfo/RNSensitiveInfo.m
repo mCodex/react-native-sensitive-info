@@ -65,7 +65,7 @@ NSDictionary * makeError(NSError *error)
 }
 
 
-RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDictionary *)options){
+RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
 
     NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
     if (keychainService == NULL) {
@@ -81,6 +81,8 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
 
     OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
     osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
+
+    resolve(value);
 }
 
 RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
