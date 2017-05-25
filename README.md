@@ -82,11 +82,11 @@ Sync gradle and go :)
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
-`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this method.
+`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this promise method.
 
 `getItem(key, options)`: This promise will get value from given key.
 
-`deleteItem(key, options)`: (New method since this version) It will delete value from given key
+`deleteItem(key, options)`: It will delete value from given key
 
 `getAllItems(options)`: Will retrieve all keys and values from Shared Preferences & Keychain
 
