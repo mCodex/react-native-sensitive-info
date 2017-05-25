@@ -35,7 +35,9 @@ class example extends Component {
       sharedPreferencesName: 'mySharedPrefs',
       keychainService: 'myKeychain' });
 
-    SInfo.setItem('key2', 'value2', {});
+    SInfo.setItem('key2', 'value2', {}).then((test) => {
+      console.log('My test', test); //Value 2
+    });
 
     SInfo.setItem('key3', 'value3', {
       keychainService: 'myKeychain'

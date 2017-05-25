@@ -116,7 +116,9 @@ import SInfo from 'react-native-sensitive-info';
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'
-});
+}).then((value) =>
+        console.log(value) //value 1
+);
 
 SInfo.setItem('key2', 'value2', {});
 
