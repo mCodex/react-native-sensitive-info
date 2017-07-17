@@ -9,7 +9,7 @@
 
 # Introduction
 
-`react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
+`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
 
 
 | RN SensitiveInfo Version | Description                      |

@@ -1,15 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ReactNative.Bridge;
 using Newtonsoft.Json.Linq;
-using Windows.Storage;
-using System.Text.RegularExpressions;
-using System.IO;
 using Windows.Security.Credentials;
-using Windows.ApplicationModel;
 
 namespace RNSensitiveInfo
 {
