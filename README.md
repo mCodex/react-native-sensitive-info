@@ -88,7 +88,7 @@ Sync gradle and go :)
 
 * Right click on your React Native Windows app under your solutions directory and click Add > Reference....
 
-* Check the RNSqlite2 you just added and press Ok
+* Check the RNSensitiveInfo you just added and press Ok
 
 * Open MainPage.cs in your app
 
@@ -100,7 +100,7 @@ get
       return new List<IReactPackage>
       {
           new MainReactPackage(),
-          new RNSqlite2Package(),
+          new RNSensitiveInfoPackage(),
       };
   }
 ```
