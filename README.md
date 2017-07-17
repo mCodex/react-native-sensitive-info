@@ -9,7 +9,7 @@
 
 # Introduction
 
-`react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
+`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
 
 
 | RN SensitiveInfo Version | Description                      |
@@ -77,6 +77,33 @@ protected List<ReactPackage> getPackages() {
 ```
 
 Sync gradle and go :)
+
+#### Windows
+
+* Open the solution in Visual Studio for your Windows apps.
+
+* Right click your in the Explorer and click Add > Existing Project....
+
+* Navigate to ./<app-name>/node_modules/react-native-sensitive-info/windows/RNSensitiveInfo/RNSensitiveInfo/ and add RNSensitiveInfo.csproj.
+
+* Right click on your React Native Windows app under your solutions directory and click Add > Reference....
+
+* Check the RNSensitiveInfo you just added and press Ok
+
+* Open MainPage.cs in your app
+
+```
+using RNSqlite2;
+
+get
+  {
+      return new List<IReactPackage>
+      {
+          new MainReactPackage(),
+          new RNSensitiveInfoPackage(),
+      };
+  }
+```
 
 # Methods
 
