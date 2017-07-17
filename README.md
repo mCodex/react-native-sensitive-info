@@ -78,6 +78,33 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
+#### Windows
+
+* Open the solution in Visual Studio for your Windows apps.
+
+* Right click your in the Explorer and click Add > Existing Project....
+
+* Navigate to ./<app-name>/node_modules/react-native-sensitive-info/windows/RNSensitiveInfo/RNSensitiveInfo/ and add RNSensitiveInfo.csproj.
+
+* Right click on your React Native Windows app under your solutions directory and click Add > Reference....
+
+* Check the RNSqlite2 you just added and press Ok
+
+* Open MainPage.cs in your app
+
+```
+using RNSqlite2;
+
+get
+  {
+      return new List<IReactPackage>
+      {
+          new MainReactPackage(),
+          new RNSqlite2Package(),
+      };
+  }
+```
+
 # Methods
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
