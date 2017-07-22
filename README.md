@@ -139,6 +139,10 @@ keychainService: 'myKeychain'}).then(values => {
 });
 ```
 
+# Use with redux-persist
+
+If you would like to use [redux-persist](https://github.com/rt2zz/redux-persist) to store information from your Redux state into secure storage, you can use [redux-persist-sensitive-storage](https://github.com/CodingZeal/redux-persist-sensitive-storage), which provides a custom storage back-end for redux-persist that uses react-native-sensitive-info.
+
 # Contributing
 
 Pull requests are always welcome :)
