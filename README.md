@@ -1,12 +1,16 @@
-#React Native Sensitive Info
+# React Native Sensitive Info
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.png?v=103)](https://github.com/ellerbrock/open-source-badges/)
 
-This module is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
+
+**react-native-sensitive-info**  is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
 
 # Introduction
 
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
+
 
 | RN SensitiveInfo Version | Description                      |
 |--------------------------|----------------------------------|
@@ -17,7 +21,7 @@ This module is the next generation of [react-native-get-shared-prefs](https://ww
 
 Install `react-native-sensitive-info` using:
 
-``npm i -S react-native-sensitive-info``
+``npm i -S react-native-sensitive-info`` or ``yarn add react-native-sensitive-info``
 
 ## Linking project
 
@@ -60,7 +64,7 @@ and paste it into `build.gradle`:
 compile project(':react-native-sensitive-info')
 ```
 
-In your `MainActivity.java` add:
+In your `MainApplication.java` add:
 ```java
 import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
 
@@ -74,17 +78,15 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-#Methods
-
-##Since version >= 3.0.0
+# Methods
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
-`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this method.
+`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this promise method.
 
 `getItem(key, options)`: This promise will get value from given key.
 
-`deleteItem(key, options)`: (New method since this version) It will delete value from given key
+`deleteItem(key, options)`: It will delete value from given key
 
 `getAllItems(options)`: Will retrieve all keys and values from Shared Preferences & Keychain
 
@@ -96,7 +98,11 @@ sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'});
 ```
 
-But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
+But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**. For that, use:
+
+```javascript
+SInfo.setItem('key1', 'value1', {});
+```
 
 If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. In other hands if you used iOS's Keychain the default service is: **app** which is our default too.
 
@@ -109,9 +115,12 @@ import SInfo from 'react-native-sensitive-info';
 
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain'});
+keychainService: 'myKeychain'
+}).then((value) =>
+        console.log(value) //value 1
+);
 
-SInfo.setItem('key2', 'value2');
+SInfo.setItem('key2', 'value2', {});
 
 SInfo.getItem('key1', {
 sharedPreferencesName: 'mySharedPrefs',
@@ -119,21 +128,21 @@ keychainService: 'myKeychain'}).then(value => {
     console.log(value) //value1
 });
 
-SInfo.getItem('key2').then(value => {
+SInfo.getItem('key2',{}).then(value => {
     console.log(value) //value2
 });
 
 SInfo.getAllItems({
 sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'}).then(values => {
-    console.log(values) //value1
+    console.log(values) //value1, value2
 });
-
 ```
-#Contributing
 
-Pull requests are welcome :)
+# Use with redux-persist
 
-# Future Works
+If you would like to use [redux-persist](https://github.com/rt2zz/redux-persist) to store information from your Redux state into secure storage, you can use [redux-persist-sensitive-storage](https://github.com/CodingZeal/redux-persist-sensitive-storage), which provides a custom storage back-end for redux-persist that uses react-native-sensitive-info.
 
-  * Add support for Android's keystore
+# Contributing
+
+Pull requests are always welcome :)
