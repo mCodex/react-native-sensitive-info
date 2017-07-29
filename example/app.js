@@ -43,6 +43,16 @@ class example extends Component {
       keychainService: 'myKeychain'
     });
 
+    SInfo.setItem('key4', 'touchIDProtected', {
+      keychainService: 'myKeychain',
+      touchID: true
+    });
+
+    SInfo.setItem('key5', 'kSecAttrAccessibleValue', {
+      keychainService: 'myKeychain',
+      kSecAttrAccessible: 'kSecAttrAccessibleAlways'
+    });
+
     SInfo.getItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
       keychainService: 'myKeychain' }).then((value) => {
@@ -57,6 +67,15 @@ class example extends Component {
       console.log(value); //value3
     });
 
+    SInfo.getItem('key4', {
+      keychainService: 'myKeychain',
+      kSecUseOperationPrompt: 'Authenticate to access me'
+    }).then((values) => {
+        console.log(values); //value1, value2
+      }).catch((error)=>{
+        console.log('user cancelled')
+      });
+
     SInfo.getAllItems({
       sharedPreferencesName: 'mySharedPrefs',
       keychainService: 'myKeychain' }).then((values) => {
@@ -69,7 +88,9 @@ class example extends Component {
 
     SInfo.deleteItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain' });
+      keychainService: 'myKeychain' }).then((values) => {
+        console.log('deleted');
+      });
 
     return (
       <View style={styles.container}>
