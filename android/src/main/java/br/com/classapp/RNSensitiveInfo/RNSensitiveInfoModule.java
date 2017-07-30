@@ -34,7 +34,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 
-public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
+public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     // This must have 'AndroidKeyStore' as value. Unfortunately there is no predefined constant.
     private static final String ANDROID_KEYSTORE_PROVIDER = "AndroidKeyStore";
@@ -103,7 +103,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
 
         String value = prefs(name).getString(key, null);
 
-        if(value != null && options.getBoolean("TouchID")){
+        if(value != null && options.hasKey("touchID") && options.getBoolean("touchID")){
             decryptWithAes(value, pm, null);
         } else {
             pm.resolve(value);
@@ -115,7 +115,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
 
         String name = sharedPreferences(options);
 
-        if(options.getBoolean("TouchID")){
+        if(options.hasKey("touchID") && options.getBoolean("touchID")){
             putExtraWithAES(key, value, prefs(name), pm, null);
         } else {
             try {
@@ -155,6 +155,13 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
             resultData.putString(entry.getKey(), value);
         }
         pm.resolve(resultData);
+    }
+
+    @ReactMethod
+    public void cancelFingerprintAuth() {
+        if(mCancellationSignal != null && !mCancellationSignal.isCanceled()) {
+            mCancellationSignal.cancel();
+        }
     }
 
     private SharedPreferences prefs(String name) {
@@ -222,10 +229,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
     }
 
     private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final Promise pm, Cipher cipher) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
-                && ActivityCompat.checkSelfPermission(getReactApplicationContext(), Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED
-                && hasSetupFingerprint()) {
-
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && hasSetupFingerprint()) {
             try {
                 if(cipher == null) {
                     SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
@@ -247,20 +251,21 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
                                     @Override
                                     public void onAuthenticationFailed() {
                                         super.onAuthenticationFailed();
-                                        pm.reject("AuthenticationFailed", "AuthenticationFailed");
+                                        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized");
                                     }
 
                                     @Override
                                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                                         super.onAuthenticationError(errorCode, errString);
-                                        pm.reject("AuthenticationFailed", errString.toString());
+                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR", errString.toString());
                                     }
 
                                     @Override
                                     public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
                                         super.onAuthenticationHelp(helpCode, helpString);
                                         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_SCANNER_AUTHENTICATION", helpString.toString());
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
                                     }
 
                                     @Override
@@ -272,6 +277,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
                                     }
                                 }, null);
                     }
+                    return;
                 }
                 byte[] encryptedBytes = cipher.doFinal(value.getBytes());
 
@@ -283,6 +289,8 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
 
                 putExtra(key, result, mSharedPreferences);
                 pm.resolve(value);
+            } catch (SecurityException e) {
+                pm.reject(e);
             } catch (Exception e) {
                 pm.reject(e);
             }
@@ -293,7 +301,6 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
 
     private void decryptWithAes(final String encrypted, final Promise pm, Cipher cipher) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
-                && ActivityCompat.checkSelfPermission(getReactApplicationContext(), Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED
                 && hasSetupFingerprint()) {
 
             String[] inputs = encrypted.split(DELIMITER);
@@ -324,20 +331,21 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
                                     @Override
                                     public void onAuthenticationFailed() {
                                         super.onAuthenticationFailed();
-                                        pm.reject("AuthenticationFailed", "AuthenticationFailed");
+                                        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized");
                                     }
 
                                     @Override
                                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                                         super.onAuthenticationError(errorCode, errString);
-                                        pm.reject("AuthenticationFailed", errString.toString());
+                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR", errString.toString());
                                     }
 
                                     @Override
                                     public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
                                         super.onAuthenticationHelp(helpCode, helpString);
                                         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_SCANNER_AUTHENTICATION", helpString.toString());
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
                                     }
 
                                     @Override
@@ -349,9 +357,12 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
                                     }
                                 }, null);
                     }
+                    return;
                 }
                 byte[] decryptedBytes = cipher.doFinal(cipherBytes);
                 pm.resolve(new String(decryptedBytes));
+            } catch (SecurityException e) {
+                pm.reject(e);
             } catch (Exception e) {
                 pm.reject(e);
             }
@@ -359,21 +370,4 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule implements
             pm.reject("Fingerprint not supported", "Fingerprint not supported");
         }
     }
-
-    @Override
-    public void onHostResume() {
-    }
-
-    @Override
-    public void onHostPause() {
-        if(mCancellationSignal != null) {
-            mCancellationSignal.cancel();
-        }
-    }
-
-    @Override
-    public void onHostDestroy() {
-
-    }
-
 }
