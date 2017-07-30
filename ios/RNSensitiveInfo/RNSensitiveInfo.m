@@ -114,7 +114,7 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
     osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
     if (osStatus != noErr) {
         NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-        reject([NSString stringWithFormat:@"%ld",error.code], messageForError(error), nil);
+        reject([NSString stringWithFormat:@"%ld",(long)error.code], messageForError(error), nil);
         return;
     }
     resolve(nil);
@@ -147,7 +147,7 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
 
   if (osStatus != noErr && osStatus != errSecItemNotFound) {
     NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    reject([NSString stringWithFormat:@"%ld",error.code], messageForError(error), nil);
+    reject([NSString stringWithFormat:@"%ld",(long)error.code], messageForError(error), nil);
     return;
   }
 
@@ -234,9 +234,9 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
 
     // Remove any old values from the keychain
     OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
-    if (osStatus != noErr) {
+    if (osStatus != noErr && osStatus != errSecItemNotFound) {
         NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-        reject([NSString stringWithFormat:@"%ld",error.code], messageForError(error), nil);
+        reject([NSString stringWithFormat:@"%ld",(long)error.code], messageForError(error), nil);
         return;
     }
     resolve(nil);
