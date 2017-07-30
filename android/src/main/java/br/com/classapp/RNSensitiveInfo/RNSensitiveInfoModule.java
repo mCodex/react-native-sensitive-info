@@ -2,6 +2,8 @@ package br.com.classapp.RNSensitiveInfo;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.hardware.fingerprint.FingerprintManager;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -17,13 +19,47 @@ import java.util.Map;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
+    private FingerprintManager mFingerprintManager;
+
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
+        mFingerprintManager = (FingerprintManager) reactContext.getSystemService(Context.FINGERPRINT_SERVICE);
     }
 
     @Override
     public String getName() {
         return "RNSensitiveInfo";
+    }
+
+    /**
+     * Checks whether the device supports fingerprint authentication and if the user has
+     * enrolled at least one fingerprint.
+     *
+     * @return true if the user has a fingerprint capable device and has enrolled
+     * one or more fingerprints
+     */
+    private boolean hasSetupFingerprint() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (!mFingerprintManager.isHardwareDetected()) {
+                    return false;
+                } else if (!mFingerprintManager.hasEnrolledFingerprints()) {
+                    return false;
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (SecurityException e) {
+            // Should never be thrown since we have declared the USE_FINGERPRINT permission
+            // in the manifest file
+            return false;
+        }
+    }
+
+    @ReactMethod
+    public void isSensorAvailable(final Promise promise) {
+        promise.resolve(hasSetupFingerprint());
     }
 
     @ReactMethod

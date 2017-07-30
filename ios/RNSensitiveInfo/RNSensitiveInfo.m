@@ -5,6 +5,7 @@
 #import "React/RCTConvert.h"
 #import "React/RCTBridge.h"
 #import "React/RCTUtils.h"
+#import <LocalAuthentication/LocalAuthentication.h>
 
 @implementation RNSensitiveInfo
 
@@ -239,5 +240,16 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
         return;
     }
     resolve(nil);
+}
+
+RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+    LAContext *context = [[LAContext alloc] init];
+    
+    if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
+        resolve(@(YES));
+    } else {
+        resolve(@(NO));
+    }
 }
 @end
