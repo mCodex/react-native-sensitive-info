@@ -254,7 +254,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                     @Override
                                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                                         super.onAuthenticationError(errorCode, errString);
-                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR", errString.toString());
+                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR_" + errorCode, errString.toString());
                                     }
 
                                     @Override
@@ -334,7 +334,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                     @Override
                                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                                         super.onAuthenticationError(errorCode, errString);
-                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR", errString.toString());
+                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR_" + errorCode, errString.toString());
                                     }
 
                                     @Override
