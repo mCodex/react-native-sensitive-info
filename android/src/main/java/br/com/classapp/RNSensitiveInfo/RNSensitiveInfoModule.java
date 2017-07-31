@@ -328,7 +328,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                     public void onAuthenticationFailed() {
                                         super.onAuthenticationFailed();
                                         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized");
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                     }
 
                                     @Override
