@@ -4,7 +4,12 @@ import {
   AppRegistry,
   StyleSheet,
   Text,
-  View
+  View,
+  Alert,
+  Button,
+  Platform,
+  AppState,
+  DeviceEventEmitter
 } from 'react-native';
 
 import SInfo from 'react-native-sensitive-info';
@@ -30,7 +35,16 @@ const styles = StyleSheet.create({
 
 class example extends Component {
 
-  render() {
+  constructor(props) {
+    super(props);
+    this.handleStateChange = this.handleStateChange.bind(this);
+    this.handleAuthFeedback = this.handleAuthFeedback.bind(this);
+    this.state = {
+      helpText: ''
+    }
+  }
+
+  componentDidMount(){
     SInfo.setItem('key1', 'value1', {
       sharedPreferencesName: 'mySharedPrefs',
       keychainService: 'myKeychain' });
@@ -41,11 +55,6 @@ class example extends Component {
 
     SInfo.setItem('key3', 'value3', {
       keychainService: 'myKeychain'
-    });
-
-    SInfo.setItem('key4', 'touchIDProtected', {
-      keychainService: 'myKeychain',
-      touchID: true
     });
 
     SInfo.setItem('key5', 'kSecAttrAccessibleValue', {
@@ -67,15 +76,6 @@ class example extends Component {
       console.log(value); //value3
     });
 
-    SInfo.getItem('key4', {
-      keychainService: 'myKeychain',
-      kSecUseOperationPrompt: 'Authenticate to access me'
-    }).then((values) => {
-        console.log(values); //value1, value2
-      }).catch((error)=>{
-        console.log('user cancelled')
-      });
-
     SInfo.getAllItems({
       sharedPreferencesName: 'mySharedPrefs',
       keychainService: 'myKeychain' }).then((values) => {
@@ -92,17 +92,94 @@ class example extends Component {
         console.log('deleted');
       });
 
+    AppState.addEventListener('change', this.handleStateChange);
+    DeviceEventEmitter.addListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
+  }
+
+  componentWillUnmount() {
+    AppState.addEventListener('change', this.handleStateChange);
+    SInfo.cancelFingerprintAuth();
+    DeviceEventEmitter.removeListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
+  }
+
+  async setTouchIDItem(){
+    if(!await SInfo.isSensorAvailable()){
+      Alert.alert('Touch Sensor not found')
+      return;
+    }
+    if(Platform.OS === 'android'){
+      this.setState({
+        helpText: 'Scan your fingerprint get the item.'
+      })
+    }
+    try{
+      await SInfo.setItem('touchItem', new Date().toISOString(), {touchID: true})
+    } catch (err){
+      Alert.alert(err.message);
+    } finally {
+      if(Platform.OS === 'android'){
+        this.setState({
+          helpText: ''
+        })
+      }
+    }
+  }
+
+  handleStateChange(appState) {
+    switch (appState) {
+      case 'background':
+        this.setState({
+          helpText: ''
+        })
+        SInfo.cancelFingerprintAuth();
+    }
+  }
+
+  handleAuthFeedback(helpText) {
+    this.setState({helpText});
+  }
+
+  async getTouchIDItem(){
+    if(!await SInfo.isSensorAvailable()){
+      Alert.alert('Touch Sensor not found')
+      return;
+    }
+    if(Platform.OS === 'android'){
+      this.setState({
+        helpText: 'Scan your fingerprint get the item.'
+      })
+    }
+    try{
+      let result = await SInfo.getItem('touchItem', {
+        touchID: true,
+        kSecUseOperationPrompt: 'Scan your fingerprint get the item.' // this is for iOS
+      })
+      if(result){
+        Alert.alert('Touch ID item', result);
+      }
+    } catch (err){
+      Alert.alert(err.message);
+    } finally {
+      if(Platform.OS === 'android'){
+        this.setState({
+          helpText: ''
+        })
+      }
+    }
+  }
+
+  render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit the values above and be sure debugging mode is enabled to see our magic happening 🌟
-        </Text>
-        <Text style={styles.instructions}>
-          Shake or press menu button for dev menu
-        </Text>
+        <Text>{this.state.helpText}</Text>
+        <Button
+          onPress={()=>this.setTouchIDItem()}
+          title="set touchID item"
+        />
+        <Button
+          onPress={()=>this.getTouchIDItem()}
+          title="get touchID item"
+        />
       </View>
     );
   }
