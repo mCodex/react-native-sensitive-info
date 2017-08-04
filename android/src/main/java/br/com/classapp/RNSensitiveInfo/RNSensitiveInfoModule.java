@@ -248,13 +248,13 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                     public void onAuthenticationFailed() {
                                         super.onAuthenticationFailed();
                                         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized");
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                     }
 
                                     @Override
                                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                                         super.onAuthenticationError(errorCode, errString);
-                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR", errString.toString());
+                                        pm.reject(String.valueOf(errorCode), errString.toString());
                                     }
 
                                     @Override
@@ -328,13 +328,13 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                     public void onAuthenticationFailed() {
                                         super.onAuthenticationFailed();
                                         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized");
+                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                     }
 
                                     @Override
                                     public void onAuthenticationError(int errorCode, CharSequence errString) {
                                         super.onAuthenticationError(errorCode, errString);
-                                        pm.reject("FINGERPRINT_AUTHENTICATION_ERROR", errString.toString());
+                                        pm.reject(String.valueOf(errorCode), errString.toString());
                                     }
 
                                     @Override
