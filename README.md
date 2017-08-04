@@ -166,6 +166,17 @@ keychainService: 'myKeychain'}).then(values => {
 });
 ```
 
+# Protect your item with fingerprint
+As jailbroken device can access your iOS Keychain/ Android shared preference and key store in plain text, it is necessary to add another layer of protection so even jailbreaking won't leak your data (like refresh_token or bank account password).
+- for iOS it is implemented though [Access Control](https://developer.apple.com/documentation/security/secaccesscontrol). Everytime when app wants to access the protected keychain item, a prompt by iOS will show up. Only when authentication success will the app get the keychain item.
+- for Android it is implemented though [FingerprintManager](https://developer.android.com/reference/android/hardware/fingerprint/FingerprintManager.html) + Keystore. Keystore has a function called `setUserAuthenticationRequired` which makes Keystore requires user authentication before getting value. However Android doesn't nicely user to scan their finger, it just throws error. Here is where FingerprintManager comes in. However (AGAIN) FingerprintManager doesn't show prompt for you, so you need to build UI yourself to let user to know that it is time to scan fingerprint.
+
+**The example in the repo shows how to use this feature and how to build some Android UI based on callbacks.**
+
+**NOTE: fingerprint will only work with Android 6.0 and above.**
+
+HELP NEEDED: It will be nice if someone can build an Android native prompt to make Android touch as easy to use as iOS. Maybe we can borrow some code from [google's example](https://github.com/googlesamples/android-FingerprintDialog)
+
 # Use with redux-persist
 
 If you would like to use [redux-persist](https://github.com/rt2zz/redux-persist) to store information from your Redux state into secure storage, you can use [redux-persist-sensitive-storage](https://github.com/CodingZeal/redux-persist-sensitive-storage), which provides a custom storage back-end for redux-persist that uses react-native-sensitive-info.
