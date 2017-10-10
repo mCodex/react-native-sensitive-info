@@ -131,7 +131,7 @@ But if you prefer to not use it, our default sharedPreferencesName is: **shared_
 SInfo.setItem('key1', 'value1', {});
 ```
 
-If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. In other hands if you used iOS's Keychain the default service is: **app** which is our default too.
+If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. On the other hand if you used iOS's Keychain the default service is: **app** which is our default too.
 
 # How to use?
 
