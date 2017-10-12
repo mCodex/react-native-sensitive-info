@@ -97,7 +97,7 @@ class example extends Component {
   }
 
   componentWillUnmount() {
-    AppState.addEventListener('change', this.handleStateChange);
+    AppState.removeEventListener('change', this.handleStateChange);
     SInfo.cancelFingerprintAuth();
     DeviceEventEmitter.removeListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
   }
