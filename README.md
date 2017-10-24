@@ -105,6 +105,11 @@ get
   }
 ```
 
+
+### Expo
+
+As noted by by [@Palisand](https://github.com/Palisand) in [this issue](https://github.com/mCodex/react-native-sensitive-info/issues/50#issuecomment-334583668), it's not possible to use this module with Expo, unless your project is detached. The same is true for any modules with native code, it's not an issue with `react-native-sensitive-info`. You may want to try [SecureStore](https://docs.expo.io/versions/latest/sdk/securestore.html) from Expo itself.
+
 # Methods
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
