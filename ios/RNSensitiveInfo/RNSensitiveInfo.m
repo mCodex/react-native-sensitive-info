@@ -34,6 +34,25 @@ CFStringRef convertkSecAttrAccessible(NSString* key){
     return kSecAttrAccessibleWhenUnlocked;
 }
 
+CFStringRef convertkSecAccessControl(NSString* key){
+    if([key isEqual: @"kSecAccessControlApplicationPassword"]){
+        return kSecAccessControlApplicationPassword;
+    }
+    if([key isEqual: @"kSecAccessControlPrivateKeyUsage"]){
+        return kSecAccessControlPrivateKeyUsage;
+    }
+    if([key isEqual: @"kSecAccessControlDevicePasscode"]){
+        return kSecAccessControlDevicePasscode;
+    }
+    if([key isEqual: @"kSecAccessControlTouchIDAny"]){
+        return kSecAccessControlTouchIDAny;
+    }
+    if([key isEqual: @"kSecAccessControlTouchIDCurrentSet"]){
+        return kSecAccessControlTouchIDCurrentSet;
+    }
+    return kSecAccessControlUserPresence;
+}
+
 // Messages from the comments in <Security/SecBase.h>
 NSString *messageForError(NSError *error)
 {
@@ -103,7 +122,8 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
                                       key, kSecAttrAccount, nil];
 
     if([RCTConvert BOOL:options[@"touchID"]]){
-        SecAccessControlRef sac = SecAccessControlCreateWithFlags(kCFAllocatorDefault, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, kSecAccessControlUserPresence, NULL);
+        CFStringRef kSecAccessControlValue = convertkSecAccessControl([RCTConvert NSString:options[@"kSecAccessControl"]]);
+        SecAccessControlRef sac = SecAccessControlCreateWithFlags(kCFAllocatorDefault, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, kSecAccessControlValue, NULL);
         [query setValue:(__bridge id _Nullable)(sac) forKey:(NSString *)kSecAttrAccessControl];
     } else if([RCTConvert NSString:options[@"kSecAttrAccessible"]] != NULL){
         CFStringRef kSecAttrAccessibleValue = convertkSecAttrAccessible([RCTConvert NSString:options[@"kSecAttrAccessible"]]);
@@ -245,7 +265,7 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
 RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     LAContext *context = [[LAContext alloc] init];
-    
+
     if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
         resolve(@(YES));
     } else {
