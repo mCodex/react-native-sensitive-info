@@ -138,6 +138,23 @@ SInfo.setItem('key1', 'value1', {});
 
 If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. On the other hand if you used iOS's Keychain the default service is: **app** which is our default too.
 
+### iOS Specific Options
+
+#### kSecAccessControl
+
+When passing in the `touchID` option as `true`, you can also set `kSecAccessControl`. For example:
+
+```javascript
+SInfo.setItem('key1', 'value1', {
+  keychainService: 'myKeychain',
+  kSecAccessControl: 'kSecAccessControlTouchIDCurrentSet',
+  sharedPreferencesName: 'mySharedPrefs',
+  touchID: true,
+});
+```
+
+Note: By default `kSecAccessControl` will get set to `kSecAccessControlUserPresence`.
+
 # How to use?
 
 Here is a simple example:
