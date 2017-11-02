@@ -41,10 +41,10 @@ class example extends Component {
     this.handleAuthFeedback = this.handleAuthFeedback.bind(this);
     this.state = {
       helpText: ''
-    }
+    };
   }
 
-  componentDidMount(){
+  componentDidMount() {
     SInfo.setItem('key1', 'value1', {
       sharedPreferencesName: 'mySharedPrefs',
       keychainService: 'myKeychain' });
@@ -54,7 +54,9 @@ class example extends Component {
     });
 
     SInfo.setItem('key3', 'value3', {
-      keychainService: 'myKeychain'
+      keychainService: 'myKeychain',
+      kSecAccessControl: 'kSecAccessControlTouchIDCurrentSet',
+      touchID: true
     });
 
     SInfo.setItem('key5', 'kSecAttrAccessibleValue', {
@@ -102,25 +104,25 @@ class example extends Component {
     DeviceEventEmitter.removeListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
   }
 
-  async setTouchIDItem(){
-    if(!await SInfo.isSensorAvailable()){
-      Alert.alert('Touch Sensor not found')
+  async setTouchIDItem() {
+    if (!await SInfo.isSensorAvailable()) {
+      Alert.alert('Touch Sensor not found');
       return;
     }
-    if(Platform.OS === 'android'){
+    if (Platform.OS === 'android') {
       this.setState({
         helpText: 'Scan your fingerprint get the item.'
-      })
+      });
     }
-    try{
-      await SInfo.setItem('touchItem', new Date().toISOString(), {touchID: true})
-    } catch (err){
+    try {
+      await SInfo.setItem('touchItem', new Date().toISOString(), { touchID: true });
+    } catch (err) {
       Alert.alert(err.message);
     } finally {
-      if(Platform.OS === 'android'){
+      if (Platform.OS === 'android') {
         this.setState({
           helpText: ''
-        })
+        });
       }
     }
   }
@@ -130,40 +132,40 @@ class example extends Component {
       case 'background':
         this.setState({
           helpText: ''
-        })
+        });
         SInfo.cancelFingerprintAuth();
     }
   }
 
   handleAuthFeedback(helpText) {
-    this.setState({helpText});
+    this.setState({ helpText });
   }
 
-  async getTouchIDItem(){
-    if(!await SInfo.isSensorAvailable()){
-      Alert.alert('Touch Sensor not found')
+  async getTouchIDItem() {
+    if (!await SInfo.isSensorAvailable()) {
+      Alert.alert('Touch Sensor not found');
       return;
     }
-    if(Platform.OS === 'android'){
+    if (Platform.OS === 'android') {
       this.setState({
         helpText: 'Scan your fingerprint get the item.'
-      })
+      });
     }
-    try{
-      let result = await SInfo.getItem('touchItem', {
+    try {
+      const result = await SInfo.getItem('touchItem', {
         touchID: true,
         kSecUseOperationPrompt: 'Scan your fingerprint get the item.' // this is for iOS
-      })
-      if(result){
+      });
+      if (result) {
         Alert.alert('Touch ID item', result);
       }
-    } catch (err){
+    } catch (err) {
       Alert.alert(err.message);
     } finally {
-      if(Platform.OS === 'android'){
+      if (Platform.OS === 'android') {
         this.setState({
           helpText: ''
-        })
+        });
       }
     }
   }
@@ -173,11 +175,11 @@ class example extends Component {
       <View style={styles.container}>
         <Text>{this.state.helpText}</Text>
         <Button
-          onPress={()=>this.setTouchIDItem()}
+          onPress={() => this.setTouchIDItem()}
           title="set touchID item"
         />
         <Button
-          onPress={()=>this.getTouchIDItem()}
+          onPress={() => this.getTouchIDItem()}
           title="get touchID item"
         />
       </View>
