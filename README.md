@@ -102,7 +102,7 @@ We unified our library's methods to bring more efficiency and simplify the usabi
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain',
-encript: true});
+encrypt: true});
 ```
 
 But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
