@@ -267,7 +267,12 @@ RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RC
     LAContext *context = [[LAContext alloc] init];
 
     if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
-        resolve(@(YES));
+        if (@available(iOS 11, *)) {
+            if (context.biometryType == LABiometryTypeFaceID) {
+                return resolve(@"Face ID");
+            }
+        }
+        resolve(@"Touch ID");
     } else {
         resolve(@(NO));
     }
