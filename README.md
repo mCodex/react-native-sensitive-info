@@ -62,7 +62,7 @@ and paste it into `build.gradle`:
 compile project(':react-native-sensitive-info')
 ```
 
-In your `MainActivity.java` add:
+In your `MainApplication.java` add:
 ```java
 import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
 
