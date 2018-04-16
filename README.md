@@ -2,12 +2,14 @@
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.png?v=103)](https://github.com/ellerbrock/open-source-badges/)
+
 
 **react-native-sensitive-info**  is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
 
 # Introduction
 
-`react-native-sensitive-info` manages all data stored in Android Shared Preferences and iOS Keychain. You can set and get all key/value using simple methods.
+`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
 
 
 | RN SensitiveInfo Version | Description                      |
@@ -19,7 +21,7 @@
 
 Install `react-native-sensitive-info` using:
 
-``npm i -S react-native-sensitive-info``
+``npm i -S react-native-sensitive-info`` or ``yarn add react-native-sensitive-info``
 
 ## Linking project
 
@@ -76,23 +78,47 @@ protected List<ReactPackage> getPackages() {
 
 Sync gradle and go :)
 
-# Changelog
+#### Windows
 
-## Since version >= 5.0.0
+* Open the solution in Visual Studio for your Windows apps.
 
-We introduced **Android Keystore** security into our library. Also, we've fixed some issues and updated example.
+* Right click your in the Explorer and click Add > Existing Project....
 
-Thanks to all contributors who helped us on our journey :)
+* Navigate to ./<app-name>/node_modules/react-native-sensitive-info/windows/RNSensitiveInfo/RNSensitiveInfo/ and add RNSensitiveInfo.csproj.
 
-## Since version >= 3.0.0
+* Right click on your React Native Windows app under your solutions directory and click Add > Reference....
+
+* Check the RNSensitiveInfo you just added and press Ok
+
+* Open MainPage.cs in your app
+
+```
+using RNSqlite2;
+
+get
+  {
+      return new List<IReactPackage>
+      {
+          new MainReactPackage(),
+          new RNSensitiveInfoPackage(),
+      };
+  }
+```
+
+
+### Expo
+
+As noted by by [@Palisand](https://github.com/Palisand) in [this issue](https://github.com/mCodex/react-native-sensitive-info/issues/50#issuecomment-334583668), it's not possible to use this module with Expo, unless your project is detached. The same is true for any modules with native code, it's not an issue with `react-native-sensitive-info`. You may want to try [SecureStore](https://docs.expo.io/versions/latest/sdk/securestore.html) from Expo itself.
+
+# Methods
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
-`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this method.
+`setItem(key, value, options)`: You can insert data into shared preferences & keychain using this promise method.
 
 `getItem(key, options)`: This promise will get value from given key.
 
-`deleteItem(key, options)`: (New method since this version) It will delete value from given key
+`deleteItem(key, options)`: It will delete value from given key
 
 `getAllItems(options)`: Will retrieve all keys and values from Shared Preferences & Keychain
 
@@ -105,9 +131,30 @@ keychainService: 'myKeychain',
 encrypt: true});
 ```
 
-But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**
+But if you prefer to not use it, our default sharedPreferencesName is: **shared_preferences** and keychainService is: **app**. For that, use:
 
-If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. In other hands if you used iOS's Keychain the default service is: **app** which is our default too.
+```javascript
+SInfo.setItem('key1', 'value1', {});
+```
+
+If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. On the other hand if you used iOS's Keychain the default service is: **app** which is our default too.
+
+### iOS Specific Options
+
+#### kSecAccessControl
+
+When passing in the `touchID` option as `true`, you can also set `kSecAccessControl`. For example:
+
+```javascript
+SInfo.setItem('key1', 'value1', {
+  keychainService: 'myKeychain',
+  kSecAccessControl: 'kSecAccessControlTouchIDCurrentSet',
+  sharedPreferencesName: 'mySharedPrefs',
+  touchID: true,
+});
+```
+
+Note: By default `kSecAccessControl` will get set to `kSecAccessControlUserPresence`.
 
 # How to use?
 
@@ -118,11 +165,12 @@ import SInfo from 'react-native-sensitive-info';
 
 SInfo.setItem('key1', 'value1', {
 sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain',
-encrypt: true
-});
+keychainService: 'myKeychain'
+}).then((value) =>
+        console.log(value) //value 1
+);
 
-SInfo.setItem('key2', 'value2');
+SInfo.setItem('key2', 'value2', {});
 
 SInfo.getItem('key1', {
 sharedPreferencesName: 'mySharedPrefs',
@@ -130,16 +178,31 @@ keychainService: 'myKeychain'}).then(value => {
     console.log(value) //value1
 });
 
-SInfo.getItem('key2').then(value => {
+SInfo.getItem('key2',{}).then(value => {
     console.log(value) //value2
 });
 
 SInfo.getAllItems({
 sharedPreferencesName: 'mySharedPrefs',
 keychainService: 'myKeychain'}).then(values => {
-    console.log(values) //value1
+    console.log(values) //value1, value2
 });
 ```
+
+# Protect your item with fingerprint
+As jailbroken device can access your iOS Keychain/ Android shared preference and key store in plain text, it is necessary to add another layer of protection so even jailbreaking won't leak your data (like refresh_token or bank account password).
+- for iOS it is implemented though [Access Control](https://developer.apple.com/documentation/security/secaccesscontrol). Everytime when app wants to access the protected keychain item, a prompt by iOS will show up. Only when authentication success will the app get the keychain item.
+- for Android it is implemented though [FingerprintManager](https://developer.android.com/reference/android/hardware/fingerprint/FingerprintManager.html) + Keystore. Keystore has a function called `setUserAuthenticationRequired` which makes Keystore requires user authentication before getting value. However Android doesn't nicely user to scan their finger, it just throws error. Here is where FingerprintManager comes in. However (AGAIN) FingerprintManager doesn't show prompt for you, so you need to build UI yourself to let user to know that it is time to scan fingerprint.
+
+**The example in the repo shows how to use this feature and how to build some Android UI based on callbacks.**
+
+**NOTE: fingerprint will only work with Android 6.0 and above.**
+
+HELP NEEDED: It will be nice if someone can build an Android native prompt to make Android touch as easy to use as iOS. Maybe we can borrow some code from [google's example](https://github.com/googlesamples/android-FingerprintDialog)
+
+# Use with redux-persist
+
+If you would like to use [redux-persist](https://github.com/rt2zz/redux-persist) to store information from your Redux state into secure storage, you can use [redux-persist-sensitive-storage](https://github.com/CodingZeal/redux-persist-sensitive-storage), which provides a custom storage back-end for redux-persist that uses react-native-sensitive-info.
 
 # Contributing
 

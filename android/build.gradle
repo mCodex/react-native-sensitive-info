@@ -14,10 +14,10 @@ android {
         }
     }
     lintOptions {
-       warning 'InvalidPackage'
+        warning 'InvalidPackage'
     }
 }
 
 dependencies {
-    compile 'com.facebook.react:react-native:0.20.1'
+    compile 'com.facebook.react:react-native:+'
 }
