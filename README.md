@@ -104,7 +104,32 @@ get
       };
   }
 ```
+#### WPF
 
+* Open the solution in Visual Studio for your WPF apps.
+
+* Right click your in the Explorer and click Add > Existing Project....
+
+* Navigate to ./<app-name>/node_modules/react-native-sensitive-info/wpf/RNSensitiveInfo/RNSensitiveInfo/ and add RNSensitiveInfo.csproj.
+
+* Right click on your React Native wpf app under your solutions directory and click Add > Reference....
+
+* Check the RNSensitiveInfo you just added and press Ok
+
+* Open MainPage.cs in your app
+
+```
+using RNSensitiveInfo;
+
+get
+  {
+      return new List<IReactPackage>
+      {
+          new MainReactPackage(),
+          new RNSensitiveInfoPackage(),
+      };
+  }
+```
 
 ### Expo
 
