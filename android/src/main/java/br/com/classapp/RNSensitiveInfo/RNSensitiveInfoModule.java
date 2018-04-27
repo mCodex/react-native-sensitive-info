@@ -55,7 +55,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         try {
             initKeyStore(reactContext);
         } catch (Exception e) {
-            Log.d("RNSensitiveInfo", e.getCause().getMessage());
+            Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
         }
     }
 
@@ -74,7 +74,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             try {
                 value = decrypt(value);
             } catch (Exception e) {
-                Log.d("RNSensitiveInfo", e.getCause().getMessage());
+                Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
             }
         }
 
@@ -90,7 +90,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             putExtra(key, value, prefs(name));
             pm.resolve(null);
         } catch (Exception e) {
-            Log.d("RNSensitiveInfo", e.getCause().getMessage());
+            Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
             pm.reject(e);
         }
     }
@@ -122,7 +122,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             try {
                 value = decrypt(value);
             } catch (Exception e) {
-                Log.d("RNSensitiveInfo", e.getCause().getMessage());
+                Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
             }
             resultData.putString(entry.getKey(), value);
         }
@@ -259,7 +259,13 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
 
     public String decrypt(String encrypted) throws Exception {
+        if (encrypted == null) {
+            Exception cause = new RuntimeException("Invalid argument at decrypt function");
+            throw new RuntimeException("encrypted argument can't be null", cause);
+        }
+
         Cipher c;
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             c = Cipher.getInstance(AES_GCM);
             c.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, FIXED_IV));
