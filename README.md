@@ -48,6 +48,10 @@ In XCode, in the project navigator, select your project.
 
 Run your project (Cmd+R)
 
+#### macos (https://github.com/ptmt/react-native-macos)
+
+Same steps as iOS but change the Base SDK to macOS in Libraries/RNSensitiveInfo.xcodeproj.
+
 #### Android
 
 Go to `settings.gradle` inside your android project folder and paste this lines there:
