@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyInfo;
+import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 import android.support.annotation.NonNull;
 import android.util.Base64;
@@ -194,34 +195,38 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
      * Android Keystore.
      */
     private void initKeyStore() {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
-            return;
-        }
         try {
             mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
             mKeyStore.load(null);
 
             // Check if a generated key exists under the KEY_ALIAS_AES .
             if (!mKeyStore.containsAlias(KEY_ALIAS_AES)) {
-                KeyGenerator keyGenerator = KeyGenerator.getInstance(
-                        KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
-
-                KeyGenParameterSpec.Builder builder = null;
-                builder = new KeyGenParameterSpec.Builder(
-                        KEY_ALIAS_AES,
-                        KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT);
-
-                builder.setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                        .setKeySize(256)
-                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                        // forces user authentication with fingerprint
-                        .setUserAuthenticationRequired(true);
-
-                keyGenerator.init(builder.build());
-                keyGenerator.generateKey();
+                prepareKey();
             }
         } catch (Exception e) {
         }
+    }
+
+    private void prepareKey() throws Exception {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
+            return;
+        }
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(
+                KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
+
+        KeyGenParameterSpec.Builder builder = null;
+        builder = new KeyGenParameterSpec.Builder(
+                KEY_ALIAS_AES,
+                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT);
+
+        builder.setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+                .setKeySize(256)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+                // forces user authentication with fingerprint
+                .setUserAuthenticationRequired(true);
+
+        keyGenerator.init(builder.build());
+        keyGenerator.generateKey();
     }
 
     private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final Promise pm, Cipher cipher) {
@@ -231,6 +236,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
                     cipher = Cipher.getInstance(AES_DEFAULT_TRANSFORMATION);
                     cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
 
                     // Retrieve information about the SecretKey from the KeyStore.
                     SecretKeyFactory factory = SecretKeyFactory.getInstance(
@@ -285,6 +291,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                 putExtra(key, result, mSharedPreferences);
                 pm.resolve(value);
+            } catch (KeyPermanentlyInvalidatedException e) {
+                try {
+                    mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                    prepareKey();
+                } catch (Exception keyResetError) {
+                    pm.reject(keyResetError);
+                }
+                pm.reject(e);
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
@@ -357,6 +371,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 }
                 byte[] decryptedBytes = cipher.doFinal(cipherBytes);
                 pm.resolve(new String(decryptedBytes));
+            } catch (KeyPermanentlyInvalidatedException e) {
+                try {
+                    mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                    prepareKey();
+                } catch (Exception keyResetError) {
+                    pm.reject(keyResetError);
+                }
+                pm.reject(e);
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
