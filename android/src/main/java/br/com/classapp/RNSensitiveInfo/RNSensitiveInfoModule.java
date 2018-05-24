@@ -291,6 +291,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                 putExtra(key, result, mSharedPreferences);
                 pm.resolve(value);
+            } catch (KeyPermanentlyInvalidatedException e) {
+                try {
+                    mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                    prepareKey();
+                } catch (Exception keyResetError) {
+                    pm.reject(keyResetError);
+                }
+                pm.reject(e);
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
