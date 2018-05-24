@@ -210,3 +210,6 @@ If you would like to use [redux-persist](https://github.com/rt2zz/redux-persist)
 # Contributing
 
 Pull requests are always welcome :)
+
+# Hack
+`npm i --save https://github.com:ycai2/react-native-sensitive-info#feature/handle-key-permanently-invalidated-case`
