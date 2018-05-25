@@ -88,6 +88,24 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void isHardwareDetected(final Promise pm) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.resolve(mFingerprintManager.isHardwareDetected());
+        } else {
+            pm.resolve(false);
+        }
+    }
+
+    @ReactMethod
+    public void hasEnrolledFingerprints(final Promise pm) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.resolve(mFingerprintManager.hasEnrolledFingerprints());
+        } else {
+            pm.resolve(false);
+        }
+    }
+
+    @ReactMethod
     public void isSensorAvailable(final Promise promise) {
         promise.resolve(hasSetupFingerprint());
     }
