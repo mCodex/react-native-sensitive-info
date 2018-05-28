@@ -118,6 +118,12 @@ As noted by by [@Palisand](https://github.com/Palisand) in [this issue](https://
 
 We unified our library's methods to bring more efficiency and simplify the usability for other developers. We hope that you enjoy it. :)
 
+`isHardwareDetected()`: resolves to a boolean that indicates the detection of fingerprint hardware
+
+`hasEnrolledFingerprints()`: resolves to a boolean that indicates the enrollment status of fingerprints on the device
+
+`isSensorAvailable`: resolves to a boolean that indicates the overall availability of fingerprint sensor (a combination of the previous two methods)
+
 `setItem(key, value, options)`: You can insert data into shared preferences & keychain using this promise method.
 
 `getItem(key, options)`: This promise will get value from given key.
