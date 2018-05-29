@@ -23,6 +23,7 @@ import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.security.KeyStore;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.crypto.Cipher;
@@ -30,6 +31,10 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
+
+import br.com.classapp.RNSensitiveInfo.utils.AppConstants;
+import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintAuthenticationDialogFragment;
+import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintUiHelper;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
@@ -118,8 +123,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         String value = prefs(name).getString(key, null);
 
-        if(value != null && options.hasKey("touchID") && options.getBoolean("touchID")){
-            decryptWithAes(value, pm, null);
+        if (value != null && options.hasKey("touchID") && options.getBoolean("touchID")) {
+            boolean showModal = options.hasKey("showModal") && options.getBoolean("showModal");
+            HashMap strings = options.getMap("strings").toHashMap();
+
+            decryptWithAes(value, showModal, strings, pm, null);
         } else {
             pm.resolve(value);
         }
@@ -130,8 +138,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         String name = sharedPreferences(options);
 
-        if(options.hasKey("touchID") && options.getBoolean("touchID")){
-            putExtraWithAES(key, value, prefs(name), pm, null);
+        if (options.hasKey("touchID") && options.getBoolean("touchID")) {
+            boolean showModal = options.hasKey("showModal") && options.getBoolean("showModal");
+            HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
+
+            putExtraWithAES(key, value, prefs(name), showModal, strings, pm, null);
         } else {
             try {
                 putExtra(key, value, prefs(name));
@@ -247,10 +258,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         keyGenerator.generateKey();
     }
 
-    private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final Promise pm, Cipher cipher) {
+    private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && hasSetupFingerprint()) {
             try {
-                if(cipher == null) {
+                if (cipher == null) {
                     SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
                     cipher = Cipher.getInstance(AES_DEFAULT_TRANSFORMATION);
                     cipher.init(Cipher.ENCRYPT_MODE, secretKey);
@@ -264,38 +276,65 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     if (info.isUserAuthenticationRequired() &&
                             info.getUserAuthenticationValidityDurationSeconds() == -1) {
 
-                        mCancellationSignal = new CancellationSignal();
-                        mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
-                                0, new FingerprintManager.AuthenticationCallback() {
+                        if (showModal) {
 
-                                    @Override
-                                    public void onAuthenticationFailed() {
-                                        super.onAuthenticationFailed();
-                                        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                            // define class as a callback
+                            class PutExtraWithAESCallback implements FingerprintUiHelper.Callback {
+                                @Override
+                                public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
                                     }
+                                }
 
-                                    @Override
-                                    public void onAuthenticationError(int errorCode, CharSequence errString) {
-                                        super.onAuthenticationError(errorCode, errString);
-                                        pm.reject(String.valueOf(errorCode), errString.toString());
-                                    }
+                                @Override
+                                public void onError(String errorCode, CharSequence errString) {
+                                    pm.reject(String.valueOf(errorCode), errString.toString());
+                                }
+                            }
 
-                                    @Override
-                                    public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
-                                        super.onAuthenticationHelp(helpCode, helpString);
-                                        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
-                                    }
+                            // Show the fingerprint dialog
+                            FingerprintAuthenticationDialogFragment fragment
+                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
+                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
+                            fragment.setCallback(new PutExtraWithAESCallback());
 
-                                    @Override
-                                    public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
-                                        super.onAuthenticationSucceeded(result);
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                            putExtraWithAES(key, value, mSharedPreferences, pm, result.getCryptoObject().getCipher());
+                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+
+                        } else {
+                            mCancellationSignal = new CancellationSignal();
+                            mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
+                                    0, new FingerprintManager.AuthenticationCallback() {
+
+                                        @Override
+                                        public void onAuthenticationFailed() {
+                                            super.onAuthenticationFailed();
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                         }
-                                    }
-                                }, null);
+
+                                        @Override
+                                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                            super.onAuthenticationError(errorCode, errString);
+                                            pm.reject(String.valueOf(errorCode), errString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
+                                            super.onAuthenticationHelp(helpCode, helpString);
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
+                                            super.onAuthenticationSucceeded(result);
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                            }
+                                        }
+                                    }, null);
+                        }
                     }
                     return;
                 }
@@ -327,7 +366,8 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private void decryptWithAes(final String encrypted, final Promise pm, Cipher cipher) {
+    private void decryptWithAes(final String encrypted, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
                 && hasSetupFingerprint()) {
 
@@ -352,38 +392,65 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     if (info.isUserAuthenticationRequired() &&
                             info.getUserAuthenticationValidityDurationSeconds() == -1) {
 
-                        mCancellationSignal = new CancellationSignal();
-                        mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
-                                0, new FingerprintManager.AuthenticationCallback() {
+                        if (showModal) {
 
-                                    @Override
-                                    public void onAuthenticationFailed() {
-                                        super.onAuthenticationFailed();
-                                        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                            // define class as a callback
+                            class DecryptWithAesCallback implements FingerprintUiHelper.Callback {
+                                @Override
+                                public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        decryptWithAes(encrypted, showModal, strings, pm, result.getCryptoObject().getCipher());
                                     }
+                                }
 
-                                    @Override
-                                    public void onAuthenticationError(int errorCode, CharSequence errString) {
-                                        super.onAuthenticationError(errorCode, errString);
-                                        pm.reject(String.valueOf(errorCode), errString.toString());
-                                    }
+                                @Override
+                                public void onError(String errorCode, CharSequence errString) {
+                                    pm.reject(String.valueOf(errorCode), errString.toString());
+                                }
+                            }
 
-                                    @Override
-                                    public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
-                                        super.onAuthenticationHelp(helpCode, helpString);
-                                        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
-                                    }
+                            // Show the fingerprint dialog
+                            FingerprintAuthenticationDialogFragment fragment
+                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
+                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
+                            fragment.setCallback(new DecryptWithAesCallback());
 
-                                    @Override
-                                    public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
-                                        super.onAuthenticationSucceeded(result);
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                            decryptWithAes(encrypted, pm, result.getCryptoObject().getCipher());
+                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+
+                        } else {
+                            mCancellationSignal = new CancellationSignal();
+                            mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
+                                    0, new FingerprintManager.AuthenticationCallback() {
+
+                                        @Override
+                                        public void onAuthenticationFailed() {
+                                            super.onAuthenticationFailed();
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                         }
-                                    }
-                                }, null);
+
+                                        @Override
+                                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                            super.onAuthenticationError(errorCode, errString);
+                                            pm.reject(String.valueOf(errorCode), errString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
+                                            super.onAuthenticationHelp(helpCode, helpString);
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
+                                            super.onAuthenticationSucceeded(result);
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                decryptWithAes(encrypted, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                            }
+                                        }
+                                    }, null);
+                        }
                     }
                     return;
                 }

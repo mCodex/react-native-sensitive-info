@@ -148,6 +148,25 @@ SInfo.setItem('key1', 'value1', {});
 
 If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. On the other hand if you used iOS's Keychain the default service is: **app** which is our default too.
 
+### Android Specific Options
+
+#### showModal & strings
+
+When passing in `touchID` and `showModal` (Android only) options as `true`, an Android native prompt will show up asking for user's authentication. This behavior is similar to that of iOS.
+
+You can control strings associated with a modal prompt via `strings` option:
+```javascript
+strings: {
+    header: 'Sign in',
+    description: 'Place finger to authenticate',
+    hint: 'Touch',
+    success: 'Fingerprint recognized',
+    notRecognized: 'Fingerprint not recognized, try again',
+    cancel: 'Cancel',
+    cancelled: 'Authentication was cancelled', // reject error message
+}
+```
+
 ### iOS Specific Options
 
 #### kSecAccessControl
