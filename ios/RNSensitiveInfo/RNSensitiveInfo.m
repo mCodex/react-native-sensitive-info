@@ -101,12 +101,6 @@ NSString *messageForError(NSError *error)
   }
 }
 
-NSDictionary * makeError(NSError *error)
-{
-  return RCTMakeAndLogError(messageForError(error), nil, [error dictionaryWithValuesForKeys:@[@"domain", @"code"]]);
-}
-
-
 RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
 
     NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
