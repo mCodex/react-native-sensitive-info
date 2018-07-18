@@ -33,6 +33,13 @@ Install `react-native-sensitive-info` using:
 
 #### iOS
 
+If you are using Cocoapods add the following line to your Podfile:
+```ruby
+pod 'react-native-sensitive-info', path: "../node_modules/react-native-sensitive-info"
+```
+
+otherwise follow those steps:
+
 In XCode, in the project navigator:
 
 * Right click Libraries
