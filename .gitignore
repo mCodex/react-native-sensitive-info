@@ -39,3 +39,4 @@ example/node_modules
 android/build/
 android/local.properties
 android.yml
+*.iml
