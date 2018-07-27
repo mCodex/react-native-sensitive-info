@@ -7,7 +7,7 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyInfo;
-import android.security.keystore.KeyPermanentlyInvalidatedException;
+import android.security.keystore.InvalidKeyException;
 import android.security.keystore.KeyProperties;
 import android.support.annotation.NonNull;
 import android.util.Base64;
@@ -348,7 +348,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                 putExtra(key, result, mSharedPreferences);
                 pm.resolve(value);
-            } catch (KeyPermanentlyInvalidatedException e) {
+            } catch (InvalidKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
                     prepareKey();
@@ -456,7 +456,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 }
                 byte[] decryptedBytes = cipher.doFinal(cipherBytes);
                 pm.resolve(new String(decryptedBytes));
-            } catch (KeyPermanentlyInvalidatedException e) {
+            } catch (InvalidKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
                     prepareKey();
