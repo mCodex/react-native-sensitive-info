@@ -18,6 +18,7 @@
 
 package br.com.classapp.RNSensitiveInfo.view.Fragments;
 
+import android.app.Activity;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -25,7 +26,6 @@ import android.content.SharedPreferences;
 import android.hardware.fingerprint.FingerprintManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,7 +52,7 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
     private FingerprintUiHelper.Callback mCallback;
     private FingerprintManager.CryptoObject mCryptoObject;
     private FingerprintUiHelper mFingerprintUiHelper;
-    private AppCompatActivity mActivity;
+    private Activity mActivity;
 
     private SharedPreferences mSharedPreferences;
 
@@ -140,8 +140,8 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mActivity = (AppCompatActivity) getActivity();
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        mActivity = getActivity();
     }
 
     /**
