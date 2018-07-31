@@ -125,7 +125,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         if (value != null && options.hasKey("touchID") && options.getBoolean("touchID")) {
             boolean showModal = options.hasKey("showModal") && options.getBoolean("showModal");
-            HashMap strings = options.getMap("strings").toHashMap();
+            HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
 
             decryptWithAes(value, showModal, strings, pm, null);
         } else {
