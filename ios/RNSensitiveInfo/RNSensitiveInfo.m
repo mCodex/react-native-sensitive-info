@@ -54,7 +54,7 @@ CFStringRef convertkSecAccessControl(NSString* key){
 }
 
 // Messages from the comments in <Security/SecBase.h>
-NSString *messageForError(NSError *error)
+- (NSString *)messageForError:(NSError *)error
 {
   switch (error.code) {
     case errSecUnimplemented:
@@ -128,7 +128,7 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
     osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
     if (osStatus != noErr) {
         NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-        reject([NSString stringWithFormat:@"%ld",(long)error.code], messageForError(error), nil);
+        reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
         return;
     }
     resolve(nil);
@@ -161,7 +161,7 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
 
   if (osStatus != noErr && osStatus != errSecItemNotFound) {
     NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    reject([NSString stringWithFormat:@"%ld",(long)error.code], messageForError(error), nil);
+    reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
     return;
   }
 
@@ -250,7 +250,7 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
     OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
     if (osStatus != noErr && osStatus != errSecItemNotFound) {
         NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-        reject([NSString stringWithFormat:@"%ld",(long)error.code], messageForError(error), nil);
+        reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
         return;
     }
     resolve(nil);
