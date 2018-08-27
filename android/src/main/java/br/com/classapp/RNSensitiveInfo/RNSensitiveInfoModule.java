@@ -57,7 +57,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mFingerprintManager = (FingerprintManager) reactContext.getSystemService(Context.FINGERPRINT_SERVICE);
+            try {
+                mFingerprintManager = (FingerprintManager) reactContext.getSystemService(Context.FINGERPRINT_SERVICE);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", "Fingerprint not supported");
+            }
             initKeyStore();
         }
     }
