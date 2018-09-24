@@ -2,9 +2,12 @@ package br.com.classapp.RNSensitiveInfo;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.hardware.fingerprint.FingerprintManager;
 import android.os.Build;
-import android.security.KeyPairGeneratorSpec;
+import android.os.CancellationSignal;
 import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyInfo;
+import java.security.InvalidKeyException;
 import android.security.keystore.KeyProperties;
 import android.support.annotation.NonNull;
 import android.util.Base64;
@@ -17,45 +20,55 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.math.BigInteger;
 import java.security.Key;
-import java.security.KeyPairGenerator;
 import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.x500.X500Principal;
+import javax.crypto.spec.IvParameterSpec;
+
+import br.com.classapp.RNSensitiveInfo.utils.AppConstants;
+import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintAuthenticationDialogFragment;
+import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintUiHelper;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
-    private static final String AndroidKeyStore = "AndroidKeyStore";
-    private static final String RSA_MODE = "RSA/ECB/PKCS1Padding";
+    // This must have 'AndroidKeyStore' as value. Unfortunately there is no predefined constant.
+    private static final String ANDROID_KEYSTORE_PROVIDER = "AndroidKeyStore";
+
+    // This is the default transformation used throughout this sample project.
+    private static final String AES_DEFAULT_TRANSFORMATION =
+            KeyProperties.KEY_ALGORITHM_AES + "/" +
+                    KeyProperties.BLOCK_MODE_CBC + "/" +
+                    KeyProperties.ENCRYPTION_PADDING_PKCS7;
+
+    private static final byte[] FIXED_IV = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1};
+    private static final String KEY_ALIAS = "MySharedPreferenceKeyAlias";
+    private static final String KEY_ALIAS_AES = "MyAesKeyAlias";
+    private static final String DELIMITER = "]";
     private static final String AES_GCM = "AES/GCM/NoPadding";
     private static final String AES_ECB = "AES/ECB/PKCS7Padding";
-    private static KeyStore keyStore;
-    private static final String KEY_ALIAS = "SHARED_PREFERENCE_KEY";
-    private static final String ENCRYPTED_KEY = "ENCRYPTED_KEY";
-    private static final String ENCRYPTION_SHARED_PREFERENCE_NAME = "ENCRYPTION_SHARED_PREFERENCE";
-    private static final byte[] FIXED_IV = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1};
-    private static Key secretKey;
+
+    private FingerprintManager mFingerprintManager;
+    private KeyStore mKeyStore;
+    private CancellationSignal mCancellationSignal;
 
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
-        try {
-            initKeyStore(reactContext);
-        } catch (Exception e) {
-            Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                mFingerprintManager = (FingerprintManager) reactContext.getSystemService(Context.FINGERPRINT_SERVICE);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", "Fingerprint not supported");
+            }
+            initKeyStore();
         }
     }
 
@@ -64,21 +77,74 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         return "RNSensitiveInfo";
     }
 
+    /**
+     * Checks whether the device supports fingerprint authentication and if the user has
+     * enrolled at least one fingerprint.
+     *
+     * @return true if the user has a fingerprint capable device and has enrolled
+     * one or more fingerprints
+     */
+    private boolean hasSetupFingerprint() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mFingerprintManager != null) {
+                if (!mFingerprintManager.isHardwareDetected()) {
+                    return false;
+                } else if (!mFingerprintManager.hasEnrolledFingerprints()) {
+                    return false;
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (SecurityException e) {
+            // Should never be thrown since we have declared the USE_FINGERPRINT permission
+            // in the manifest file
+            return false;
+        }
+    }
+
+    @ReactMethod
+    public void isHardwareDetected(final Promise pm) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.resolve(mFingerprintManager.isHardwareDetected());
+        } else {
+            pm.resolve(false);
+        }
+    }
+
+    @ReactMethod
+    public void hasEnrolledFingerprints(final Promise pm) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.resolve(mFingerprintManager.hasEnrolledFingerprints());
+        } else {
+            pm.resolve(false);
+        }
+    }
+
+    @ReactMethod
+    public void isSensorAvailable(final Promise promise) {
+        promise.resolve(hasSetupFingerprint());
+    }
+
     @ReactMethod
     public void getItem(String key, ReadableMap options, Promise pm) {
 
         String name = sharedPreferences(options);
 
         String value = prefs(name).getString(key, null);
-        if (value != null) {
+
+        if (value != null && options.hasKey("touchID") && options.getBoolean("touchID")) {
+            boolean showModal = options.hasKey("showModal") && options.getBoolean("showModal");
+            HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
+
+            decryptWithAes(value, showModal, strings, pm, null);
+        } else {
             try {
-                value = decrypt(value);
+                pm.resolve(decrypt(value));
             } catch (Exception e) {
-                Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
+                pm.reject(e);
             }
         }
-
-        pm.resolve(value);
     }
 
     @ReactMethod
@@ -86,12 +152,19 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         String name = sharedPreferences(options);
 
-        try {
-            putExtra(key, value, prefs(name));
-            pm.resolve(null);
-        } catch (Exception e) {
-            Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
-            pm.reject(e);
+        if (options.hasKey("touchID") && options.getBoolean("touchID")) {
+            boolean showModal = options.hasKey("showModal") && options.getBoolean("showModal");
+            HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
+
+            putExtraWithAES(key, value, prefs(name), showModal, strings, pm, null);
+        } else {
+            try {
+                putExtra(key, encrypt(value), prefs(name));
+                pm.resolve(value);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", e.getCause().getMessage());
+                pm.reject(e);
+            }
         }
     }
 
@@ -129,33 +202,43 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         pm.resolve(resultData);
     }
 
+    @ReactMethod
+    public void cancelFingerprintAuth() {
+        if(mCancellationSignal != null && !mCancellationSignal.isCanceled()) {
+            mCancellationSignal.cancel();
+        }
+    }
+
     private SharedPreferences prefs(String name) {
         return getReactApplicationContext().getSharedPreferences(name, Context.MODE_PRIVATE);
     }
 
     @NonNull
     private String sharedPreferences(ReadableMap options) {
-        String name = options.hasKey("sharedPreferencesName") ? options.getString("sharedPreferencesName") : "app";
+        String name = options.hasKey("sharedPreferencesName") ? options.getString("sharedPreferencesName") : "shared_preferences";
         if (name == null) {
-            name = "app";
+            name = "shared_preferences";
         }
         return name;
     }
 
-    private void putExtra(String key, String value, SharedPreferences mSharedPreferences) throws Exception {
+
+    private void putExtra(String key, String value, SharedPreferences mSharedPreferences) {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
-        String encrypted = encrypt(value);
-        editor.putString(key, encrypted).apply();
+        editor.putString(key, value).apply();
     }
 
-    private void initKeyStore(Context context) throws Exception {
-        keyStore = KeyStore.getInstance(AndroidKeyStore);
-        keyStore.load(null);
-        // Generate the RSA key pairs
-        if (!keyStore.containsAlias(KEY_ALIAS)) {
-            // Generate a key pair for encryption
+    /**
+     * Generates a new AES key and stores it under the { @code KEY_ALIAS_AES } in the
+     * Android Keystore.
+     */
+    private void initKeyStore() {
+        try {
+            mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
+            mKeyStore.load(null);
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, AndroidKeyStore);
+                KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
                 keyGenerator.init(
                         new KeyGenParameterSpec.Builder(KEY_ALIAS,
                                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
@@ -164,84 +247,257 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 .setRandomizedEncryptionRequired(false)
                                 .build());
                 keyGenerator.generateKey();
-            } else {
-                Calendar start = Calendar.getInstance();
-                Calendar end = Calendar.getInstance();
-                end.add(Calendar.YEAR, 30);
-                KeyPairGeneratorSpec spec = new KeyPairGeneratorSpec.Builder(context)
-                        .setAlias(KEY_ALIAS)
-                        .setSubject(new X500Principal("CN=" + KEY_ALIAS))
-                        .setSerialNumber(BigInteger.TEN)
-                        .setStartDate(start.getTime())
-                        .setEndDate(end.getTime())
-                        .build();
-                KeyPairGenerator kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, AndroidKeyStore);
-                kpg.initialize(spec);
-                kpg.generateKeyPair();
             }
-
+            // Check if a generated key exists under the KEY_ALIAS_AES .
+            if (!mKeyStore.containsAlias(KEY_ALIAS_AES)) {
+                prepareKey();
+            }
+        } catch (Exception e) {
         }
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            secretKey = ((KeyStore.SecretKeyEntry) keyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
+    private void prepareKey() throws Exception {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
+            return;
+        }
+        
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(
+                KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
+
+        KeyGenParameterSpec.Builder builder = null;
+        builder = new KeyGenParameterSpec.Builder(
+                KEY_ALIAS_AES,
+                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT);
+
+        builder.setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+                .setKeySize(256)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+                // forces user authentication with fingerprint
+                .setUserAuthenticationRequired(true);
+
+        keyGenerator.init(builder.build());
+        keyGenerator.generateKey();
+    }
+
+    private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && hasSetupFingerprint()) {
+            try {
+                if (cipher == null) {
+                    SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
+                    cipher = Cipher.getInstance(AES_DEFAULT_TRANSFORMATION);
+                    cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+
+                    // Retrieve information about the SecretKey from the KeyStore.
+                    SecretKeyFactory factory = SecretKeyFactory.getInstance(
+                            secretKey.getAlgorithm(), ANDROID_KEYSTORE_PROVIDER);
+                    KeyInfo info = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
+
+                    if (info.isUserAuthenticationRequired() &&
+                            info.getUserAuthenticationValidityDurationSeconds() == -1) {
+
+                        if (showModal) {
+
+                            // define class as a callback
+                            class PutExtraWithAESCallback implements FingerprintUiHelper.Callback {
+                                @Override
+                                public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                    }
+                                }
+
+                                @Override
+                                public void onError(String errorCode, CharSequence errString) {
+                                    pm.reject(String.valueOf(errorCode), errString.toString());
+                                }
+                            }
+
+                            // Show the fingerprint dialog
+                            FingerprintAuthenticationDialogFragment fragment
+                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
+                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
+                            fragment.setCallback(new PutExtraWithAESCallback());
+
+                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+
+                        } else {
+                            mCancellationSignal = new CancellationSignal();
+                            mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
+                                    0, new FingerprintManager.AuthenticationCallback() {
+
+                                        @Override
+                                        public void onAuthenticationFailed() {
+                                            super.onAuthenticationFailed();
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                            super.onAuthenticationError(errorCode, errString);
+                                            pm.reject(String.valueOf(errorCode), errString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
+                                            super.onAuthenticationHelp(helpCode, helpString);
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
+                                            super.onAuthenticationSucceeded(result);
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                            }
+                                        }
+                                    }, null);
+                        }
+                    }
+                    return;
+                }
+                byte[] encryptedBytes = cipher.doFinal(value.getBytes());
+
+                // Encode the initialization vector (IV) and encryptedBytes to Base64.
+                String base64IV = Base64.encodeToString(cipher.getIV(), Base64.DEFAULT);
+                String base64Cipher = Base64.encodeToString(encryptedBytes, Base64.DEFAULT);
+
+                String result = base64IV + DELIMITER + base64Cipher;
+
+                putExtra(key, result, mSharedPreferences);
+                pm.resolve(value);
+            } catch (InvalidKeyException e) {
+                try {
+                    mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                    prepareKey();
+                } catch (Exception keyResetError) {
+                    pm.reject(keyResetError);
+                }
+                pm.reject(e);
+            } catch (SecurityException e) {
+                pm.reject(e);
+            } catch (Exception e) {
+                pm.reject(e);
+            }
         } else {
-            //Generate and Store the AES Key
-            SharedPreferences pref = context.getSharedPreferences(ENCRYPTION_SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE);
-            String encryptedKeyB64 = pref.getString(ENCRYPTED_KEY, null);
-            if (encryptedKeyB64 == null) {
-                byte[] key = new byte[16];
-                SecureRandom secureRandom = new SecureRandom();
-                secureRandom.nextBytes(key);
-                byte[] encryptedKey = rsaEncrypt(key);
-                encryptedKeyB64 = Base64.encodeToString(encryptedKey, Base64.DEFAULT);
-                SharedPreferences.Editor edit = pref.edit();
-                edit.putString(ENCRYPTED_KEY, encryptedKeyB64);
-                edit.commit();
+            pm.reject("Fingerprint not supported", "Fingerprint not supported");
+        }
+    }
+
+    private void decryptWithAes(final String encrypted, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
+                && hasSetupFingerprint()) {
+
+            String[] inputs = encrypted.split(DELIMITER);
+            if (inputs.length < 2) {
+                pm.reject("DecryptionFailed", "DecryptionFailed");
             }
 
-            byte[] encryptedKey = Base64.decode(encryptedKeyB64, Base64.DEFAULT);
-            byte[] key = rsaDecrypt(encryptedKey);
-            secretKey = new SecretKeySpec(key, "AES");
+            try {
+                byte[] iv = Base64.decode(inputs[0], Base64.DEFAULT);
+                byte[] cipherBytes = Base64.decode(inputs[1], Base64.DEFAULT);
+
+                if(cipher == null){
+                    SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
+                    cipher = Cipher.getInstance(AES_DEFAULT_TRANSFORMATION);
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
+
+                    SecretKeyFactory factory = SecretKeyFactory.getInstance(
+                            secretKey.getAlgorithm(), ANDROID_KEYSTORE_PROVIDER);
+                    KeyInfo info = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
+
+                    if (info.isUserAuthenticationRequired() &&
+                            info.getUserAuthenticationValidityDurationSeconds() == -1) {
+
+                        if (showModal) {
+
+                            // define class as a callback
+                            class DecryptWithAesCallback implements FingerprintUiHelper.Callback {
+                                @Override
+                                public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        decryptWithAes(encrypted, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                    }
+                                }
+
+                                @Override
+                                public void onError(String errorCode, CharSequence errString) {
+                                    pm.reject(String.valueOf(errorCode), errString.toString());
+                                }
+                            }
+
+                            // Show the fingerprint dialog
+                            FingerprintAuthenticationDialogFragment fragment
+                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
+                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
+                            fragment.setCallback(new DecryptWithAesCallback());
+
+                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+
+                        } else {
+                            mCancellationSignal = new CancellationSignal();
+                            mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
+                                    0, new FingerprintManager.AuthenticationCallback() {
+
+                                        @Override
+                                        public void onAuthenticationFailed() {
+                                            super.onAuthenticationFailed();
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                            super.onAuthenticationError(errorCode, errString);
+                                            pm.reject(String.valueOf(errorCode), errString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
+                                            super.onAuthenticationHelp(helpCode, helpString);
+                                            getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                        }
+
+                                        @Override
+                                        public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
+                                            super.onAuthenticationSucceeded(result);
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                decryptWithAes(encrypted, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                            }
+                                        }
+                                    }, null);
+                        }
+                    }
+                    return;
+                }
+                byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+                pm.resolve(new String(decryptedBytes));
+            } catch (InvalidKeyException e) {
+                try {
+                    mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                    prepareKey();
+                } catch (Exception keyResetError) {
+                    pm.reject(keyResetError);
+                }
+                pm.reject(e);
+            } catch (SecurityException e) {
+                pm.reject(e);
+            } catch (Exception e) {
+                pm.reject(e);
+            }
+        } else {
+            pm.reject("Fingerprint not supported", "Fingerprint not supported");
         }
-
-
     }
-
-    private byte[] rsaEncrypt(byte[] secret) throws Exception {
-        KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
-
-        Cipher inputCipher = Cipher.getInstance(RSA_MODE, "AndroidOpenSSL");
-        inputCipher.init(Cipher.ENCRYPT_MODE, privateKeyEntry.getCertificate().getPublicKey());
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream, inputCipher);
-        cipherOutputStream.write(secret);
-        cipherOutputStream.close();
-
-        return outputStream.toByteArray();
-    }
-
-    private byte[] rsaDecrypt(byte[] encrypted) throws Exception {
-        KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(KEY_ALIAS, null);
-
-        Cipher outputCipher = Cipher.getInstance(RSA_MODE, "AndroidOpenSSL");
-        outputCipher.init(Cipher.DECRYPT_MODE, privateKeyEntry.getPrivateKey());
-
-        CipherInputStream cipherInputStream = new CipherInputStream(new ByteArrayInputStream(encrypted), outputCipher);
-        ArrayList<Byte> values = new ArrayList<>();
-        int nextByte;
-        while ((nextByte = cipherInputStream.read()) != -1) {
-            values.add((byte) nextByte);
-        }
-
-        byte[] bytes = new byte[values.size()];
-        for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = values.get(i).byteValue();
-        }
-        return bytes;
-    }
-
+    
     public String encrypt(String input) throws Exception {
+        
+        Key secretKey = ((KeyStore.SecretKeyEntry) mKeyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
         byte[] bytes = input.getBytes();
 
         Cipher c;
@@ -265,6 +521,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
 
         Cipher c;
+        Key secretKey = ((KeyStore.SecretKeyEntry) mKeyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             c = Cipher.getInstance(AES_GCM);

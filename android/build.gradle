@@ -1,12 +1,12 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 25
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         ndk {
@@ -14,10 +14,10 @@ android {
         }
     }
     lintOptions {
-       warning 'InvalidPackage'
+        warning 'InvalidPackage'
     }
 }
 
 dependencies {
-    compile 'com.facebook.react:react-native:0.20.1'
+    implementation 'com.facebook.react:react-native:+'
 }
