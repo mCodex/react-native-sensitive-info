@@ -49,12 +49,12 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     KeyProperties.BLOCK_MODE_CBC + "/" +
                     KeyProperties.ENCRYPTION_PADDING_PKCS7;
 
+    private static final String AES_GCM = "AES/GCM/NoPadding";
+    private static final String AES_ECB = "AES/ECB/PKCS7Padding";
+    private static final String DELIMITER = "]";
     private static final byte[] FIXED_IV = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1};
     private static final String KEY_ALIAS = "MySharedPreferenceKeyAlias";
     private static final String KEY_ALIAS_AES = "MyAesKeyAlias";
-    private static final String DELIMITER = "]";
-    private static final String AES_GCM = "AES/GCM/NoPadding";
-    private static final String AES_ECB = "AES/ECB/PKCS7Padding";
 
     private FingerprintManager mFingerprintManager;
     private KeyStore mKeyStore;
@@ -237,7 +237,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
             mKeyStore.load(null);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !mKeyStore.containsAlias(KEY_ALIAS)) {
                 KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
                 keyGenerator.init(
                         new KeyGenParameterSpec.Builder(KEY_ALIAS,
@@ -248,6 +248,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 .build());
                 keyGenerator.generateKey();
             }
+            
             // Check if a generated key exists under the KEY_ALIAS_AES .
             if (!mKeyStore.containsAlias(KEY_ALIAS_AES)) {
                 prepareKey();
