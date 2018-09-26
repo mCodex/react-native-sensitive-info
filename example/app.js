@@ -4,7 +4,12 @@ import {
   AppRegistry,
   StyleSheet,
   Text,
-  View
+  View,
+  Alert,
+  Button,
+  Platform,
+  AppState,
+  DeviceEventEmitter
 } from 'react-native';
 
 import SInfo from 'react-native-sensitive-info';
@@ -30,49 +35,153 @@ const styles = StyleSheet.create({
 
 class example extends Component {
 
-  render() {
+  constructor(props) {
+    super(props);
+    this.handleStateChange = this.handleStateChange.bind(this);
+    this.handleAuthFeedback = this.handleAuthFeedback.bind(this);
+    this.state = {
+      helpText: ''
+    };
+  }
+
+  componentDidMount() {
     SInfo.setItem('key1', 'value1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true });
+      keychainService: 'myKeychain' });
 
-    SInfo.setItem('key2', 'value2');
+    SInfo.setItem('key2', 'value2', {}).then((test) => {
+      console.log('My test', test); //Value 2
+    });
+
+    SInfo.setItem('key3', 'value3', {
+      keychainService: 'myKeychain',
+      kSecAccessControl: 'kSecAccessControlTouchIDCurrentSet',
+      touchID: true
+    });
+
+    SInfo.setItem('key5', 'kSecAttrAccessibleValue', {
+      keychainService: 'myKeychain',
+      kSecAttrAccessible: 'kSecAttrAccessibleAlways'
+    });
 
     SInfo.getItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true }).then((value) => {
+      keychainService: 'myKeychain' }).then((value) => {
         console.log(value); //value1
       });
 
-    SInfo.getItem('key2').then((value) => {
+    SInfo.getItem('key2', {}).then((value) => {
       console.log(value); //value2
+    });
+
+    SInfo.getItem('key3', {}).then((value) => {
+      console.log(value); //value3
     });
 
     SInfo.getAllItems({
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true }).then((values) => {
-        console.log(values); //value1
+      keychainService: 'myKeychain' }).then((values) => {
+        console.log(values); //value1, value2
       });
 
-    SInfo.deleteItem('key2');
+    SInfo.getAllItems({}).then((values) => {
+      console.log(values); //value3, value2
+    });
+
     SInfo.deleteItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain',
-      encrypt: true });
+      keychainService: 'myKeychain' }).then((values) => {
+        console.log('deleted');
+      });
 
+    AppState.addEventListener('change', this.handleStateChange);
+    DeviceEventEmitter.addListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
+  }
+
+  componentWillUnmount() {
+    AppState.removeEventListener('change', this.handleStateChange);
+    SInfo.cancelFingerprintAuth();
+    DeviceEventEmitter.removeListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
+  }
+
+  async setTouchIDItem() {
+    if (!await SInfo.isSensorAvailable()) {
+      Alert.alert('Touch Sensor not found');
+      return;
+    }
+    if (Platform.OS === 'android') {
+      this.setState({
+        helpText: 'Scan your fingerprint get the item.'
+      });
+    }
+    try {
+      await SInfo.setItem('touchItem', new Date().toISOString(), { touchID: true });
+    } catch (err) {
+      Alert.alert(err.message);
+    } finally {
+      if (Platform.OS === 'android') {
+        this.setState({
+          helpText: ''
+        });
+      }
+    }
+  }
+
+  handleStateChange(appState) {
+    switch (appState) {
+      case 'background':
+        this.setState({
+          helpText: ''
+        });
+        SInfo.cancelFingerprintAuth();
+    }
+  }
+
+  handleAuthFeedback(helpText) {
+    this.setState({ helpText });
+  }
+
+  async getTouchIDItem() {
+    if (!await SInfo.isSensorAvailable()) {
+      Alert.alert('Touch Sensor not found');
+      return;
+    }
+    if (Platform.OS === 'android') {
+      this.setState({
+        helpText: 'Scan your fingerprint get the item.'
+      });
+    }
+    try {
+      const result = await SInfo.getItem('touchItem', {
+        touchID: true,
+        kSecUseOperationPrompt: 'Scan your fingerprint get the item.' // this is for iOS
+      });
+      if (result) {
+        Alert.alert('Touch ID item', result);
+      }
+    } catch (err) {
+      Alert.alert(err.message);
+    } finally {
+      if (Platform.OS === 'android') {
+        this.setState({
+          helpText: ''
+        });
+      }
+    }
+  }
+
+  render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit the values above and be sure debugging mode is enabled to see our magic happening 🌟
-        </Text>
-        <Text style={styles.instructions}>
-          Shake or press menu button for dev menu
-        </Text>
+        <Text>{this.state.helpText}</Text>
+        <Button
+          onPress={() => this.setTouchIDItem()}
+          title="set touchID item"
+        />
+        <Button
+          onPress={() => this.getTouchIDItem()}
+          title="get touchID item"
+        />
       </View>
     );
   }

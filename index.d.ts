@@ -23,35 +23,19 @@ export enum RNSensitiveInfoAttrAccessibleOptions {
 }
 
 export interface RNSensitiveInfoOptions {
-  kSecAccessControl: RNSensitiveInfoAccessControlOptions;
-  kSecAttrAccessible: RNSensitiveInfoAttrAccessibleOptions;
-  keychainService: string;
-  kSecUseOperationPrompt: string;
-  sharedPreferencesName: string;
-  touchID: boolean;
+  kSecAccessControl?: RNSensitiveInfoAccessControlOptions;
+  kSecAttrAccessible?: RNSensitiveInfoAttrAccessibleOptions;
+  keychainService?: string;
+  kSecUseOperationPrompt?: string;
+  sharedPreferencesName?: string;
+  touchID?: boolean;
 }
 
-declare class RNSensitiveInfo {
-  setItem(
-    key: string,
-    value: string,
-    options: RNSensitiveInfoOptions,
-  ): Promise<null>;
-
-  getItem(key: string, options: RNSensitiveInfoOptions): Promise<string>;
-
-  getAllItems(options: RNSensitiveInfoOptions): Promise<Object>;
-
-  deleteItem(key: string, options: RNSensitiveInfoOptions): Promise<null>;
-
-  isSensorAvailable(): Promise<RNSensitiveInfoBiometryType | boolean>;
-
-  isHardwareDetected(): Promise<boolean>;
-
-  hasEnrolledFingerprints(): Promise<boolean>;
-
-  cancelFingerprintAuth(): void;
-}
-
-declare const rnSensitiveInfo: RNSensitiveInfo;
-export default rnSensitiveInfo;
+export declare function setItem(key: string, value: string, options: RNSensitiveInfoOptions): Promise<null>;
+export declare function getItem(key: string, options: RNSensitiveInfoOptions): Promise<string>;
+export declare function getAllItems(options: RNSensitiveInfoOptions): Promise<Object>;
+export declare function deleteItem(key: string, options: RNSensitiveInfoOptions): Promise<null>;
+export declare function isSensorAvailable(): Promise<RNSensitiveInfoBiometryType | boolean>;
+export declare function isHardwareDetected(): Promise<boolean>;
+export declare function hasEnrolledFingerprints(): Promise<boolean>;
+export declare function cancelFingerprintAuth(): void;
