@@ -161,12 +161,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
 
             decryptWithAes(value, showModal, strings, pm, null);
-        } else {
+        } else if (value != null) {
             try {
                 pm.resolve(decrypt(value));
             } catch (Exception e) {
                 pm.reject(e);
             }
+        } else {
+            pm.resolve(value);
         }
     }
 
@@ -252,7 +254,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
     
     /**
-     * Generates a new AES key and stores it under the { @code KEY_ALIAS } in the
+     * Generates a new RSA key and stores it under the { @code KEY_ALIAS } in the
      * Android Keystore.
      */
     private void initKeyStore() {

@@ -143,9 +143,9 @@ We unified our library's methods to bring more efficiency and simplify the usabi
 
 ```javascript
 SInfo.setItem('key1', 'value1', {
-sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain',
-encrypt: true});
+    sharedPreferencesName: 'mySharedPrefs',
+    keychainService: 'myKeychain'
+});
 ```
 
 If you used Android's getDefaultSharedPreferences in your project the shared preference's name that you are looking for is: **com.mypackage.MyApp_preferences**. On the other hand if you used iOS's Keychain the default service is: **app** which is our default too.
@@ -180,7 +180,7 @@ SInfo.setItem('key1', 'value1', {
   keychainService: 'myKeychain',
   kSecAccessControl: 'kSecAccessControlTouchIDCurrentSet',
   sharedPreferencesName: 'mySharedPrefs',
-  touchID: true,
+  touchID: true
 });
 ```
 
