@@ -131,7 +131,7 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
         reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
         return;
     }
-    resolve(nil);
+    resolve(value);
 }
 
 RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
