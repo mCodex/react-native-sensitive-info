@@ -212,13 +212,16 @@ RCT_EXPORT_METHOD(getAllItems:(NSDictionary *)options resolver:(RCTPromiseResolv
 
             for (NSDictionary* item in (__bridge id)result) {
                 NSMutableDictionary *finalItem = [[NSMutableDictionary alloc] init];
+              
+                @try
+                {
+                  [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrService)] forKey:@"service"];
+                  [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrAccount)] forKey:@"key"];
+                  [finalItem setObject:[[NSString alloc] initWithData:[item objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding] forKey:@"value"];
 
-                [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrService)] forKey:@"service"];
-                [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrAccount)] forKey:@"key"];
-                [finalItem setObject:[[NSString alloc] initWithData:[item objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding] forKey:@"value"];
-
-                [finalResult addObject: finalItem];
-
+                  [finalResult addObject: finalItem];
+                }
+                @catch(NSException *exception){} // Ignore items with weird keys or values
             }
 
         }
