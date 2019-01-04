@@ -212,7 +212,13 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
         resolve(nil);
     } else {
         // Found
-        NSString* value = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
+        NSString* value = nil;
+        if ([RCTConvert BOOL:options[@"unarchiveValue"]]) {
+            NSData* data = [[NSData alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)]];
+            value = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+        } else {
+            value = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
+        }
         resolve(value);
         
     }

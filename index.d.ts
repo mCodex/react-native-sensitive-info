@@ -38,6 +38,7 @@ export interface RNSensitiveInfoOptions {
   showModal?: boolean;
   kSecUseOperationPrompt?: string;
   strings?: RNSensitiveInfoAndroidDialogStrings;
+ unarchiveValue: boolean;
 }
 
 export declare function setItem(

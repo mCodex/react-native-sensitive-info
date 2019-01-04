@@ -201,6 +201,17 @@ SInfo.setItem('key1', 'value1', {
 
 Note: By default `kSecAccessControl` will get set to `kSecAccessControlUserPresence`.
 
+#### unarchiveValue
+
+Setting the `unarchiveValue` option as `true` will utilize [`NSKeyedUnarchiver`](https://developer.apple.com/documentation/foundation/nskeyedunarchiver) to unarchive the Keychain value. This is useful for when retrieving a value that was archived when originally stored (e.g. created by [`Locksmith`](https://git.io/fhYw0)). This option is only supported by `getItem`.
+
+```javascript
+SInfo.getItem('key1', {
+  keychainService: 'myKeychain',
+  unarchiveValue: true,
+});
+```
+
 # How to use?
 
 Here is a simple example:
