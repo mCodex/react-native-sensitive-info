@@ -56,6 +56,9 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
 
     private SharedPreferences mSharedPreferences;
 
+    private boolean mSavedInstanceStateDone = false;
+    private boolean mPendingDismiss = false;
+
     public static FingerprintAuthenticationDialogFragment newInstance(HashMap strings) {
         FingerprintAuthenticationDialogFragment f = new FingerprintAuthenticationDialogFragment();
 
@@ -99,7 +102,7 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
                 mCallback.onError(
                         AppConstants.E_AUTHENTICATION_CANCELLED,
                         mStrings.containsKey("cancelled") ? mStrings.get("cancelled").toString() : "Authentication was cancelled");
-                dismiss();
+                dismissDialog();
             }
         });
 
@@ -120,7 +123,14 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
     @Override
     public void onResume() {
         super.onResume();
-        mFingerprintUiHelper.startListening(mCryptoObject);
+
+        if (mPendingDismiss) {
+            // if there's a pending dismiss request, dismiss a fragment when it resumes
+            dismiss();
+        } else {
+            mSavedInstanceStateDone = false;
+            mFingerprintUiHelper.startListening(mCryptoObject);
+        }
     }
 
     @Override
@@ -144,6 +154,21 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
         mActivity = getActivity();
     }
 
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mSavedInstanceStateDone = true;
+    }
+
+    private void dismissDialog() {
+        if (!mSavedInstanceStateDone) {
+            // fragment is running, dismiss it
+            dismiss();
+        } else {
+            // fragment is paused, dismiss it onResume
+            mPendingDismiss = true;
+        }
+    }
+
     /**
      * Sets the crypto object to be passed in when authenticating with fingerprint.
      */
@@ -163,12 +188,12 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
         // Callback from FingerprintUiHelper. Let the activity know that authentication was
         // successful.
         mCallback.onAuthenticated(result);
-        dismiss();
+        dismissDialog();
     }
 
     @Override
     public void onError(String errorCode, CharSequence errString) {
         mCallback.onError(errorCode, errString);
-        dismiss();
+        dismissDialog();
     }
 }
