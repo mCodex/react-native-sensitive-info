@@ -1,5 +1,8 @@
 package br.com.classapp.RNSensitiveInfo;
 
+import android.app.Activity;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.fingerprint.FingerprintManager;
@@ -223,6 +226,34 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
     }
 
+    private void showDialog(final HashMap strings, Object cryptoObject, FingerprintUiHelper.Callback callback) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            // DialogFragment.show() will take care of adding the fragment
+            // in a transaction.  We also want to remove any currently showing
+            // dialog, so make our own transaction and take care of that here.
+
+            Activity activity = getCurrentActivity();
+            if (activity == null) {
+                callback.onError(AppConstants.E_INIT_FAILURE,
+                        strings.containsKey("cancelled") ? strings.get("cancelled").toString() : "Authentication was cancelled");
+                return;
+            }
+
+            FragmentTransaction ft = activity.getFragmentManager().beginTransaction();
+            Fragment prev = getCurrentActivity().getFragmentManager().findFragmentByTag(AppConstants.DIALOG_FRAGMENT_TAG);
+            if (prev != null) {
+                ft.remove(prev);
+            }
+            ft.addToBackStack(null);
+
+            // Create and show the dialog.
+            FingerprintAuthenticationDialogFragment newFragment = FingerprintAuthenticationDialogFragment.newInstance(strings);
+            newFragment.setCryptoObject((FingerprintManager.CryptoObject) cryptoObject);
+            newFragment.setCallback(callback);
+            newFragment.show(ft, AppConstants.DIALOG_FRAGMENT_TAG);
+        }
+    }
+
     /**
      * Generates a new AES key and stores it under the { @code KEY_ALIAS_AES } in the
      * Android Keystore.
@@ -298,12 +329,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                             }
 
                             // Show the fingerprint dialog
-                            FingerprintAuthenticationDialogFragment fragment
-                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
-                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
-                            fragment.setCallback(new PutExtraWithAESCallback());
-
-                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+                            showDialog(strings, new FingerprintManager.CryptoObject(cipher), new PutExtraWithAESCallback());
 
                         } else {
                             mCancellationSignal = new CancellationSignal();
@@ -414,12 +440,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                             }
 
                             // Show the fingerprint dialog
-                            FingerprintAuthenticationDialogFragment fragment
-                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
-                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
-                            fragment.setCallback(new DecryptWithAesCallback());
-
-                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+                            showDialog(strings, new FingerprintManager.CryptoObject(cipher), new DecryptWithAesCallback());
 
                         } else {
                             mCancellationSignal = new CancellationSignal();

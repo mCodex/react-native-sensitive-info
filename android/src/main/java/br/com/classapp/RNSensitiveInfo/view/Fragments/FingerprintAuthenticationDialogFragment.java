@@ -56,6 +56,11 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
 
     private SharedPreferences mSharedPreferences;
 
+    private boolean mSavedInstanceStateDone = false;
+    private boolean mPendingDismiss = false;
+    private boolean mDidDismiss = false;
+    private boolean mDidInvokeCallback = false;
+
     public static FingerprintAuthenticationDialogFragment newInstance(HashMap strings) {
         FingerprintAuthenticationDialogFragment f = new FingerprintAuthenticationDialogFragment();
 
@@ -96,10 +101,10 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
         mCancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mCallback.onError(
+                callbackOnError(
                         AppConstants.E_AUTHENTICATION_CANCELLED,
                         mStrings.containsKey("cancelled") ? mStrings.get("cancelled").toString() : "Authentication was cancelled");
-                dismiss();
+                dismissDialog();
             }
         });
 
@@ -120,7 +125,14 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
     @Override
     public void onResume() {
         super.onResume();
-        mFingerprintUiHelper.startListening(mCryptoObject);
+        mSavedInstanceStateDone = false;
+
+        if (mPendingDismiss) {
+            // if there's a pending dismiss request, dismiss a fragment when it resumes
+            dismissDialog();
+        } else {
+            mFingerprintUiHelper.startListening(mCryptoObject);
+        }
     }
 
     @Override
@@ -132,7 +144,7 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
     @Override
     public void onCancel(DialogInterface dialog) {
         super.onCancel(dialog);
-        mCallback.onError(
+        callbackOnError(
                 AppConstants.E_AUTHENTICATION_CANCELLED,
                 mStrings.containsKey("cancelled") ? mStrings.get("cancelled").toString() : "Authentication was cancelled");
     }
@@ -142,6 +154,24 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
         super.onAttach(context);
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         mActivity = getActivity();
+    }
+
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mSavedInstanceStateDone = true;
+    }
+
+    private void dismissDialog() {
+        if (mDidDismiss) return;
+
+        if (!mSavedInstanceStateDone) {
+            // fragment is running, dismiss it
+            mDidDismiss = true;
+            dismiss();
+        } else {
+            // fragment is paused, dismiss it onResume
+            mPendingDismiss = true;
+        }
     }
 
     /**
@@ -158,17 +188,31 @@ public class FingerprintAuthenticationDialogFragment extends DialogFragment
         mCallback = callback;
     }
 
+    public void callbackOnAuthenticated(FingerprintManager.AuthenticationResult result) {
+        if (!mDidInvokeCallback) {
+            mDidInvokeCallback = true;
+            mCallback.onAuthenticated(result);
+        }
+    }
+
+    public void callbackOnError(String errorCode, CharSequence errString) {
+        if (!mDidInvokeCallback) {
+            mDidInvokeCallback = true;
+            mCallback.onError(errorCode, errString);
+        }
+    }
+
     @Override
     public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
         // Callback from FingerprintUiHelper. Let the activity know that authentication was
         // successful.
-        mCallback.onAuthenticated(result);
-        dismiss();
+        callbackOnAuthenticated(result);
+        dismissDialog();
     }
 
     @Override
     public void onError(String errorCode, CharSequence errString) {
-        mCallback.onError(errorCode, errString);
-        dismiss();
+        callbackOnError(errorCode, errString);
+        dismissDialog();
     }
 }
