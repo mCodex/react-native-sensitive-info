@@ -148,8 +148,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         if (options.hasKey("touchID") && options.getBoolean("touchID")) {
             boolean showModal = options.hasKey("showModal") && options.getBoolean("showModal");
             HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
+            boolean invalidateEnrollment = options.hasKey("invalidateEnrollment") ?
+                options.getBoolean("invalidateEnrollment")
+                : true; // Set default as true to keep default case for previous versions
 
-            putExtraWithAES(key, value, prefs(name), showModal, strings, pm, null);
+            putExtraWithAES(key, value, prefs(name), showModal, invalidateEnrollment, strings, pm, null);
         } else {
             try {
                 putExtra(key, value, prefs(name));
@@ -265,13 +268,13 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
             // Check if a generated key exists under the KEY_ALIAS_AES .
             if (!mKeyStore.containsAlias(KEY_ALIAS_AES)) {
-                prepareKey();
+                prepareKey(false);
             }
         } catch (Exception e) {
         }
     }
 
-    private void prepareKey() throws Exception {
+    private void prepareKey(final boolean invalidateEnrollment) throws Exception {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
             return;
         }
@@ -289,11 +292,15 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 // forces user authentication with fingerprint
                 .setUserAuthenticationRequired(true);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.setInvalidatedByBiometricEnrollment(invalidateEnrollment);
+        }
+
         keyGenerator.init(builder.build());
         keyGenerator.generateKey();
     }
 
-    private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
+    private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final boolean showModal, final boolean invalidateEnrollment, final HashMap strings, final Promise pm, Cipher cipher) {
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && hasSetupFingerprint()) {
             try {
@@ -318,7 +325,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                        putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                        putExtraWithAES(key, value, mSharedPreferences, showModal, invalidateEnrollment, strings, pm, result.getCryptoObject().getCipher());
                                     }
                                 }
 
@@ -360,7 +367,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
                                             super.onAuthenticationSucceeded(result);
                                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                                putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                                putExtraWithAES(key, value, mSharedPreferences, showModal, invalidateEnrollment, strings, pm, result.getCryptoObject().getCipher());
                                             }
                                         }
                                     }, null);
@@ -381,7 +388,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             } catch (InvalidKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
-                    prepareKey();
+                    prepareKey(invalidateEnrollment);
                 } catch (Exception keyResetError) {
                     pm.reject(keyResetError);
                 }
@@ -484,7 +491,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             } catch (InvalidKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
-                    prepareKey();
+                    prepareKey(invalidateEnrollment);
                 } catch (Exception keyResetError) {
                     pm.reject(keyResetError);
                 }
