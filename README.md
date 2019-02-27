@@ -157,9 +157,11 @@ If you used Android's getDefaultSharedPreferences in your project the shared pre
 
 ### Android Specific Options
 
-#### showModal & strings
+#### showModal, invalidateEnrollment & strings
 
 When passing in `touchID` and `showModal` (Android only) options as `true`, an Android native prompt will show up asking for user's authentication. This behavior is similar to that of iOS.
+
+When passing in `invalidateEnrollment` option as `true` or `false`, it will set this Android property [https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec.Builder#setInvalidatedByBiometricEnrollment(boolean)](https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec.Builder#setInvalidatedByBiometricEnrollment(boolean)) on any device with API level greater than 24 (`Android version >= N`). This property will keep/invalidate the data stored on the keystore when a new finger is added to the device. Default value is `true`
 
 You can control strings associated with a modal prompt via `strings` option:
 ```javascript
