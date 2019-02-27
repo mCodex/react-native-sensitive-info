@@ -4,18 +4,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.png?v=103)](https://github.com/ellerbrock/open-source-badges/)
 
-
-**react-native-sensitive-info**  is the next generation of [react-native-get-shared-prefs](https://www.npmjs.com/package/react-native-get-shared-prefs).
-
-# Introduction
-
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
 
 
-| RN SensitiveInfo Version | Description                      |
-|--------------------------|----------------------------------|
-| 4.0+                     | Compatible with RN 0.40+         |
-| <= 3.0.2                 | Compatible with RN 0.40 or below |
+# Help Wanted
+
+Hi 👋! It's been 3 years since I released RNSensitiveInfo's first version only to fix a problem that I was facing at that moment. I was starting my career as JS Developer and RNSensitiveInfo helped me a lot through my learning path. Unfortunately, I don't have too much time as I wanted to, to support by myself this awesome library that we've built so far. So, I'm looking for developers who could help during this journey... We have so many pending issues, features, security improvements, unity/integration tests that could be done... I'm still willing to help and take care of releasing it future versions.
+
+Feel free to contact me,
+
+Best Regards!
 
 # Install
 
