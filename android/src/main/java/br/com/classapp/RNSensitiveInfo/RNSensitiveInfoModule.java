@@ -57,6 +57,9 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     private KeyStore mKeyStore;
     private CancellationSignal mCancellationSignal;
 
+    // Keep it true by default to maintain backwards compatibility with existing users.
+    private boolean invalidateEnrollment = true;
+
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -97,6 +100,16 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             // Should never be thrown since we have declared the USE_FINGERPRINT permission
             // in the manifest file
             return false;
+        }
+    }
+
+    @ReactMethod
+    public void setInvalidatedByBiometricEnrollment(final boolean invalidatedByBiometricEnrollment, final Promise pm) {
+        this.invalidateEnrollment = invalidatedByBiometricEnrollment;
+        try {
+            prepareKey();
+        } catch (Exception e) {
+            pm.reject(e);
         }
     }
 
@@ -288,6 +301,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                 // forces user authentication with fingerprint
                 .setUserAuthenticationRequired(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                builder.setInvalidatedByBiometricEnrollment(invalidateEnrollment);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", "Error setting setInvalidatedByBiometricEnrollment: " + e.getMessage());
+            }
+        }
 
         keyGenerator.init(builder.build());
         keyGenerator.generateKey();
