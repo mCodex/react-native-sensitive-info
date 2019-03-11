@@ -261,6 +261,9 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
 
 RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
+#if TARGET_OS_TV || TARGET_OS_MAC
+  resolve(@(NO));
+#else
     LAContext *context = [[LAContext alloc] init];
 
     if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
@@ -273,5 +276,6 @@ RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RC
     } else {
         resolve(@(NO));
     }
+#endif
 }
 @end
