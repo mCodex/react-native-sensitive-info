@@ -5,7 +5,10 @@
 #import "React/RCTConvert.h"
 #import "React/RCTBridge.h"
 #import "React/RCTUtils.h"
+
+#if !TARGET_OS_TV
 #import <LocalAuthentication/LocalAuthentication.h>
+#endif
 
 @implementation RNSensitiveInfo
 
@@ -261,10 +264,11 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
 
 RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
+#if !TARGET_OS_TV
     LAContext *context = [[LAContext alloc] init];
 
     if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
-        if (@available(iOS 11, *)) {
+        if (@available(iOS 11, macOS 10.13.2, *)) {
             if (context.biometryType == LABiometryTypeFaceID) {
                 return resolve(@"Face ID");
             }
@@ -273,5 +277,8 @@ RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RC
     } else {
         resolve(@(NO));
     }
+#else
+  resolve(@(NO));
+#endif
 }
 @end
