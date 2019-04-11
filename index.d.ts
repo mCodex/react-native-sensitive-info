@@ -10,6 +10,8 @@ export enum RNSensitiveInfoAccessControlOptions {
   'kSecAccessControlTouchIDAny',
   'kSecAccessControlTouchIDCurrentSet',
   'kSecAccessControlUserPresence',
+  'kSecAccessControlBiometryAny',
+  'kSecAccessControlBiometryCurrentSet',
 }
 
 export enum RNSensitiveInfoAttrAccessibleOptions {
