@@ -34,6 +34,12 @@ CFStringRef convertkSecAttrAccessible(NSString* key){
     if([key isEqual: @"kSecAttrAccessibleAlwaysThisDeviceOnly"]){
         return kSecAttrAccessibleAlwaysThisDeviceOnly;
     }
+    if ([key isEqual: @"kSecAccessControlBiometryAny"]) {
+        return kSecAccessControlBiometryAny;
+    }
+    if ([key isEqual: @"kSecAccessControlBiometryCurrentSet"]) {
+        return kSecAccessControlBiometryCurrentSet;
+    }
     return kSecAttrAccessibleWhenUnlocked;
 }
 
