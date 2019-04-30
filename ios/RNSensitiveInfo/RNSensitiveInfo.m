@@ -300,8 +300,9 @@ RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RC
 {
 #if !TARGET_OS_TV
     LAContext *context = [[LAContext alloc] init];
-
-    if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
+    
+    NSError *evaluationError = nil;
+    if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&evaluationError]) {
         if (@available(iOS 11, macOS 10.13.2, *)) {
             if (context.biometryType == LABiometryTypeFaceID) {
                 return resolve(@"Face ID");
@@ -309,6 +310,9 @@ RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RC
         }
         resolve(@"Touch ID");
     } else {
+        if (evaluationError && evaluationError.code == LAErrorBiometryLockout) {
+            return reject(nil, @"Biometry is locked", nil);
+        }
         resolve(@(NO));
     }
 #else
