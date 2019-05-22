@@ -179,7 +179,11 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
                 localizedReason:prompt
                           reply:^(BOOL success, NSError * _Nullable error) {
                               if (!success) {
-                                  reject(nil, @"The user name or passphrase you entered is not correct.", nil);
+                                  if (error) {
+                                      reject(nil, error.localizedDescription, error);
+                                  } else {
+                                      reject(nil, @"The user name or passphrase you entered is not correct.", nil);
+                                  }
                                   return;
                               }
                               
