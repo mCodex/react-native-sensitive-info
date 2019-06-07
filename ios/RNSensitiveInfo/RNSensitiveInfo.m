@@ -187,15 +187,15 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
                                   return;
                               }
                               
-                              [self getItemWithQuery:query resolver:resolve rejecter:reject];
+                              [self getItemWithQuery:query resolver:resolve rejecter:reject options:options];
                           }];
         return;
     }
     
-    [self getItemWithQuery:query resolver:resolve rejecter:reject];
+    [self getItemWithQuery:query resolver:resolve rejecter:reject options:options];
 }
 
-- (void)getItemWithQuery:(NSDictionary *)query resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
+- (void)getItemWithQuery:(NSDictionary *)query resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject options:(NSDictionary *)options {
     // Look up server in the keychain
     NSDictionary* found = nil;
     CFTypeRef foundTypeRef = NULL;
