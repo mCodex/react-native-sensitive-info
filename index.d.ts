@@ -62,4 +62,4 @@ export declare function isSensorAvailable(): Promise<
 export declare function isHardwareDetected(): Promise<boolean>;
 export declare function hasEnrolledFingerprints(): Promise<boolean>;
 export declare function cancelFingerprintAuth(): void;
-export declare function setInvalidatedByBiometricEnrollment(boolean): void;
+export declare function setInvalidatedByBiometricEnrollment(set: boolean): void;
