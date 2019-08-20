@@ -159,7 +159,7 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
     NSMutableDictionary* query = [NSMutableDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
                                   keychainService, kSecAttrService,
                                   key, kSecAttrAccount,
-                                  kSecAttrSynchronizableAny, kSecAttrSynchronizable
+                                  kSecAttrSynchronizableAny, kSecAttrSynchronizable,
                                   kCFBooleanTrue, kSecReturnAttributes,
                                   kCFBooleanTrue, kSecReturnData,
                                   nil];
