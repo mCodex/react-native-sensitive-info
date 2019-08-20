@@ -201,6 +201,13 @@ SInfo.setItem('key1', 'value1', {
 
 Note: By default `kSecAccessControl` will get set to `kSecAccessControlUserPresence`.
 
+#### kSecAttrSynchronizable
+
+You can set this to `true` in order to sync the keychain items with iCloud.
+
+Note: By default `kSecAttrSynchronizable` will get set to `false`.
+
+
 # How to use?
 
 Here is a simple example:
