@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.name          = package['name']
   s.version       = package['version']
   s.source_files  = 'ios/**/*.{h,m}'
-  s.platform      = :ios, "9.1"
+  s.platform      = :ios, "8.0"
   s.author        = package['author']
   s.license       = package['license']
   s.summary       = package['description']
