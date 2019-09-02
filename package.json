@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "5.5.0",
+  "version": "5.5.1",
   "main": "RNSensitiveInfo.js",
   "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
   "scripts": {
