@@ -201,6 +201,19 @@ SInfo.setItem('key1', 'value1', {
 
 Note: By default `kSecAccessControl` will get set to `kSecAccessControlUserPresence`.
 
+### Enable Face ID 
+
+To enable Face ID, for iOS X and above or iPad Pro, set `kSecAccessControl` to `kSecAccessControlBiometryAny`.  For example:
+```javascript
+SInfo.setItem('key1', 'value1', {
+  keychainService: 'myKeychain',
+  kSecAccessControl: 'kSecAccessControlBiometryAny',
+  ...
+});
+```
+
+Note: This will require a string for the prompt that you have to set the key `NSFaceIDUsageDescription` in your App's Info.plist file. The string value of this key will be added to the Face ID prompt. You can read more about it in the [Apple Docs]("https://developer.apple.com/documentation/localauthentication/logging_a_user_into_your_app_with_face_id_or_touch_id")
+
 #### kSecAttrSynchronizable
 
 You can set this to `true` in order to sync the keychain items with iCloud.
