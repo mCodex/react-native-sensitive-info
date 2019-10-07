@@ -111,6 +111,9 @@ CFStringRef convertkSecAccessControl(NSString* key){
 }
 
 RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+    
+    NSString *fallbackTitle = [RCTConvert NSString:options[@"kLocalizedFallbackTitle"]];
+    NSLog(@"HELLO: %@", fallbackTitle);
 
     NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
     if (keychainService == NULL) {
