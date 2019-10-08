@@ -171,7 +171,6 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
     if([RCTConvert BOOL:options[@"touchID"]]){
         LAContext *context = [[LAContext alloc] init];
         NSString *kLocalizedFallbackTitle = [RCTConvert NSString:options[@"kLocalizedFallbackTitle"]];
-        NSLog(@"HELLO THERE: %@", kLocalizedFallbackTitle);
         context.localizedFallbackTitle = kLocalizedFallbackTitle ? kLocalizedFallbackTitle : @"";
         context.touchIDAuthenticationAllowableReuseDuration = 1;
         
