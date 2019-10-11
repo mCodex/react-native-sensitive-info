@@ -220,6 +220,10 @@ You can set this to `true` in order to sync the keychain items with iCloud.
 
 Note: By default `kSecAttrSynchronizable` will get set to `false`.
 
+#### kLocalizedFallbackTitle
+
+You can set this to a string and fallback to pin code authentication.
+
 
 # How to use?
 

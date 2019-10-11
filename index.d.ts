@@ -37,6 +37,7 @@ export interface RNSensitiveInfoOptions {
   touchID?: boolean;
   showModal?: boolean;
   kSecUseOperationPrompt?: string;
+  kLocalizedFallbackTitle?: string;
   strings?: RNSensitiveInfoAndroidDialogStrings;
 }
 
