@@ -181,7 +181,10 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
             prompt = [RCTConvert NSString:options[@"kSecUseOperationPrompt"]];
         }
         
-        [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+        // If kLocalizedFallbackTitle exist, LAPolicy must allow fallback to pin also
+        NSInteger policy = kLocalizedFallbackTitle ? LAPolicyDeviceOwnerAuthentication : LAPolicyDeviceOwnerAuthenticationWithBiometrics;
+        
+        [context evaluatePolicy:policy
                 localizedReason:prompt
                           reply:^(BOOL success, NSError * _Nullable error) {
                               if (!success) {
