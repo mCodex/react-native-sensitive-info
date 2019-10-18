@@ -138,7 +138,7 @@ export default class App extends Component {
     }
     try {
       await SInfo.setItem('touchItem', new Date().toISOString(), {
-        touchID: true,
+        kSecAccessControl: 'kSecAccessControlBiometryAny'
       });
     } catch (err) {
       Alert.alert(err.message);

@@ -5163,10 +5163,8 @@ react-is@^16.8.1, react-is@^16.8.4, react-is@^16.9.0:
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.10.2.tgz#984120fd4d16800e9a738208ab1fba422d23b5ab"
   integrity sha512-INBT1QEgtcCCgvccr5/86CfD71fw9EPmDxgiJX4I2Ddr6ZsV6iFXsuby+qWJPtmNuMY0zByTsG4468P7nHuNWA==
 
-react-native-sensitive-info@^5.5.3:
+"react-native-sensitive-info@file:..":
   version "5.5.3"
-  resolved "https://registry.yarnpkg.com/react-native-sensitive-info/-/react-native-sensitive-info-5.5.3.tgz#0e1d19b0cb290bf86e37b855f4272c641ebbeb0f"
-  integrity sha512-Ezz6sEpBu4SiVqWjnt1Jk0d5V87MvdPD8xmVuUlhX3g+pL7RM4TuWR0c9hRJA9KDDYPmGH3FeRXgUyXqoVnZlw==
 
 react-native@0.61.2:
   version "0.61.2"
