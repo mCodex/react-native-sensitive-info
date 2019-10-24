@@ -1,5 +1,8 @@
 package br.com.classapp.RNSensitiveInfo;
 
+import android.app.Activity;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.fingerprint.FingerprintManager;
@@ -9,9 +12,9 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyInfo;
 import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyProperties;
-import android.support.annotation.NonNull;
 import android.util.Base64;
 import android.util.Log;
+import androidx.annotation.NonNull;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -68,6 +71,9 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     private KeyStore mKeyStore;
     private CancellationSignal mCancellationSignal;
 
+    // Keep it true by default to maintain backwards compatibility with existing users.
+    private boolean invalidateEnrollment = true;
+
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
         
@@ -123,6 +129,16 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             // Should never be thrown since we have declared the USE_FINGERPRINT permission
             // in the manifest file
             return false;
+        }
+    }
+
+    @ReactMethod
+    public void setInvalidatedByBiometricEnrollment(final boolean invalidatedByBiometricEnrollment, final Promise pm) {
+        this.invalidateEnrollment = invalidatedByBiometricEnrollment;
+        try {
+            prepareKey();
+        } catch (Exception e) {
+            pm.reject(e);
         }
     }
 
@@ -291,6 +307,34 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
     }
 
+    private void showDialog(final HashMap strings, Object cryptoObject, FingerprintUiHelper.Callback callback) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            // DialogFragment.show() will take care of adding the fragment
+            // in a transaction.  We also want to remove any currently showing
+            // dialog, so make our own transaction and take care of that here.
+
+            Activity activity = getCurrentActivity();
+            if (activity == null) {
+                callback.onError(AppConstants.E_INIT_FAILURE,
+                        strings.containsKey("cancelled") ? strings.get("cancelled").toString() : "Authentication was cancelled");
+                return;
+            }
+
+            FragmentTransaction ft = activity.getFragmentManager().beginTransaction();
+            Fragment prev = getCurrentActivity().getFragmentManager().findFragmentByTag(AppConstants.DIALOG_FRAGMENT_TAG);
+            if (prev != null) {
+                ft.remove(prev);
+            }
+            ft.addToBackStack(null);
+
+            // Create and show the dialog.
+            FingerprintAuthenticationDialogFragment newFragment = FingerprintAuthenticationDialogFragment.newInstance(strings);
+            newFragment.setCryptoObject((FingerprintManager.CryptoObject) cryptoObject);
+            newFragment.setCallback(callback);
+            newFragment.show(ft, AppConstants.DIALOG_FRAGMENT_TAG);
+        }
+    }
+
     /**
      * Generates a new AES key and stores it under the { @code KEY_ALIAS_AES } in the
      * Android Keystore.
@@ -321,6 +365,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                 // forces user authentication with fingerprint
                 .setUserAuthenticationRequired(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                builder.setInvalidatedByBiometricEnrollment(invalidateEnrollment);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", "Error setting setInvalidatedByBiometricEnrollment: " + e.getMessage());
+            }
+        }
 
         keyGenerator.init(builder.build());
         keyGenerator.generateKey();
@@ -362,12 +414,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                             }
 
                             // Show the fingerprint dialog
-                            FingerprintAuthenticationDialogFragment fragment
-                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
-                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
-                            fragment.setCallback(new PutExtraWithAESCallback());
-
-                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+                            showDialog(strings, new FingerprintManager.CryptoObject(cipher), new PutExtraWithAESCallback());
 
                         } else {
                             mCancellationSignal = new CancellationSignal();
@@ -478,12 +525,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                             }
 
                             // Show the fingerprint dialog
-                            FingerprintAuthenticationDialogFragment fragment
-                                    = FingerprintAuthenticationDialogFragment.newInstance(strings);
-                            fragment.setCryptoObject(new FingerprintManager.CryptoObject(cipher));
-                            fragment.setCallback(new DecryptWithAesCallback());
-
-                            fragment.show(getCurrentActivity().getFragmentManager(), AppConstants.DIALOG_FRAGMENT_TAG);
+                            showDialog(strings, new FingerprintManager.CryptoObject(cipher), new DecryptWithAesCallback());
 
                         } else {
                             mCancellationSignal = new CancellationSignal();

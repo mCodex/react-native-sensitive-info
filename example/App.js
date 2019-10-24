@@ -1,12 +1,18 @@
-import React, { Component } from 'react';
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ * @flow
+ */
 
+import React, { Component } from 'react';
 import {
-  AppRegistry,
   StyleSheet,
   Text,
   View,
   Alert,
-  Button,
+  TouchableOpacity,
   Platform,
   AppState,
   DeviceEventEmitter
@@ -31,10 +37,15 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 5,
   },
+  button: {
+    backgroundColor: 'lightskyblue',
+    padding: 10,
+    borderRadius: 3,
+    margin: 5,
+  }
 });
 
-class example extends Component {
-
+export default class App extends Component {
   constructor(props) {
     super(props);
     this.handleStateChange = this.handleStateChange.bind(this);
@@ -47,7 +58,8 @@ class example extends Component {
   componentDidMount() {
     SInfo.setItem('key1', 'value1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain' });
+      keychainService: 'myKeychain'
+    });
 
     SInfo.setItem('key2', 'value2', {}).then((test) => {
       console.log('My test', test); //Value 2
@@ -66,9 +78,10 @@ class example extends Component {
 
     SInfo.getItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain' }).then((value) => {
-        console.log(value); //value1
-      });
+      keychainService: 'myKeychain'
+    }).then((value) => {
+      console.log(value); //value1
+    });
 
     SInfo.getItem('key2', {}).then((value) => {
       console.log(value); //value2
@@ -80,9 +93,10 @@ class example extends Component {
 
     SInfo.getAllItems({
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain' }).then((values) => {
-        console.log(values); //value1, value2
-      });
+      keychainService: 'myKeychain'
+    }).then((values) => {
+      console.log(values); //value1, value2
+    });
 
     SInfo.getAllItems({}).then((values) => {
       console.log(values); //value3, value2
@@ -90,9 +104,11 @@ class example extends Component {
 
     SInfo.deleteItem('key1', {
       sharedPreferencesName: 'mySharedPrefs',
-      keychainService: 'myKeychain' }).then((values) => {
-        console.log('deleted');
-      });
+      keychainService: 'myKeychain'
+    }).then((values) => {
+      console.log(values);
+      console.log('deleted');
+    });
 
     AppState.addEventListener('change', this.handleStateChange);
     DeviceEventEmitter.addListener('FINGERPRINT_AUTHENTICATION_HELP', this.handleAuthFeedback);
@@ -127,20 +143,6 @@ class example extends Component {
     }
   }
 
-  handleStateChange(appState) {
-    switch (appState) {
-      case 'background':
-        this.setState({
-          helpText: ''
-        });
-        SInfo.cancelFingerprintAuth();
-    }
-  }
-
-  handleAuthFeedback(helpText) {
-    this.setState({ helpText });
-  }
-
   async getTouchIDItem() {
     if (!await SInfo.isSensorAvailable()) {
       Alert.alert('Touch Sensor not found');
@@ -148,13 +150,13 @@ class example extends Component {
     }
     if (Platform.OS === 'android') {
       this.setState({
-        helpText: 'Scan your fingerprint get the item.'
+        helpText: 'Scan your fingerprint to get the item.'
       });
     }
     try {
       const result = await SInfo.getItem('touchItem', {
         touchID: true,
-        kSecUseOperationPrompt: 'Scan your fingerprint get the item.' // this is for iOS
+        kSecUseOperationPrompt: 'Scan your fingerprint to get the item.' // this is for iOS
       });
       if (result) {
         Alert.alert('Touch ID item', result);
@@ -170,21 +172,42 @@ class example extends Component {
     }
   }
 
+  handleStateChange(appState) {
+    switch (appState) {
+      case 'background':
+        this.setState({
+          helpText: ''
+        });
+        SInfo.cancelFingerprintAuth();
+        break;
+      default:
+    }
+  }
+
+  handleAuthFeedback(helpText) {
+    this.setState({ helpText });
+  }
+
   render() {
     return (
       <View style={styles.container}>
         <Text>{this.state.helpText}</Text>
-        <Button
+        <TouchableOpacity
+          style={styles.button}
           onPress={() => this.setTouchIDItem()}
           title="set touchID item"
-        />
-        <Button
+          accessibilityLabel="set touchID item"
+          >
+          <Text>set touchID item</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
           onPress={() => this.getTouchIDItem()}
-          title="get touchID item"
-        />
+          accessibilityLabel="get touchID item"
+        >
+          <Text>get touchID item</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 }
-
-AppRegistry.registerComponent('example', () => example);

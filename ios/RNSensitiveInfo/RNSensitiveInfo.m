@@ -5,7 +5,10 @@
 #import "React/RCTConvert.h"
 #import "React/RCTBridge.h"
 #import "React/RCTUtils.h"
+
+#if !TARGET_OS_TV
 #import <LocalAuthentication/LocalAuthentication.h>
+#endif
 
 @implementation RNSensitiveInfo
 
@@ -30,6 +33,12 @@ CFStringRef convertkSecAttrAccessible(NSString* key){
     }
     if([key isEqual: @"kSecAttrAccessibleAlwaysThisDeviceOnly"]){
         return kSecAttrAccessibleAlwaysThisDeviceOnly;
+    }
+    if ([key isEqual: @"kSecAccessControlBiometryAny"]) {
+        return kSecAccessControlBiometryAny;
+    }
+    if ([key isEqual: @"kSecAccessControlBiometryCurrentSet"]) {
+        return kSecAccessControlBiometryCurrentSet;
     }
     return kSecAttrAccessibleWhenUnlocked;
 }
@@ -115,6 +124,10 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
                                       valueData, kSecValueData,
                                       key, kSecAttrAccount, nil];
 
+    if([RCTConvert BOOL:options[@"kSecAttrSynchronizable"]]){
+        [query setValue:@YES forKey:(NSString *)kSecAttrSynchronizable];
+    }
+
     if([RCTConvert BOOL:options[@"touchID"]]){
         CFStringRef kSecAccessControlValue = convertkSecAccessControl([RCTConvert NSString:options[@"kSecAccessControl"]]);
         SecAccessControlRef sac = SecAccessControlCreateWithFlags(kCFAllocatorDefault, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, kSecAccessControlValue, NULL);
@@ -131,67 +144,101 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
         reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
         return;
     }
-    resolve(nil);
+    resolve(value);
 }
 
 RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
-
-
+    
+    
     NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
     if (keychainService == NULL) {
         keychainService = @"app";
     }
+    
+    // Create dictionary of search parameters
+    NSMutableDictionary* query = [NSMutableDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
+                                  keychainService, kSecAttrService,
+                                  key, kSecAttrAccount,
+                                  kSecAttrSynchronizableAny, kSecAttrSynchronizable,
+                                  kCFBooleanTrue, kSecReturnAttributes,
+                                  kCFBooleanTrue, kSecReturnData,
+                                  nil];
+    
+    if([RCTConvert NSString:options[@"kSecUseOperationPrompt"]] != NULL){
+        [query setValue:[RCTConvert NSString:options[@"kSecUseOperationPrompt"]] forKey:(NSString *)kSecUseOperationPrompt];
+    }
+    
+    if([RCTConvert BOOL:options[@"touchID"]]){
+        LAContext *context = [[LAContext alloc] init];
+        context.localizedFallbackTitle = @"";
+        context.touchIDAuthenticationAllowableReuseDuration = 1;
+        
+        [query setValue:context forKey:(NSString *)kSecUseAuthenticationContext];
+        
+        NSString *prompt = @"";
+        if ([RCTConvert NSString:options[@"kSecUseOperationPrompt"]] != NULL) {
+            prompt = [RCTConvert NSString:options[@"kSecUseOperationPrompt"]];
+        }
+        
+        [context evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+                localizedReason:prompt
+                          reply:^(BOOL success, NSError * _Nullable error) {
+                              if (!success) {
+                                  if (error) {
+                                      reject(nil, error.localizedDescription, error);
+                                  } else {
+                                      reject(nil, @"The user name or passphrase you entered is not correct.", nil);
+                                  }
+                                  return;
+                              }
+                              
+                              [self getItemWithQuery:query resolver:resolve rejecter:reject];
+                          }];
+        return;
+    }
+    
+    [self getItemWithQuery:query resolver:resolve rejecter:reject];
+}
 
-  // Create dictionary of search parameters
-  NSMutableDictionary* query = [NSMutableDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
-                        keychainService, kSecAttrService,
-                        key, kSecAttrAccount,
-                        kCFBooleanTrue, kSecReturnAttributes,
-                        kCFBooleanTrue, kSecReturnData,
-                        nil];
-
-  if([RCTConvert NSString:options[@"kSecUseOperationPrompt"]] != NULL){
-    [query setValue:[RCTConvert NSString:options[@"kSecUseOperationPrompt"]] forKey:(NSString *)kSecUseOperationPrompt];
-  }
-
-  // Look up server in the keychain
-  NSDictionary* found = nil;
-  CFTypeRef foundTypeRef = NULL;
-  OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef) query, (CFTypeRef*)&foundTypeRef);
-
-  if (osStatus != noErr && osStatus != errSecItemNotFound) {
-    NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
-    reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
-    return;
-  }
-
-  found = (__bridge NSDictionary*)(foundTypeRef);
-  if (!found) {
-      resolve(nil);
-  } else {
-      // Found
-      NSString* value = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
-      resolve(value);
-
-  }
-
+- (void)getItemWithQuery:(NSDictionary *)query resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
+    // Look up server in the keychain
+    NSDictionary* found = nil;
+    CFTypeRef foundTypeRef = NULL;
+    OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef) query, (CFTypeRef*)&foundTypeRef);
+    
+    if (osStatus != noErr && osStatus != errSecItemNotFound) {
+        NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
+        reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
+        return;
+    }
+    
+    found = (__bridge NSDictionary*)(foundTypeRef);
+    if (!found) {
+        resolve(nil);
+    } else {
+        // Found
+        NSString* value = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
+        resolve(value);
+        
+    }
 }
 
 RCT_EXPORT_METHOD(getAllItems:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
-
+    
     NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
-
+    
     NSMutableArray* finalResult = [[NSMutableArray alloc] init];
     NSMutableDictionary *query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                  (__bridge id)kSecAttrSynchronizableAny, kSecAttrSynchronizable,
                                   (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnAttributes,
                                   (__bridge id)kSecMatchLimitAll, (__bridge id)kSecMatchLimit,
                                   (__bridge id)kCFBooleanTrue, (__bridge id)kSecReturnData,
                                   nil];
-
+    
     if (keychainService) {
         [query setObject:keychainService forKey:(NSString *)kSecAttrService];
     }
-
+    
     NSArray *secItemClasses = [NSArray arrayWithObjects:
                                (__bridge id)kSecClassGenericPassword,
                                (__bridge id)kSecClassInternetPassword,
@@ -212,13 +259,16 @@ RCT_EXPORT_METHOD(getAllItems:(NSDictionary *)options resolver:(RCTPromiseResolv
 
             for (NSDictionary* item in (__bridge id)result) {
                 NSMutableDictionary *finalItem = [[NSMutableDictionary alloc] init];
+              
+                @try
+                {
+                  [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrService)] forKey:@"service"];
+                  [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrAccount)] forKey:@"key"];
+                  [finalItem setObject:[[NSString alloc] initWithData:[item objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding] forKey:@"value"];
 
-                [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrService)] forKey:@"service"];
-                [finalItem setObject:(NSString*)[item objectForKey:(__bridge id)(kSecAttrAccount)] forKey:@"key"];
-                [finalItem setObject:[[NSString alloc] initWithData:[item objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding] forKey:@"value"];
-
-                [finalResult addObject: finalItem];
-
+                  [finalResult addObject: finalItem];
+                }
+                @catch(NSException *exception){} // Ignore items with weird keys or values
             }
 
         }
@@ -241,6 +291,7 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
     // Create dictionary of search parameters
     NSDictionary* query = [NSDictionary dictionaryWithObjectsAndKeys:
                           (__bridge id)(kSecClassGenericPassword), kSecClass,
+                          (__bridge id)(kSecAttrSynchronizableAny), kSecAttrSynchronizable,
                           keychainService, kSecAttrService,
                           key, kSecAttrAccount,
                           kCFBooleanTrue, kSecReturnAttributes,
@@ -258,17 +309,25 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
 
 RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
+#if !TARGET_OS_TV
     LAContext *context = [[LAContext alloc] init];
-
-    if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:NULL]) {
-        if (@available(iOS 11, *)) {
+    
+    NSError *evaluationError = nil;
+    if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&evaluationError]) {
+        if (@available(iOS 11, macOS 10.13.2, *)) {
             if (context.biometryType == LABiometryTypeFaceID) {
                 return resolve(@"Face ID");
             }
         }
         resolve(@"Touch ID");
     } else {
+        if (evaluationError && evaluationError.code == LAErrorBiometryLockout) {
+            return reject(nil, @"Biometry is locked", nil);
+        }
         resolve(@(NO));
     }
+#else
+  resolve(@(NO));
+#endif
 }
 @end

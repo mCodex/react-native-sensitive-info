@@ -94,6 +94,7 @@ public class FingerprintUiHelper extends FingerprintManager.AuthenticationCallba
     @Override
     public void onAuthenticationError(final int errMsgId, final CharSequence errString) {
         if (!mSelfCancelled) {
+            mCancelButton.setEnabled(false);
             showError(errString);
             mIcon.postDelayed(new Runnable() {
                 @Override

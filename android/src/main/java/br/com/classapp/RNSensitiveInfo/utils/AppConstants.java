@@ -6,4 +6,5 @@ public interface AppConstants {
 
     // error codes
     String E_AUTHENTICATION_CANCELLED = "E_AUTHENTICATION_CANCELLED";
+    String E_INIT_FAILURE = "E_INIT_FAILURE";
 }
