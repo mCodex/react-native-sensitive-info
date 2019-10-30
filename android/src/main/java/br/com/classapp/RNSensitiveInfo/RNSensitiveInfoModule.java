@@ -188,20 +188,26 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         pm.resolve(null);
     }
 
-
     @ReactMethod
     public void getAllItems(ReadableMap options, Promise pm) {
 
         String name = sharedPreferences(options);
 
         Map<String, ?> allEntries = prefs(name).getAll();
-        WritableMap resultData = new WritableNativeMap();
+        WritableArray resultData = new WritableNativeArray();
 
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
-            String value = entry.getValue().toString();
-            resultData.putString(entry.getKey(), value);
+            WritableMap entryMap = new WritableNativeMap();
+
+            entryMap.putString("key", entry.getKey());
+            entryMap.putString("value", entry.getValue().toString());
+            entryMap.putString("service", name);
+            resultData.pushMap(entryMap);
         }
-        pm.resolve(resultData);
+
+        WritableArray resultWrapper = new WritableNativeArray();
+        resultWrapper.pushArray(resultData);
+        pm.resolve(resultWrapper);
     }
 
     @ReactMethod
