@@ -50,9 +50,16 @@ export declare function getItem(
   key: string,
   options: RNSensitiveInfoOptions
 ): Promise<string>;
+
+interface SensitiveInfoEntry {
+  key: string
+  value: string
+  service: string
+}
 export declare function getAllItems(
   options: RNSensitiveInfoOptions
-): Promise<Object>;
+): Promise<[SensitiveInfoEntry[]]>;
+
 export declare function deleteItem(
   key: string,
   options: RNSensitiveInfoOptions
