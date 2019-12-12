@@ -22,6 +22,7 @@
     "type": "git",
     "url": "git://github.com/mcodex/react-native-sensitive-info.git"
   },
+  "types": "index.d.ts",
   "keywords": [
     "android",
     "ios",
