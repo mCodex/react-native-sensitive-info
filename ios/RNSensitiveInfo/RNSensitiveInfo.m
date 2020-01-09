@@ -34,16 +34,10 @@ CFStringRef convertkSecAttrAccessible(NSString* key){
     if([key isEqual: @"kSecAttrAccessibleAlwaysThisDeviceOnly"]){
         return kSecAttrAccessibleAlwaysThisDeviceOnly;
     }
-    if ([key isEqual: @"kSecAccessControlBiometryAny"]) {
-        return kSecAccessControlBiometryAny;
-    }
-    if ([key isEqual: @"kSecAccessControlBiometryCurrentSet"]) {
-        return kSecAccessControlBiometryCurrentSet;
-    }
     return kSecAttrAccessibleWhenUnlocked;
 }
 
-CFStringRef convertkSecAccessControl(NSString* key){
+CFOptionFlags convertkSecAccessControl(NSString* key){
     if([key isEqual: @"kSecAccessControlApplicationPassword"]){
         return kSecAccessControlApplicationPassword;
     }
@@ -58,6 +52,12 @@ CFStringRef convertkSecAccessControl(NSString* key){
     }
     if([key isEqual: @"kSecAccessControlTouchIDCurrentSet"]){
         return kSecAccessControlTouchIDCurrentSet;
+    }
+    if ([key isEqual: @"kSecAccessControlBiometryAny"]) {
+        return kSecAccessControlBiometryAny;
+    }
+    if ([key isEqual: @"kSecAccessControlBiometryCurrentSet"]) {
+        return kSecAccessControlBiometryCurrentSet;
     }
     return kSecAccessControlUserPresence;
 }
