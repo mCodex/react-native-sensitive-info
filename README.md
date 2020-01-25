@@ -21,6 +21,11 @@ Install `react-native-sensitive-info` using:
 
 ``npm i -S react-native-sensitive-info`` or ``yarn add react-native-sensitive-info``
 
+| React Native SDK | RNSI SDK |
+| :--------------: | :-------: |
+|     v0.60+       |  v5.5.0   |
+| v0.59.0 or lower |  v5.4.x   |
+
 ## Linking project
 
 ### Automatically
