@@ -152,7 +152,7 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
         NSDictionary *update = @{(__bridge id)kSecValueData:valueData};
         osStatus = SecItemUpdate((__bridge CFDictionaryRef)search,
                                  (__bridge CFDictionaryRef)update);
-        if (status == errSecSuccess) {
+        if (osStatus == errSecSuccess) {
             resolve(value);
         } else {
             NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
