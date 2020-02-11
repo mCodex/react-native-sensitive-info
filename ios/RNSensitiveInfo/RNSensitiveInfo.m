@@ -139,6 +139,10 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
     }
 
     OSStatus osStatus;
+    //
+    // Instead of unconditionally deleting, try the add and if it fails with a duplicate item
+    // error, try an update.
+    //
     osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
     if (osStatus == errSecSuccess) {
         resolve(value);
