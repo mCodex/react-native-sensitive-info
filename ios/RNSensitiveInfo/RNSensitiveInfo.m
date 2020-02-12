@@ -118,11 +118,12 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
     }
 
     NSData* valueData = [value dataUsingEncoding:NSUTF8StringEncoding];
-    NSMutableDictionary* query = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+    NSMutableDictionary* search = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                       (__bridge id)(kSecClassGenericPassword), kSecClass,
                                       keychainService, kSecAttrService,
-                                      valueData, kSecValueData,
                                       key, kSecAttrAccount, nil];
+    NSMutableDictionary *query = [search mutableCopy];
+    [query setValue: valueData forKey: kSecValueData];
 
     if([RCTConvert BOOL:options[@"kSecAttrSynchronizable"]]){
         [query setValue:@YES forKey:(NSString *)kSecAttrSynchronizable];
@@ -137,8 +138,21 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
         [query setValue:(__bridge id _Nullable)(kSecAttrAccessibleValue) forKey:(NSString *)kSecAttrAccessible];
     }
 
-    OSStatus osStatus = SecItemDelete((__bridge CFDictionaryRef) query);
+    OSStatus osStatus;
+    //
+    // Instead of unconditionally deleting, try the add and if it fails with a duplicate item
+    // error, try an update.
+    //
     osStatus = SecItemAdd((__bridge CFDictionaryRef) query, NULL);
+    if (osStatus == errSecSuccess) {
+        resolve(value);
+        return;
+    }
+    if (osStatus == errSecDuplicateItem) {
+        NSDictionary *update = @{(__bridge id)kSecValueData:valueData};
+        osStatus = SecItemUpdate((__bridge CFDictionaryRef)search,
+                                 (__bridge CFDictionaryRef)update);
+    }
     if (osStatus != noErr) {
         NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
         reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
