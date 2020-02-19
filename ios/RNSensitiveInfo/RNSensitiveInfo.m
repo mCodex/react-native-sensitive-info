@@ -215,7 +215,15 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
         return;
     }
     
-    [self getItemWithQuery:query resolver:resolve rejecter:reject];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (UIApplication.sharedApplication.protectedDataAvailable) {
+            [self getItemWithQuery:query resolver:resolve rejecter:reject];
+        } else {
+            // TODO: could change to instead of erroring out, listen for protectedDataDidBecomeAvailable and call getItemWIthQuery when it does
+            // Experiment for now by returning an error and let the js side retry
+            reject(@"protected_data_unavailable", @"Protected data not available yet. Retry operation", nil);
+        }
+    });
 }
 
 - (void)getItemWithQuery:(NSDictionary *)query resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
