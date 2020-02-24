@@ -6,15 +6,6 @@
 
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
 
-
-# Help Wanted
-
-Hi 👋! It's been 3 years since I released RNSensitiveInfo's first version only to fix a problem that I was facing at that moment. I was starting my career as JS Developer and RNSensitiveInfo helped me a lot through my learning path. Unfortunately, I don't have too much time as I wanted to, to support by myself this awesome library that we've built so far. So, I'm looking for developers who could help during this journey... We have so many pending issues, features, security improvements, unity/integration tests that could be done... I'm still willing to help and take care of releasing it.
-
-Feel free to contact me,
-
-Best Regards!
-
 # Install
 
 Install `react-native-sensitive-info` using:
