@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "5.5.1",
+  "version": "5.5.5",
   "main": "RNSensitiveInfo.js",
   "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
   "scripts": {
@@ -22,6 +22,7 @@
     "type": "git",
     "url": "git://github.com/mcodex/react-native-sensitive-info.git"
   },
+  "types": "index.d.ts",
   "keywords": [
     "android",
     "ios",
@@ -29,5 +30,11 @@
     "shared-preferences",
     "react-native"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@react-native-community/eslint-config": "^0.0.7",
+    "eslint": "^6.8.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "prettier": "^1.19.1"
+  }
 }
