@@ -116,18 +116,19 @@ RCT_EXPORT_METHOD(setItem:(NSString*)key value:(NSString*)value options:(NSDicti
     if (keychainService == NULL) {
         keychainService = @"app";
     }
+    
+    NSNumber *sync = options[@"kSecAttrSynchronizable"];
+    if (sync == NULL)
+        sync = (__bridge id)kSecAttrSynchronizableAny;
 
     NSData* valueData = [value dataUsingEncoding:NSUTF8StringEncoding];
     NSMutableDictionary* search = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                       (__bridge id)(kSecClassGenericPassword), kSecClass,
                                       keychainService, kSecAttrService,
+                                      sync, kSecAttrSynchronizable,
                                       key, kSecAttrAccount, nil];
     NSMutableDictionary *query = [search mutableCopy];
     [query setValue: valueData forKey: kSecValueData];
-
-    if([RCTConvert BOOL:options[@"kSecAttrSynchronizable"]]){
-        [query setValue:@YES forKey:(NSString *)kSecAttrSynchronizable];
-    }
 
     if([RCTConvert BOOL:options[@"touchID"]]){
         CFStringRef kSecAccessControlValue = convertkSecAccessControl([RCTConvert NSString:options[@"kSecAccessControl"]]);
@@ -305,11 +306,15 @@ RCT_EXPORT_METHOD(deleteItem:(NSString *)key options:(NSDictionary *)options res
     if (keychainService == NULL) {
         keychainService = @"app";
     }
+    
+    NSNumber *sync = options[@"kSecAttrSynchronizable"];
+    if (sync == NULL)
+        sync = (__bridge id)kSecAttrSynchronizableAny;
 
     // Create dictionary of search parameters
     NSDictionary* query = [NSDictionary dictionaryWithObjectsAndKeys:
                           (__bridge id)(kSecClassGenericPassword), kSecClass,
-                          (__bridge id)(kSecAttrSynchronizableAny), kSecAttrSynchronizable,
+                          sync, kSecAttrSynchronizable,
                           keychainService, kSecAttrService,
                           key, kSecAttrAccount,
                           kCFBooleanTrue, kSecReturnAttributes,
