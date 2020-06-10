@@ -5,16 +5,33 @@
     "previous": "Previous",
     "tagline": "A website for testing",
     "docs": {
+      "hasEnrolledFingerprints": {
+        "title": "hasEnrolledFingerprints",
+        "sidebar_label": "hasEnrolledFingerprints"
+      },
       "installation": {
         "title": "Installation",
         "sidebar_label": "Installation"
+      },
+      "isHardwareDetected": {
+        "title": "isHardwareDetected",
+        "sidebar_label": "isHardwareDetected"
+      },
+      "isSensorAvailable": {
+        "title": "isSensorAvailable",
+        "sidebar_label": "isSensorAvailable"
+      },
+      "setItem": {
+        "title": "setItem",
+        "sidebar_label": "setItem"
       }
     },
     "links": {
       "Docs": "Docs"
     },
     "categories": {
-      "Introduction": "Introduction"
+      "Introduction": "Introduction",
+      "API": "API"
     }
   },
   "pages-strings": {

@@ -22,35 +22,35 @@ const users = [
 
 const siteConfig = {
   title: 'React-Native-Sensitive-Info', // Title for your website.
-  tagline: 'A website for testing',
-  url: 'https://your-docusaurus-test-site.com', // Your website URL
-  baseUrl: '/', // Base URL for your project */
-  // For github.io type URLs, you would set the url and baseUrl like:
-  //   url: 'https://facebook.github.io',
-  //   baseUrl: '/test-site/',
-
-  // Used for publishing and more
+  tagline: 'A secure storage for your React-Native apps',
+  url: 'https://mcodex.github.io', // Your website URL
+  baseUrl: '/react-native-sensitive-info/', // Base URL for your project */
   projectName: 'react-native-sensitive-info',
   organizationName: 'mCodex',
   // For top-level user or org sites, the organization is still the same.
-  // e.g., for the https://JoelMarcey.github.io site, it would be set like...
-  //   organizationName: 'JoelMarcey'
 
   // For no header links in the top nav bar -> headerLinks: [],
-  headerLinks: [{doc: 'installation', label: 'Docs'}],
+  headerLinks: [
+    {doc: 'installation', label: 'Docs'},
+    {
+      href: 'https://github.com/mCodex/react-native-sensitive-info',
+      label: 'GitHub',
+    },
+    {search: true},
+  ],
 
   // If you have users set above, you add it here:
   users,
 
   /* path to images for header/footer */
-  headerIcon: 'img/favicon.ico',
-  footerIcon: 'img/favicon.ico',
+  headerIcon: 'img/logo.png',
+  // footerIcon: 'img/logo.png',
   favicon: 'img/favicon.ico',
 
   /* Colors for website */
   colors: {
-    primaryColor: '#284b27',
-    secondaryColor: '#1c341b',
+    primaryColor: '#292930',
+    secondaryColor: '#4C73E6',
   },
 
   /* Custom fonts for website */
@@ -72,7 +72,7 @@ const siteConfig = {
 
   highlight: {
     // Highlight.js theme to use for syntax highlighting in code blocks.
-    theme: 'default',
+    theme: 'dark',
   },
 
   // Add custom scripts here that would be placed in <script> tags.
@@ -84,8 +84,8 @@ const siteConfig = {
   cleanUrl: true,
 
   // Open Graph and Twitter card images.
-  ogImage: 'img/undraw_online.svg',
-  twitterImage: 'img/undraw_tweetstorm.svg',
+  ogImage: 'img/logo.png',
+  twitterImage: 'img/logo.png',
 
   // For sites with a sizable amount of content, set collapsible to true.
   // Expand/collapse the links and subcategories under categories.
@@ -95,11 +95,11 @@ const siteConfig = {
   // enableUpdateBy: true,
 
   // Show documentation's last update time.
-  // enableUpdateTime: true,
+  enableUpdateTime: true,
 
   // You may provide arbitrary config keys to be used as needed by your
   // template. For example, if you need your repo's URL...
-  //   repoUrl: 'https://github.com/facebook/test-site',
+  repoUrl: 'https://github.com/mCodex/react-native-sensitive-info',
 };
 
 module.exports = siteConfig;

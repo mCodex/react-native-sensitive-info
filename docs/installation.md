@@ -4,10 +4,6 @@ title: Installation
 sidebar_label: Installation
 ---
 
-Check the [documentation](https://docusaurus.io) for how to use Docusaurus.
-
-## Lorem
-
 First of all, install it using `npm` or `yarn`
 
 ```
@@ -18,21 +14,105 @@ npm install --save react-native-sensitive-info
 yarn add react-native-sensitive-info
 ```
 
+## Linking
 
-## Mauris In Code
+### React-Native >= 0.60
+
+#### iOS
+
+Should be automatically linked when you run:
 
 ```
-Mauris vestibulum ullamcorper nibh, ut semper purus pulvinar ut. Donec volutpat orci sit amet mauris malesuada, non pulvinar augue aliquam. Vestibulum ultricies at urna ut suscipit. Morbi iaculis, erat at imperdiet semper, ipsum nulla sodales erat, eget tincidunt justo dui quis justo. Pellentesque dictum bibendum diam at aliquet. Sed pulvinar, dolor quis finibus ornare, eros odio facilisis erat, eu rhoncus nunc dui sed ex. Nunc gravida dui massa, sed ornare arcu tincidunt sit amet. Maecenas efficitur sapien neque, a laoreet libero feugiat ut.
+pod install
 ```
 
-## Nulla
+Then:
 
-Nulla facilisi. Maecenas sodales nec purus eget posuere. Sed sapien quam, pretium a risus in, porttitor dapibus erat. Sed sit amet fringilla ipsum, eget iaculis augue. Integer sollicitudin tortor quis ultricies aliquam. Suspendisse fringilla nunc in tellus cursus, at placerat tellus scelerisque. Sed tempus elit a sollicitudin rhoncus. Nulla facilisi. Morbi nec dolor dolor. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Cras et aliquet lectus. Pellentesque sit amet eros nisi. Quisque ac sapien in sapien congue accumsan. Nullam in posuere ante. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Proin lacinia leo a nibh fringilla pharetra.
+```
+yarn ios
+```
 
-## Orci
+#### Android
 
-Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Proin venenatis lectus dui, vel ultrices ante bibendum hendrerit. Aenean egestas feugiat dui id hendrerit. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Curabitur in tellus laoreet, eleifend nunc id, viverra leo. Proin vulputate non dolor vel vulputate. Curabitur pretium lobortis felis, sit amet finibus lorem suscipit ut. Sed non mollis risus. Duis sagittis, mi in euismod tincidunt, nunc mauris vestibulum urna, at euismod est elit quis erat. Phasellus accumsan vitae neque eu placerat. In elementum arcu nec tellus imperdiet, eget maximus nulla sodales. Curabitur eu sapien eget nisl sodales fermentum.
+Should be automatically linked when you run:
 
-## Phasellus
+```
+yarn android
+```
 
-Phasellus pulvinar ex id commodo imperdiet. Praesent odio nibh, sollicitudin sit amet faucibus id, placerat at metus. Donec vitae eros vitae tortor hendrerit finibus. Interdum et malesuada fames ac ante ipsum primis in faucibus. Quisque vitae purus dolor. Duis suscipit ac nulla et finibus. Phasellus ac sem sed dui dictum gravida. Phasellus eleifend vestibulum facilisis. Integer pharetra nec enim vitae mattis. Duis auctor, lectus quis condimentum bibendum, nunc dolor aliquam massa, id bibendum orci velit quis magna. Ut volutpat nulla nunc, sed interdum magna condimentum non. Sed urna metus, scelerisque vitae consectetur a, feugiat quis magna. Donec dignissim ornare nisl, eget tempor risus malesuada quis.
+### React-Native < 0.60
+
+#### iOS
+
+##### Using cocoapods
+
+```
+pod 'react-native-sensitive-info', path: "../node_modules/react-native-sensitive-info"
+```
+
+##### Not using cocoapods?
+
+Go to your XCode, in the project navigator:
+
+* Right click Libraries
+* Add Files to [your project's name]
+* Go to `node_modules/react-native-sensitive-info`
+* Add the .xcodeproj file
+
+In XCode, in the project navigator, select your project.
+
+* Add the libRNSensitiveInfo.a from the RNSensitiveInfo project to your project's Build Phases ➜ Link Binary With Libraries
+* Click .xcodeproj file you added before in the project navigator and go the Build Settings tab. Make sure `All` is toggled on (instead of 'Basic').
+* Look for Header Search Paths and make sure it contains both `$(SRCROOT)/../react-native/React` and `$(SRCROOT)/../../React` - mark both as recursive. (Should be OK by default.)
+
+#### Android
+
+Go to `settings.gradle` inside your android project folder and paste this lines there:
+
+```
+include ':react-native-sensitive-info'
+
+project(':react-native-sensitive-info').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sensitive-info/android')
+```
+
+and paste it into build.gradle:
+
+```
+compile project(':react-native-sensitive-info')
+```
+
+In your` MainApplication.java` add:
+
+```
+import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
+
+protected List<ReactPackage> getPackages() {
+    return Arrays.<ReactPackage>asList(
+        new MainReactPackage(),
+        new RNSensitiveInfoPackage(), // <- Add this line
+    );
+}
+```
+##### Windows
+
+* Open the solution in Visual Studio for your Windows apps.
+
+* Right click your in the Explorer and click Add > Existing Project....
+
+* Navigate to `./node_modules/react-native-sensitive-info/windows/RNSensitiveInfo/RNSensitiveInfo/` and add RNSensitiveInfo.csproj.
+* Right click on your React Native Windows app under your solutions directory and click `Add > Reference`....
+* Check the RNSensitiveInfo you just added and press Ok
+* Open MainPage.cs in your app
+
+```
+using RNSqlite2;
+
+get
+  {
+      return new List<IReactPackage>
+      {
+          new MainReactPackage(),
+          new RNSensitiveInfoPackage(),
+      };
+  }
+```
