@@ -3,7 +3,7 @@
   "localized-strings": {
     "next": "Next",
     "previous": "Previous",
-    "tagline": "A website for testing",
+    "tagline": "A secure storage for your React-Native apps",
     "docs": {
       "hasEnrolledFingerprints": {
         "title": "hasEnrolledFingerprints",
@@ -27,7 +27,8 @@
       }
     },
     "links": {
-      "Docs": "Docs"
+      "Docs": "Docs",
+      "GitHub": "GitHub"
     },
     "categories": {
       "Introduction": "Introduction",
