@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>hasEnrolledFingerprints · React-Native-Sensitive-Info</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="A secure storage for your React-Native apps"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="hasEnrolledFingerprints · React-Native-Sensitive-Info"/><meta property="og:type" content="website"/><meta property="og:url" content="https://mcodex.github.io/react-native-sensitive-info/"/><meta property="og:description" content="A secure storage for your React-Native apps"/><meta property="og:image" content="https://mcodex.github.io/react-native-sensitive-info/img/logo.png"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://mcodex.github.io/react-native-sensitive-info/img/logo.png"/><link rel="shortcut icon" href="/react-native-sensitive-info/img/favicon.ico"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/dark.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/react-native-sensitive-info/js/scrollSpy.js"></script><link rel="stylesheet" href="/react-native-sensitive-info/css/main.css"/><script src="/react-native-sensitive-info/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/react-native-sensitive-info/"><img class="logo" src="/react-native-sensitive-info/img/logo.png" alt="React-Native-Sensitive-Info"/><h2 class="headerTitleWithLogo">React-Native-Sensitive-Info</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/react-native-sensitive-info/docs/installation" target="_self">Docs</a></li><li class=""><a href="https://github.com/mCodex/react-native-sensitive-info" target="_self">GitHub</a></li><li class=""><a target="_self"></a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>API</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Introduction</h3><ul class=""><li class="navListItem"><a class="navItem" href="/react-native-sensitive-info/docs/installation">Installation</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">API</h3><ul class=""><li class="navListItem navListItemActive"><a class="navItem" href="/react-native-sensitive-info/docs/hasEnrolledFingerprints">hasEnrolledFingerprints</a></li><li class="navListItem"><a class="navItem" href="/react-native-sensitive-info/docs/isHardwareDetected">isHardwareDetected</a></li><li class="navListItem"><a class="navItem" href="/react-native-sensitive-info/docs/isSensorAvailable">isSensorAvailable</a></li><li class="navListItem"><a class="navItem" href="/react-native-sensitive-info/docs/setItem">setItem</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">hasEnrolledFingerprints</h1></header><article><div><span></span></div></article></div><div class="docLastUpdate"><em>Last updated on 6/10/2020</em></div><div class="docs-prevnext"><a class="docs-prev button" href="/react-native-sensitive-info/docs/installation"><span class="arrow-prev">← </span><span>Installation</span></a><a class="docs-next button" href="/react-native-sensitive-info/docs/isHardwareDetected"><span class="function-name-prevnext">isHardwareDetected</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"></nav></div><footer class="nav-footer" id="footer"><section class="copyright">Made with ❤️ by mCodex and the awesome community</section></footer></div></body></html>
