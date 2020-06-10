@@ -1,0 +1,11 @@
+{
+  "docs": {
+    "Introduction": ["installation"],
+    "API": [
+      "hasEnrolledFingerprints",
+      "isHardwareDetected",
+      "isSensorAvailable",
+      "setItem"
+    ]
+  }
+}
