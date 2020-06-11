@@ -21,6 +21,10 @@
         "title": "isSensorAvailable",
         "sidebar_label": "isSensorAvailable"
       },
+      "overview": {
+        "title": "Overview",
+        "sidebar_label": "Overview"
+      },
       "setItem": {
         "title": "setItem",
         "sidebar_label": "setItem"

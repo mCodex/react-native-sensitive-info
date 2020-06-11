@@ -1,6 +1,6 @@
 {
   "docs": {
-    "Introduction": ["installation"],
+    "Introduction": ["overview", "installation"],
     "API": [
       "hasEnrolledFingerprints",
       "isHardwareDetected",
