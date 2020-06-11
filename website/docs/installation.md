@@ -6,11 +6,11 @@ sidebar_label: Installation
 
 First of all, install it using `npm` or `yarn`
 
-```
+```bash
 npm install --save react-native-sensitive-info
 ```
 
-```
+```bash
 yarn add react-native-sensitive-info
 ```
 
@@ -22,13 +22,13 @@ yarn add react-native-sensitive-info
 
 Should be automatically linked when you run:
 
-```
+```bash
 pod install
 ```
 
 Then:
 
-```
+```bash
 yarn ios
 ```
 
@@ -36,7 +36,7 @@ yarn ios
 
 Should be automatically linked when you run:
 
-```
+```bash
 yarn android
 ```
 
@@ -46,7 +46,7 @@ yarn android
 
 ##### Using cocoapods
 
-```
+```pod
 pod 'react-native-sensitive-info', path: "../node_modules/react-native-sensitive-info"
 ```
 
@@ -69,7 +69,7 @@ In XCode, in the project navigator, select your project.
 
 Go to `settings.gradle` inside your android project folder and paste this lines there:
 
-```
+```java
 include ':react-native-sensitive-info'
 
 project(':react-native-sensitive-info').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sensitive-info/android')
@@ -77,13 +77,13 @@ project(':react-native-sensitive-info').projectDir = new File(rootProject.projec
 
 and paste it into build.gradle:
 
-```
+```java
 compile project(':react-native-sensitive-info')
 ```
 
 In your` MainApplication.java` add:
 
-```
+```java
 import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
 
 protected List<ReactPackage> getPackages() {
@@ -104,7 +104,7 @@ protected List<ReactPackage> getPackages() {
 * Check the RNSensitiveInfo you just added and press Ok
 * Open MainPage.cs in your app
 
-```
+```c#
 using RNSqlite2;
 
 get
