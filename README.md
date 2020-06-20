@@ -1,4 +1,7 @@
 # React Native Sensitive Info
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -25,3 +28,22 @@ Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs)
 # Contributing
 
 Pull requests are always welcome :)
+
+## Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://mcodex.github.io"><img src="https://avatars2.githubusercontent.com/u/5920613?v=4" width="100px;" alt=""/><br /><sub><b>Mateus Andrade</b></sub></a><br /><a href="https://github.com/mCodex/react-native-sensitive-info/commits?author=mcodex" title="Documentation">📖</a> <a href="https://github.com/mCodex/react-native-sensitive-info/commits?author=mcodex" title="Code">💻</a> <a href="https://github.com/mCodex/react-native-sensitive-info/pulls?q=is%3Apr+reviewed-by%3Amcodex" title="Reviewed Pull Requests">👀</a> <a href="#ideas-mcodex" title="Ideas, Planning, & Feedback">🤔</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
