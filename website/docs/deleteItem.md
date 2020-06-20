@@ -4,8 +4,25 @@ title: deleteItem
 sidebar_label: deleteItem
 ---
 
-**WIP**
+Delete an item from storage
 
-In the meantime checkout our **[README](https://github.com/mCodex/react-native-sensitive-info#methods)** for further information.
+```javascript
+deleteItem(key, options) : Promise<null>
+```
 
-Wanna help? Just send a PR 😉
+Example:
+
+```javascript
+import RNSInfo from 'react-native-sensitive-info';
+
+const myFunc = async () => {
+    return SInfo.deleteItem('key1', {
+        sharedPreferencesName: 'mySharedPrefs',
+        keychainService: 'myKeychain'
+    });
+}
+
+await myFunc();
+
+// Data successfully deleted
+```

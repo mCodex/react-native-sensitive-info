@@ -6,6 +6,10 @@ sidebar_label: Android
 
 Android specific configurations
 
+## sharedPreferencesName
+
+You can choose the shared preferences' name which you want to use. Otherwise, the default is **shared_preferences**
+
 ## showModal & strings
 
 When `showModal` is `true`, an Android native prompt will show up asking for user's authentication. This behavior is similar to that of iOS.

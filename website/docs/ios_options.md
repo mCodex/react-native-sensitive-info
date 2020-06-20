@@ -4,6 +4,10 @@ title: iOS
 sidebar_label: iOS
 ---
 
+## keychainService
+
+You can choose the keychain's service which you want to use. Otherwise, the default is **app**
+
 ## touchID
 
 Enable touchID support.

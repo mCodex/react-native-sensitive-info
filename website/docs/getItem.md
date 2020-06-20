@@ -4,8 +4,25 @@ title: getItem
 sidebar_label: getItem
 ---
 
-**WIP**
+Get an item from storage
 
-In the meantime checkout our **[README](https://github.com/mCodex/react-native-sensitive-info#methods)** for further information.
+```javascript
+getItem(key, options) : Promise<string>
+```
 
-Wanna help? Just send a PR 😉
+Example:
+
+```javascript
+import RNSInfo from 'react-native-sensitive-info';
+
+const myFunc = async () => {
+    return SInfo.getItem('key1', {
+        sharedPreferencesName: 'mySharedPrefs',
+        keychainService: 'myKeychain'
+    });
+}
+
+await myFunc();
+
+// The data is retrieved
+```

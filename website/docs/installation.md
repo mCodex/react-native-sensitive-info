@@ -65,6 +65,10 @@ In XCode, in the project navigator, select your project.
 * Click .xcodeproj file you added before in the project navigator and go the Build Settings tab. Make sure `All` is toggled on (instead of 'Basic').
 * Look for Header Search Paths and make sure it contains both `$(SRCROOT)/../react-native/React` and `$(SRCROOT)/../../React` - mark both as recursive. (Should be OK by default.)
 
+#### MacOS
+
+Same steps as iOS but change the Base SDK to macOS in **Libraries/RNSensitiveInfo.xcodeproj**.
+
 #### Android
 
 Go to `settings.gradle` inside your android project folder and paste this lines there:
@@ -81,7 +85,7 @@ and paste it into build.gradle:
 compile project(':react-native-sensitive-info')
 ```
 
-In your` MainApplication.java` add:
+In your `MainApplication.java` add:
 
 ```java
 import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this

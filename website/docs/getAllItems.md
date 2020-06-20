@@ -4,8 +4,29 @@ title: getAllItems
 sidebar_label: getAllItems
 ---
 
-**WIP**
+Get all items from storage
 
-In the meantime checkout our **[README](https://github.com/mCodex/react-native-sensitive-info#methods)** for further information.
+```javascript
+getAllItems(options) : Promise<[{
+  key: string
+  value: string
+  service: string
+}]>
+```
 
-Wanna help? Just send a PR 😉
+Example:
+
+```javascript
+import RNSInfo from 'react-native-sensitive-info';
+
+const myFunc = async () => {
+    return SInfo.getAllItems({        
+        sharedPreferencesName: 'mySharedPrefs',
+        keychainService: 'myKeychain'
+    });
+}
+
+await myFunc();
+
+// The data is retrieved
+```
