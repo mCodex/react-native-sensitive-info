@@ -1,9 +1,9 @@
-/**
- * Metro configuration for React Native
- * https://github.com/facebook/react-native
- *
- * @format
- */
+const path = require('path');
+
+const extraNodeModules = {
+  'react-native-sensitive-info': path.resolve(__dirname + '/../'),
+};
+const watchFolders = [path.resolve(__dirname + '/../')];
 
 module.exports = {
   transformer: {
@@ -14,4 +14,8 @@ module.exports = {
       },
     }),
   },
+  resolver: {
+    extraNodeModules,
+  },
+  watchFolders,
 };
