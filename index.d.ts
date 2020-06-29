@@ -32,6 +32,7 @@ interface RNSensitiveInfoAndroidDialogStrings {
 export interface RNSensitiveInfoOptions {
   kSecAccessControl?: RNSensitiveInfoAccessControlOptions;
   kSecAttrAccessible?: RNSensitiveInfoAttrAccessibleOptions;
+  kSecAttrSynchronizable?: boolean;
   keychainService?: string;
   sharedPreferencesName?: string;
   touchID?: boolean;
