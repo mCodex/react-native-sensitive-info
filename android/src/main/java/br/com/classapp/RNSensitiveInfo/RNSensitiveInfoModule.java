@@ -348,7 +348,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                        putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                        putExtraWithAES(key, value, mSharedPreferences, true, strings, pm, result.getCryptoObject().getCipher());
                                     }
                                 }
 
@@ -390,7 +390,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
                                             super.onAuthenticationSucceeded(result);
                                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                                putExtraWithAES(key, value, mSharedPreferences, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                                putExtraWithAES(key, value, mSharedPreferences, false, strings, pm, result.getCryptoObject().getCipher());
                                             }
                                         }
                                     }, null);
@@ -459,7 +459,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                        decryptWithAes(encrypted, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                        decryptWithAes(encrypted, true, strings, pm, result.getCryptoObject().getCipher());
                                     }
                                 }
 
@@ -501,7 +501,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationSucceeded(FingerprintManager.AuthenticationResult result) {
                                             super.onAuthenticationSucceeded(result);
                                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                                decryptWithAes(encrypted, showModal, strings, pm, result.getCryptoObject().getCipher());
+                                                decryptWithAes(encrypted, false, strings, pm, result.getCryptoObject().getCipher());
                                             }
                                         }
                                     }, null);
