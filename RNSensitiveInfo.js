@@ -4,12 +4,14 @@ const RNSensitiveInfo = NativeModules.RNSensitiveInfo;
 
 module.exports = {
   ...RNSensitiveInfo,
-  setInvalidatedByBiometricEnrollment() {
+  setInvalidatedByBiometricEnrollment(invalidatedByBiometricEnrollment) {
     if (RNSensitiveInfo.setInvalidatedByBiometricEnrollment == null) {
       return;
     }
 
-    return RNSensitiveInfo.setInvalidatedByBiometricEnrollment();
+    return RNSensitiveInfo.setInvalidatedByBiometricEnrollment(
+      invalidatedByBiometricEnrollment,
+    );
   },
   cancelFingerprintAuth() {
     if (RNSensitiveInfo.cancelFingerprintAuth == null) {
