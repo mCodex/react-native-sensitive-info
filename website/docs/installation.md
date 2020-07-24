@@ -6,6 +6,8 @@ sidebar_label: Installation
 
 First of all, install it using `npm` or `yarn`
 
+### Master branch (using Keychain and Android Shared Preferences)
+
 ```bash
 npm install --save react-native-sensitive-info
 ```
@@ -13,6 +15,17 @@ npm install --save react-native-sensitive-info
 ```bash
 yarn add react-native-sensitive-info
 ```
+
+### Keystore branch (using Keychain and Keystore)
+
+```bash
+npm install --save git://github.com/mCodex/react-native-sensitive-info#keystore
+```
+
+```bash
+yarn add git://github.com/mCodex/react-native-sensitive-info#keystore
+```
+
 
 ## Linking
 

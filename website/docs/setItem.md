@@ -15,7 +15,7 @@ Check out the options that you can use for [Android](android_options) and [iOS](
 Example:
 
 ```javascript
-import RNSInfo from 'react-native-sensitive-info';
+import SInfo from 'react-native-sensitive-info';
 
 const myFunc = async () => {
     return SInfo.setItem('key1', 'value1', {
