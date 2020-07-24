@@ -1,8 +1,6 @@
 package br.com.classapp.RNSensitiveInfo;
 
 import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.fingerprint.FingerprintManager;
@@ -10,27 +8,33 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyInfo;
+
 import java.security.InvalidKeyException;
+
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.biometric.BiometricConstants;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
+import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -38,9 +42,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 
+import androidx.fragment.app.FragmentActivity;
 import br.com.classapp.RNSensitiveInfo.utils.AppConstants;
-import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintAuthenticationDialogFragment;
-import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintUiHelper;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
@@ -81,27 +84,24 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
 
     /**
-     * Checks whether the device supports fingerprint authentication and if the user has
-     * enrolled at least one fingerprint.
+     * Checks whether the device supports Biometric authentication and if the user has
+     * enrolled at least one credential.
      *
-     * @return true if the user has a fingerprint capable device and has enrolled
-     * one or more fingerprints
+     * @return true if the user has a biometric capable device and has enrolled
+     * one or more credentials
      */
-    private boolean hasSetupFingerprint() {
+    private boolean hasSetupBiometricCredential() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mFingerprintManager != null) {
-                if (!mFingerprintManager.isHardwareDetected()) {
-                    return false;
-                } else if (!mFingerprintManager.hasEnrolledFingerprints()) {
-                    return false;
-                }
-                return true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                ReactApplicationContext reactApplicationContext = getReactApplicationContext();
+                BiometricManager biometricManager = BiometricManager.from(reactApplicationContext);
+                int canAuthenticate = biometricManager.canAuthenticate();
+
+                return canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS;
             } else {
                 return false;
             }
-        } catch (SecurityException e) {
-            // Should never be thrown since we have declared the USE_FINGERPRINT permission
-            // in the manifest file
+        } catch (Exception e) {
             return false;
         }
     }
@@ -118,8 +118,12 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void isHardwareDetected(final Promise pm) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mFingerprintManager != null) {
-            pm.resolve(mFingerprintManager.isHardwareDetected());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ReactApplicationContext reactApplicationContext = getReactApplicationContext();
+            BiometricManager biometricManager = BiometricManager.from(reactApplicationContext);
+            int canAuthenticate = biometricManager.canAuthenticate();
+
+            pm.resolve(canAuthenticate != BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE);
         } else {
             pm.resolve(false);
         }
@@ -136,7 +140,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void isSensorAvailable(final Promise promise) {
-        promise.resolve(hasSetupFingerprint());
+        promise.resolve(hasSetupBiometricCredential());
     }
 
     @ReactMethod
@@ -190,31 +194,25 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         pm.resolve(null);
     }
 
+
     @ReactMethod
     public void getAllItems(ReadableMap options, Promise pm) {
 
         String name = sharedPreferences(options);
 
         Map<String, ?> allEntries = prefs(name).getAll();
-        WritableArray resultData = new WritableNativeArray();
+        WritableMap resultData = new WritableNativeMap();
 
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
-            WritableMap entryMap = new WritableNativeMap();
-
-            entryMap.putString("key", entry.getKey());
-            entryMap.putString("value", entry.getValue().toString());
-            entryMap.putString("service", name);
-            resultData.pushMap(entryMap);
+            String value = entry.getValue().toString();
+            resultData.putString(entry.getKey(), value);
         }
-
-        WritableArray resultWrapper = new WritableNativeArray();
-        resultWrapper.pushArray(resultData);
-        pm.resolve(resultWrapper);
+        pm.resolve(resultData);
     }
 
     @ReactMethod
     public void cancelFingerprintAuth() {
-        if(mCancellationSignal != null && !mCancellationSignal.isCanceled()) {
+        if (mCancellationSignal != null && !mCancellationSignal.isCanceled()) {
             mCancellationSignal.cancel();
         }
     }
@@ -248,31 +246,38 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private void showDialog(final HashMap strings, Object cryptoObject, FingerprintUiHelper.Callback callback) {
+    private void showDialog(final HashMap strings, final BiometricPrompt.CryptoObject cryptoObject, final BiometricPrompt.AuthenticationCallback callback) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            // DialogFragment.show() will take care of adding the fragment
-            // in a transaction.  We also want to remove any currently showing
-            // dialog, so make our own transaction and take care of that here.
 
-            Activity activity = getCurrentActivity();
-            if (activity == null) {
-                callback.onError(AppConstants.E_INIT_FAILURE,
-                        strings.containsKey("cancelled") ? strings.get("cancelled").toString() : "Authentication was cancelled");
-                return;
-            }
+            UiThreadUtil.runOnUiThread(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                Activity activity = getCurrentActivity();
+                                if (activity == null) {
+                                    callback.onAuthenticationError(BiometricConstants.ERROR_CANCELED,
+                                            strings.containsKey("cancelled") ? strings.get("cancelled").toString() : "Authentication was cancelled");
+                                    return;
+                                }
 
-            FragmentTransaction ft = activity.getFragmentManager().beginTransaction();
-            Fragment prev = getCurrentActivity().getFragmentManager().findFragmentByTag(AppConstants.DIALOG_FRAGMENT_TAG);
-            if (prev != null) {
-                ft.remove(prev);
-            }
-            ft.addToBackStack(null);
+                                FragmentActivity fragmentActivity = (FragmentActivity) getCurrentActivity();
+                                Executor executor = Executors.newSingleThreadExecutor();
+                                BiometricPrompt biometricPrompt = new BiometricPrompt(fragmentActivity, executor, callback);
 
-            // Create and show the dialog.
-            FingerprintAuthenticationDialogFragment newFragment = FingerprintAuthenticationDialogFragment.newInstance(strings);
-            newFragment.setCryptoObject((FingerprintManager.CryptoObject) cryptoObject);
-            newFragment.setCallback(callback);
-            newFragment.show(ft, AppConstants.DIALOG_FRAGMENT_TAG);
+                                BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                                        .setDeviceCredentialAllowed(false)
+                                        .setNegativeButtonText(strings.containsKey("cancel") ? strings.get("cancel").toString() : "Cancel")
+                                        .setDescription(strings.containsKey("description") ? strings.get("description").toString() : null)
+                                        .setTitle(strings.containsKey("header") ? strings.get("header").toString() : null)
+                                        .build();
+                                biometricPrompt.authenticate(promptInfo, cryptoObject);
+                            } catch (Exception e) {
+                                throw e;
+                            }
+                        }
+                    }
+            );
         }
     }
 
@@ -325,7 +330,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     private void putExtraWithAES(final String key, final String value, final SharedPreferences mSharedPreferences, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && hasSetupFingerprint()) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && hasSetupBiometricCredential()) {
             try {
                 if (cipher == null) {
                     SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
@@ -342,25 +347,26 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                             info.getUserAuthenticationValidityDurationSeconds() == -1) {
 
                         if (showModal) {
-
-                            // define class as a callback
-                            class PutExtraWithAESCallback implements FingerprintUiHelper.Callback {
+                            class PutExtraWithAESCallback extends BiometricPrompt.AuthenticationCallback {
                                 @Override
-                                public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
+                                public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                         putExtraWithAES(key, value, mSharedPreferences, true, strings, pm, result.getCryptoObject().getCipher());
                                     }
                                 }
 
                                 @Override
-                                public void onError(String errorCode, CharSequence errString) {
+                                public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                                     pm.reject(String.valueOf(errorCode), errString.toString());
+                                }
+
+                                @Override
+                                public void onAuthenticationFailed() {
+                                    pm.reject(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, strings.containsKey("notRecognized") ? strings.get("notRecognized").toString() : "Fingerprint not recognized, try again");
                                 }
                             }
 
-                            // Show the fingerprint dialog
-                            showDialog(strings, new FingerprintManager.CryptoObject(cipher), new PutExtraWithAESCallback());
-
+                            showDialog(strings, new BiometricPrompt.CryptoObject(cipher), new PutExtraWithAESCallback());
                         } else {
                             mCancellationSignal = new CancellationSignal();
                             mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
@@ -429,7 +435,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     private void decryptWithAes(final String encrypted, final boolean showModal, final HashMap strings, final Promise pm, Cipher cipher) {
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
-                && hasSetupFingerprint()) {
+                && hasSetupBiometricCredential()) {
 
             String[] inputs = encrypted.split(DELIMITER);
             if (inputs.length < 2) {
@@ -440,7 +446,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 byte[] iv = Base64.decode(inputs[0], Base64.DEFAULT);
                 byte[] cipherBytes = Base64.decode(inputs[1], Base64.DEFAULT);
 
-                if(cipher == null){
+                if (cipher == null) {
                     SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
                     cipher = Cipher.getInstance(AES_DEFAULT_TRANSFORMATION);
                     cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
@@ -453,27 +459,32 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                             info.getUserAuthenticationValidityDurationSeconds() == -1) {
 
                         if (showModal) {
-
-                            // define class as a callback
-                            class DecryptWithAesCallback implements FingerprintUiHelper.Callback {
+                            class DecryptWithAesCallback extends BiometricPrompt.AuthenticationCallback {
                                 @Override
-                                public void onAuthenticated(FingerprintManager.AuthenticationResult result) {
+                                public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                         decryptWithAes(encrypted, true, strings, pm, result.getCryptoObject().getCipher());
                                     }
                                 }
 
                                 @Override
-                                public void onError(String errorCode, CharSequence errString) {
+                                public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                                     pm.reject(String.valueOf(errorCode), errString.toString());
+                                }
+
+                                @Override
+                                public void onAuthenticationFailed() {
+                                    pm.reject(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, strings.containsKey("notRecognized") ? strings.get("notRecognized").toString() : "Fingerprint not recognized, try again");
                                 }
                             }
 
-                            // Show the fingerprint dialog
-                            showDialog(strings, new FingerprintManager.CryptoObject(cipher), new DecryptWithAesCallback());
-
+                            showDialog(strings, new BiometricPrompt.CryptoObject(cipher), new DecryptWithAesCallback());
                         } else {
                             mCancellationSignal = new CancellationSignal();
+                            ReactApplicationContext reactApplicationContext = getReactApplicationContext();
+                            BiometricManager biometricManager = BiometricManager.from(reactApplicationContext);
+
+
                             mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
                                     0, new FingerprintManager.AuthenticationCallback() {
 
