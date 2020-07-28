@@ -150,7 +150,7 @@ namespace RNSensitiveInfo
 
         private string sharedPreferences(JObject options)
         {
-            string name = options.Value<string>("keystoreKey") ?? "keystore";
+            string name = options.Value<string>("sharedPreferencesName") ?? "keystore";
             if (name == null)
             {
                 name = "keystore";

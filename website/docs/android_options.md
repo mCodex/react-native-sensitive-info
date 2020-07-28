@@ -6,7 +6,7 @@ sidebar_label: Android
 
 Android specific configurations
 
-## keystoreKey
+## sharedPreferencesName
 
 You can choose the shared preferences' name which you want to use. Otherwise, the default is **keystore**
 

@@ -21,7 +21,7 @@ import RNSInfo from 'react-native-sensitive-info';
 
 const myFunc = async () => {
     return SInfo.getAllItems({        
-        keystoreKey: 'mySharedPrefs',
+        sharedPreferencesName: 'mySharedPrefs',
         keychainService: 'myKeychain'
     });
 }

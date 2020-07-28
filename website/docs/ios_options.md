@@ -29,7 +29,7 @@ When passing in the [touchID](#touchID) option as `true`, you can also set `kSec
 SInfo.setItem('key1', 'value1', {
   keychainService: 'myKeychain',
   kSecAccessControl: 'kSecAccessControlTouchIDCurrentSet',
-  keystoreKey: 'mySharedPrefs',
+  sharedPreferencesName: 'mySharedPrefs',
   touchID: true,
 });
 ```
