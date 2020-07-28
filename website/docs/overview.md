@@ -16,7 +16,7 @@ Handling sensitive data couldn't be easier in React-Native apps.
 import SInfo from 'react-native-sensitive-info';
 
 SInfo.setItem('key1', 'value1', {
-sharedPreferencesName: 'mySharedPrefs',
+keystoreKey: 'mySharedPrefs',
 keychainService: 'myKeychain'
 }).then((value) =>
         console.log(value) //value 1
@@ -25,7 +25,7 @@ keychainService: 'myKeychain'
 SInfo.setItem('key2', 'value2', {});
 
 SInfo.getItem('key1', {
-sharedPreferencesName: 'mySharedPrefs',
+keystoreKey: 'mySharedPrefs',
 keychainService: 'myKeychain'}).then(value => {
     console.log(value) //value1
 });
@@ -35,7 +35,7 @@ SInfo.getItem('key2',{}).then(value => {
 });
 
 SInfo.getAllItems({
-sharedPreferencesName: 'mySharedPrefs',
+keystoreKey: 'mySharedPrefs',
 keychainService: 'myKeychain'}).then(values => {
     console.log(values) //value1, value2
 });

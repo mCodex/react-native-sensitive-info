@@ -5,7 +5,7 @@ import SInfo from 'react-native-sensitive-info';
 const Home: React.FC = () => {
   const handleAddUsingSetItemOnPress = useCallback(() => {
     SInfo.setItem('key1', 'value1', {
-      sharedPreferencesName: 'exampleApp',
+      keystoreKey: 'exampleApp',
       keychainService: 'exampleApp',
     });
   }, []);

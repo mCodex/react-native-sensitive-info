@@ -19,7 +19,7 @@ import SInfo from 'react-native-sensitive-info';
 
 const myFunc = async () => {
     return SInfo.setItem('key1', 'value1', {
-        sharedPreferencesName: 'mySharedPrefs',
+        keystoreKey: 'mySharedPrefs',
         keychainService: 'myKeychain'
     });
 }
@@ -33,7 +33,7 @@ await myFunc();
 
 You can choose which keychain's service (iOS) and shared preferences's name (android) you want to use.
 
-But if you rather not to use it our **default** sharedPreferencesName is: **shared_preferences** and keychainService is: **app**. To do so, just use `setItem` like this: 
+But if you rather not to use it our **default** keystoreKey is: **keystore** and keychainService is: **app**. To do so, just use `setItem` like this: 
 
 ```javascript
 SInfo.setItem('key1', 'value1', {});

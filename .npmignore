@@ -5,4 +5,4 @@
 !./package.json
 !index.d.ts
 !react-native-sensitive-info.podspec
-!RNSensitiveInfo.js
+!build/**

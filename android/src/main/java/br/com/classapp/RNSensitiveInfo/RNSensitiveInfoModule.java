@@ -263,9 +263,9 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     @NonNull
     private String sharedPreferences(ReadableMap options) {
-        String name = options.hasKey("sharedPreferencesName") ? options.getString("sharedPreferencesName") : "shared_preferences";
+        String name = options.hasKey("keystoreKey") ? options.getString("keystoreKey") : "keystore";
         if (name == null) {
-            name = "shared_preferences";
+            name = "keystore";
         }
         return name;
     }

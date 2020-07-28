@@ -34,7 +34,7 @@ export interface RNSensitiveInfoOptions {
   kSecAttrAccessible?: RNSensitiveInfoAttrAccessibleOptions;
   kSecAttrSynchronizable?: boolean;
   keychainService?: string;
-  sharedPreferencesName?: string;
+  keystoreKey?: string;
   touchID?: boolean;
   showModal?: boolean;
   kSecUseOperationPrompt?: string;
@@ -53,9 +53,9 @@ export declare function getItem(
 ): Promise<string>;
 
 interface SensitiveInfoEntry {
-  key: string
-  value: string
-  service: string
+  key: string;
+  value: string;
+  service: string;
 }
 export declare function getAllItems(
   options: RNSensitiveInfoOptions
