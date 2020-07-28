@@ -11,10 +11,10 @@ import android.security.keystore.KeyInfo;
 
 import java.security.InvalidKeyException;
 
+import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.biometric.BiometricConstants;
 import androidx.biometric.BiometricManager;
@@ -30,7 +30,14 @@ import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import java.math.BigInteger;
+import java.security.Key;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.InvalidKeyException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -40,9 +47,12 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 
 import androidx.fragment.app.FragmentActivity;
+import javax.security.auth.x500.X500Principal;
+
 import br.com.classapp.RNSensitiveInfo.utils.AppConstants;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
@@ -56,8 +66,12 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     KeyProperties.BLOCK_MODE_CBC + "/" +
                     KeyProperties.ENCRYPTION_PADDING_PKCS7;
 
-    private static final String KEY_ALIAS_AES = "MyAesKeyAlias";
+    private static final String AES_GCM = "AES/GCM/NoPadding";
+    private static final String RSA_ECB = "RSA/ECB/PKCS1Padding";
     private static final String DELIMITER = "]";
+    private static final byte[] FIXED_IV = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1};
+    private static final String KEY_ALIAS = "MySharedPreferenceKeyAlias";
+    private static final String KEY_ALIAS_AES = "MyAesKeyAlias";
 
     private FingerprintManager mFingerprintManager;
     private KeyStore mKeyStore;
@@ -68,13 +82,28 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
+        
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            Exception cause = new RuntimeException("Keystore is not supported!");
+            throw new RuntimeException("Android version is too low", cause);
+        }
+        
+        try {
+            mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
+            mKeyStore.load(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        initKeyStore();
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 mFingerprintManager = (FingerprintManager) reactContext.getSystemService(Context.FINGERPRINT_SERVICE);
+                initFingerprintKeyStore();
             } catch (Exception e) {
                 Log.d("RNSensitiveInfo", "Fingerprint not supported");
             }
-            initKeyStore();
         }
     }
 
@@ -155,6 +184,12 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             HashMap strings = options.hasKey("strings") ? options.getMap("strings").toHashMap() : new HashMap();
 
             decryptWithAes(value, showModal, strings, pm, null);
+        } else if (value != null) {
+            try {
+                pm.resolve(decrypt(value));
+            } catch (Exception e) {
+                pm.reject(e);
+            }
         } else {
             pm.resolve(value);
         }
@@ -172,10 +207,10 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             putExtraWithAES(key, value, prefs(name), showModal, strings, pm, null);
         } else {
             try {
-                putExtra(key, value, prefs(name));
+                putExtra(key, encrypt(value), prefs(name));
                 pm.resolve(value);
             } catch (Exception e) {
-                Log.d("RNSensitiveInfo", e.getCause().getMessage());
+                e.printStackTrace();
                 pm.reject(e);
             }
         }
@@ -205,6 +240,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             String value = entry.getValue().toString();
+            try {
+                value = decrypt(value);
+            } catch (Exception e) {
+                Log.d("RNSensitiveInfo", Log.getStackTraceString(e));
+            }
             resultData.putString(entry.getKey(), value);
         }
         pm.resolve(resultData);
@@ -231,18 +271,46 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
 
 
-    private void putExtra(String key, Object value, SharedPreferences mSharedPreferences) {
+    private void putExtra(String key, String value, SharedPreferences mSharedPreferences) {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
-        if (value instanceof String) {
-            editor.putString(key, (String) value).apply();
-        } else if (value instanceof Boolean) {
-            editor.putBoolean(key, (Boolean) value).apply();
-        } else if (value instanceof Integer) {
-            editor.putInt(key, (Integer) value).apply();
-        } else if (value instanceof Long) {
-            editor.putLong(key, (Long) value).apply();
-        } else if (value instanceof Float) {
-            editor.putFloat(key, (Float) value).apply();
+        editor.putString(key, value).apply();
+    }
+    
+    /**
+     * Generates a new RSA key and stores it under the { @code KEY_ALIAS } in the
+     * Android Keystore.
+     */
+    private void initKeyStore() {
+        try {
+            if (!mKeyStore.containsAlias(KEY_ALIAS)) {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
+                    keyGenerator.init(
+                            new KeyGenParameterSpec.Builder(KEY_ALIAS,
+                                    KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                                    .setRandomizedEncryptionRequired(false)
+                                    .build());
+                    keyGenerator.generateKey();
+                } else {
+                    Calendar notBefore = Calendar.getInstance();
+                    Calendar notAfter = Calendar.getInstance();
+                    notAfter.add(Calendar.YEAR, 10);
+                    KeyPairGeneratorSpec spec = new KeyPairGeneratorSpec.Builder(getReactApplicationContext())
+                    .setAlias(KEY_ALIAS)
+                    .setSubject(new X500Principal("CN=" + KEY_ALIAS))
+                    .setSerialNumber(BigInteger.valueOf(1337))
+                    .setStartDate(notBefore.getTime())
+                    .setEndDate(notAfter.getTime())
+                    .build();
+                    KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance("RSA", ANDROID_KEYSTORE_PROVIDER);   
+                    kpGenerator.initialize(spec);
+                    kpGenerator.generateKeyPair();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -285,23 +353,19 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
      * Generates a new AES key and stores it under the { @code KEY_ALIAS_AES } in the
      * Android Keystore.
      */
-    private void initKeyStore() {
+    private void initFingerprintKeyStore() {
         try {
-            mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
-            mKeyStore.load(null);
-
             // Check if a generated key exists under the KEY_ALIAS_AES .
             if (!mKeyStore.containsAlias(KEY_ALIAS_AES)) {
                 prepareKey();
             }
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     private void prepareKey() throws Exception {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) {
-            return;
-        }
+        
         KeyGenerator keyGenerator = KeyGenerator.getInstance(
                 KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
 
@@ -538,5 +602,45 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         } else {
             pm.reject("Fingerprint not supported", "Fingerprint not supported");
         }
+    }
+    
+    public String encrypt(String input) throws Exception {
+        byte[] bytes = input.getBytes();
+        Cipher c;
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Key secretKey = ((KeyStore.SecretKeyEntry) mKeyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
+            c = Cipher.getInstance(AES_GCM);
+            c.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, FIXED_IV));
+        } else {
+            PublicKey publicKey = ((KeyStore.PrivateKeyEntry)mKeyStore.getEntry(KEY_ALIAS, null)).getCertificate().getPublicKey();
+            c = Cipher.getInstance(RSA_ECB);
+            c.init(Cipher.ENCRYPT_MODE, publicKey);
+        }
+        byte[] encodedBytes = c.doFinal(bytes);
+        String encryptedBase64Encoded = Base64.encodeToString(encodedBytes, Base64.DEFAULT);
+        return encryptedBase64Encoded;
+    }
+
+
+    public String decrypt(String encrypted) throws Exception {
+        if (encrypted == null) {
+            Exception cause = new RuntimeException("Invalid argument at decrypt function");
+            throw new RuntimeException("encrypted argument can't be null", cause);
+        }
+
+        Cipher c;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Key secretKey = ((KeyStore.SecretKeyEntry) mKeyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
+            c = Cipher.getInstance(AES_GCM);
+            c.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, FIXED_IV));
+        } else {
+            PrivateKey privateKey = ((KeyStore.PrivateKeyEntry)mKeyStore.getEntry(KEY_ALIAS, null)).getPrivateKey();
+            c = Cipher.getInstance(RSA_ECB);
+            c.init(Cipher.DECRYPT_MODE, privateKey);
+        }
+        byte[] decodedBytes = c.doFinal(Base64.decode(encrypted, Base64.DEFAULT));
+        return new String(decodedBytes);
     }
 }
