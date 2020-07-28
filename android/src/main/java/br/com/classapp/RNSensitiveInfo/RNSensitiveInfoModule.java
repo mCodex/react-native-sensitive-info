@@ -31,6 +31,7 @@ import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.security.KeyStore;
+import java.security.UnrecoverableKeyException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -295,6 +296,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 prepareKey();
             }
         } catch (Exception e) {
+            //
         }
     }
 
@@ -336,7 +338,6 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     SecretKey secretKey = (SecretKey) mKeyStore.getKey(KEY_ALIAS_AES, null);
                     cipher = Cipher.getInstance(AES_DEFAULT_TRANSFORMATION);
                     cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
 
                     // Retrieve information about the SecretKey from the KeyStore.
                     SecretKeyFactory factory = SecretKeyFactory.getInstance(
@@ -404,6 +405,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     }
                     return;
                 }
+
                 byte[] encryptedBytes = cipher.doFinal(value.getBytes());
 
                 // Encode the initialization vector (IV) and encryptedBytes to Base64.
@@ -414,7 +416,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                 putExtra(key, result, mSharedPreferences);
                 pm.resolve(value);
-            } catch (InvalidKeyException e) {
+            } catch (InvalidKeyException | UnrecoverableKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
                     prepareKey();
@@ -522,7 +524,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 }
                 byte[] decryptedBytes = cipher.doFinal(cipherBytes);
                 pm.resolve(new String(decryptedBytes));
-            } catch (InvalidKeyException e) {
+            } catch (InvalidKeyException | UnrecoverableKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
                     prepareKey();
