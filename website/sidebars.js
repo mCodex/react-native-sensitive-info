@@ -6,7 +6,6 @@ module.exports = {
       'getAllItems',
       'getItem',
       'hasEnrolledFingerprints',
-      'isHardwareDetected',
       'isSensorAvailable',
       'setItem',
     ],
