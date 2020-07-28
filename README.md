@@ -40,6 +40,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <table>
   <tr>
     <td align="center"><a href="https://mcodex.github.io"><img src="https://avatars2.githubusercontent.com/u/5920613?v=4" width="100px;" alt=""/><br /><sub><b>Mateus Andrade</b></sub></a><br /><a href="https://github.com/mCodex/react-native-sensitive-info/commits?author=mcodex" title="Documentation">📖</a> <a href="https://github.com/mCodex/react-native-sensitive-info/commits?author=mcodex" title="Code">💻</a> <a href="https://github.com/mCodex/react-native-sensitive-info/pulls?q=is%3Apr+reviewed-by%3Amcodex" title="Reviewed Pull Requests">👀</a> <a href="#ideas-mcodex" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://github.com/maggialejandro"><img src="https://avatars1.githubusercontent.com/u/3394748?v=4" width="100px;" alt=""/><br /><sub><b>Alejandro</b></sub></a><br /><a href="https://github.com/mCodex/react-native-sensitive-info/commits?author=maggialejandro" title="Code">💻</a> <a href="#maintenance-maggialejandro" title="Maintenance">🚧</a></td>
   </tr>
 </table>
 
