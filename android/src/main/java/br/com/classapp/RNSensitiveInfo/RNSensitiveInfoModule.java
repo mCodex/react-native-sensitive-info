@@ -145,18 +145,18 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
     }
 
-    @ReactMethod
-    public void isHardwareDetected(final Promise pm) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ReactApplicationContext reactApplicationContext = getReactApplicationContext();
-            BiometricManager biometricManager = BiometricManager.from(reactApplicationContext);
-            int canAuthenticate = biometricManager.canAuthenticate();
+    // @ReactMethod
+    // public void isHardwareDetected(final Promise pm) {
+    //     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    //         ReactApplicationContext reactApplicationContext = getReactApplicationContext();
+    //         BiometricManager biometricManager = BiometricManager.from(reactApplicationContext);
+    //         int canAuthenticate = biometricManager.canAuthenticate();
 
-            pm.resolve(canAuthenticate != BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE);
-        } else {
-            pm.resolve(false);
-        }
-    }
+    //         pm.resolve(canAuthenticate != BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE);
+    //     } else {
+    //         pm.resolve(false);
+    //     }
+    // }
 
     @ReactMethod
     public void hasEnrolledFingerprints(final Promise pm) {

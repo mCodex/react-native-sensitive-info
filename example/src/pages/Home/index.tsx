@@ -12,35 +12,41 @@ const Home: React.FC = () => {
 
   const handleSetItemUsingTouchIDOnPress = useCallback(async () => {
     try {
-      const deviceHasSensor = await SInfo.isSensorAvailable();
+      // const deviceHasSensor = await SInfo.isSensorAvailable();
 
-      if (!deviceHasSensor) {
-        return Alert.alert('No sensor found');
-      }
+      // if (!deviceHasSensor) {
+      //   return Alert.alert('No sensor found');
+      // }
 
-      SInfo.setItem('touchIdItem', 'dataStoredUsingTouchId', {
-        // touchID: true,
-        showModal: true
+      await SInfo.setItem('touchIdItem', new Date().toISOString(), {
+        kSecAccessControl: 'kSecAccessControlBiometryAny',
+        touchID: true,
       });
+
+      Alert.alert('data successfully stored');
     } catch (ex) {
       console.log(ex.message);
     }
   }, []);
 
-  /**
-   * @BUG when triggering this function iOS emulator crashes. Need to investigate
-   */
   const getTouchIDItem = useCallback(async () => {
     const deviceHasSensor = await SInfo.isSensorAvailable();
 
-    if (!deviceHasSensor) {
-      return Alert.alert('No sensor found');
-    }
+    // if (!deviceHasSensor) {
+    //   return Alert.alert('No sensor found');
+    // }
 
-    SInfo.getItem('touchIdItem', {
-      touchID: true,
-      showModal: true
-    });
+    try {
+      const data = await SInfo.getItem('touchIdItem', {
+        touchID: true,
+        kSecUseOperationPrompt:
+          'We need your permission to retrieve encrypted data',
+      });
+
+      Alert.alert('Data stored', data);
+    } catch (ex) {
+      Alert.alert('Error', ex.message);
+    }
   }, []);
 
   return (

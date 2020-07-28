@@ -5,6 +5,7 @@
   "types": "index.d.ts",
   "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
   "scripts": {
+    "localPublish": "yalc publish && cd example && yalc add react-native-sensitive-info --yarn && cd ..",
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },
   "author": {

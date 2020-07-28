@@ -46,6 +46,10 @@ You can set this to `true` in order to sync the keychain items with iCloud.
 
 You can set this to a string and fallback to pin code authentication.
 
+## kSecUseOperationPrompt
+
+When `touchID` is `true` you must pass `kSecUseOperationPrompt` to inform users why are you prompting TouchID or FaceID.
+
 ## Enable Face ID
 
 To enable Face ID, for iOS X and above or iPad Pro, set `kSecAccessControl` to `kSecAccessControlBiometryAny`. For example:
