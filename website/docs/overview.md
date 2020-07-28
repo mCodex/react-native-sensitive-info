@@ -12,31 +12,32 @@ Handling sensitive data couldn't be easier in React-Native apps.
 
 ## Demo
 
-```javascript
+```js
 import SInfo from 'react-native-sensitive-info';
 
-SInfo.setItem('key1', 'value1', {
-sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain'
-}).then((value) =>
-        console.log(value) //value 1
+const savingFirstData = await SInfo.setItem('key1', 'value1', {
+    sharedPreferencesName: 'mySharedPrefs',
+    keychainService: 'myKeychain'
+});
+
+console.log(savingFirstData) //value1
+
+// Need to retrieve later?
+
+const gettingFirstData = await SInfo.getItem('key1', {
+    sharedPreferencesName: 'mySharedPrefs',
+    keychainService: 'myKeychain'
+});
+
+console.log(gettingFirstData) //value1
+
+//Need to get all values stored?
+
+const gettingAllKeys = await SInfo.getAllItems({
+    sharedPreferencesName: 'mySharedPrefs',
+    keychainService: 'myKeychain'}
 );
 
-SInfo.setItem('key2', 'value2', {});
+console.log(gettingAllKeys) //value1
 
-SInfo.getItem('key1', {
-sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain'}).then(value => {
-    console.log(value) //value1
-});
-
-SInfo.getItem('key2',{}).then(value => {
-    console.log(value) //value2
-});
-
-SInfo.getAllItems({
-sharedPreferencesName: 'mySharedPrefs',
-keychainService: 'myKeychain'}).then(values => {
-    console.log(values) //value1, value2
-});
 ```

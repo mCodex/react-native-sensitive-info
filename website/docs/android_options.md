@@ -8,11 +8,22 @@ Android specific configurations
 
 ## sharedPreferencesName
 
-You can choose the shared preferences' name which you want to use. Otherwise, the default is **keystore**
+You can choose the shared preferences' name which you want to use. Otherwise, the default is **shared_preferences**
+
+## touchID
+
+Enable fingerprint authentication for Android and TouchID for iOS.
+
+```javascript
+SInfo.setItem('key1', 'value1', {
+  ...
+  touchID: true,
+});
+```
 
 ## showModal & strings
 
-When `showModal` is `true`, an Android native prompt will show up asking for user's authentication. This behavior is similar to that of iOS.
+When `showModal` is `true`, an Android native prompt will show up asking for user's authentication.
 
 You can control strings associated with a modal prompt via `strings` option:
 

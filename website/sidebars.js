@@ -10,6 +10,7 @@ module.exports = {
       'setItem',
     ],
     Options: ['android_options', 'ios_options'],
-    More: ['community_libraries']
+    Recipes: ['protectingWithFingerprint'],
+    More: ['community_libraries'],
   },
 };

@@ -10,14 +10,13 @@ You can choose the keychain's service which you want to use. Otherwise, the defa
 
 ## touchID
 
-Enable touchID support.
+Enable TouchID for iOS and fingerprint authentication for Android
 
 ```javascript
 SInfo.setItem('key1', 'value1', {
   ...
   touchID: true,
 });
-
 ```
 
 ## kSecAccessControl
