@@ -1,9 +1,0 @@
-{
-  "version": "v1",
-  "packages": {
-    "react-native-sensitive-info": {
-      "signature": "7da6a228c3431c0df8527e02eb77f9d3",
-      "file": true
-    }
-  }
-}

@@ -63,3 +63,4 @@ buck-out/
 /ios/Pods/
 
 .yalc
+.DS_Store

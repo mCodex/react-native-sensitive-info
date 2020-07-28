@@ -337,7 +337,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         .setDeviceCredentialAllowed(false)
                                         .setNegativeButtonText(strings.containsKey("cancel") ? strings.get("cancel").toString() : "Cancel")
                                         .setDescription(strings.containsKey("description") ? strings.get("description").toString() : null)
-                                        .setTitle(strings.containsKey("header") ? strings.get("header").toString() : null)
+                                        .setTitle(strings.containsKey("header") ? strings.get("header").toString() : "Unlock with your fingerprint")
                                         .build();
                                 biometricPrompt.authenticate(promptInfo, cryptoObject);
                             } catch (Exception e) {

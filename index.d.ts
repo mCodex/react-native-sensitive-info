@@ -1,23 +1,23 @@
-type RNSensitiveInfoBiometryType = "Touch ID" | "Face ID";
+type RNSensitiveInfoBiometryType = 'Touch ID' | 'Face ID';
 
 type RNSensitiveInfoAccessControlOptions =
-  | "kSecAccessControlApplicationPassword"
-  | "kSecAccessControlPrivateKeyUsage"
-  | "kSecAccessControlDevicePasscode"
-  | "kSecAccessControlTouchIDAny"
-  | "kSecAccessControlTouchIDCurrentSet"
-  | "kSecAccessControlUserPresence"
-  | "kSecAccessControlBiometryAny"
-  | "kSecAccessControlBiometryCurrentSet";
+  | 'kSecAccessControlApplicationPassword'
+  | 'kSecAccessControlPrivateKeyUsage'
+  | 'kSecAccessControlDevicePasscode'
+  | 'kSecAccessControlTouchIDAny'
+  | 'kSecAccessControlTouchIDCurrentSet'
+  | 'kSecAccessControlUserPresence'
+  | 'kSecAccessControlBiometryAny'
+  | 'kSecAccessControlBiometryCurrentSet';
 
 type RNSensitiveInfoAttrAccessibleOptions =
-  | "kSecAttrAccessibleAfterFirstUnlock"
-  | "kSecAttrAccessibleAlways"
-  | "kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly"
-  | "kSecAttrAccessibleWhenUnlockedThisDeviceOnly"
-  | "kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly"
-  | "kSecAttrAccessibleAlwaysThisDeviceOnly"
-  | "kSecAttrAccessibleWhenUnlocked";
+  | 'kSecAttrAccessibleAfterFirstUnlock'
+  | 'kSecAttrAccessibleAlways'
+  | 'kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly'
+  | 'kSecAttrAccessibleWhenUnlockedThisDeviceOnly'
+  | 'kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly'
+  | 'kSecAttrAccessibleAlwaysThisDeviceOnly'
+  | 'kSecAttrAccessibleWhenUnlocked';
 
 interface RNSensitiveInfoAndroidDialogStrings {
   header?: string;
@@ -45,11 +45,11 @@ export interface RNSensitiveInfoOptions {
 export declare function setItem(
   key: string,
   value: string,
-  options: RNSensitiveInfoOptions
+  options: RNSensitiveInfoOptions,
 ): Promise<null>;
 export declare function getItem(
   key: string,
-  options: RNSensitiveInfoOptions
+  options: RNSensitiveInfoOptions,
 ): Promise<string>;
 
 interface SensitiveInfoEntry {
@@ -58,12 +58,12 @@ interface SensitiveInfoEntry {
   service: string;
 }
 export declare function getAllItems(
-  options: RNSensitiveInfoOptions
+  options: RNSensitiveInfoOptions,
 ): Promise<[SensitiveInfoEntry[]]>;
 
 export declare function deleteItem(
   key: string,
-  options: RNSensitiveInfoOptions
+  options: RNSensitiveInfoOptions,
 ): Promise<null>;
 export declare function isSensorAvailable(): Promise<
   RNSensitiveInfoBiometryType | boolean

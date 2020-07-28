@@ -12,33 +12,41 @@ const Home: React.FC = () => {
 
   const handleSetItemUsingTouchIDOnPress = useCallback(async () => {
     try {
-      // const deviceHasSensor = await SInfo.isSensorAvailable();
+      const deviceHasSensor = await SInfo.isSensorAvailable();
 
-      // if (!deviceHasSensor) {
-      //   return Alert.alert('No sensor found');
-      // }
+      if (!deviceHasSensor) {
+        return Alert.alert(
+          'No sensor found or fingerprint/faceID is available',
+        );
+      }
 
       await SInfo.setItem('touchIdItem', new Date().toISOString(), {
         kSecAccessControl: 'kSecAccessControlBiometryAny',
         touchID: true,
+        showModal: true,
       });
 
       Alert.alert('data successfully stored');
     } catch (ex) {
-      console.log(ex.message);
+      Alert.alert('Error', ex.message);
     }
   }, []);
 
   const getTouchIDItem = useCallback(async () => {
     const deviceHasSensor = await SInfo.isSensorAvailable();
 
-    // if (!deviceHasSensor) {
-    //   return Alert.alert('No sensor found');
-    // }
+    if (!deviceHasSensor) {
+      return Alert.alert('No sensor found or fingerprint/faceID is available');
+    }
 
     try {
       const data = await SInfo.getItem('touchIdItem', {
         touchID: true,
+        showModal: true,
+        strings: {
+          description: 'Custom Title ',
+          header: 'Custom Description',
+        },
         kSecUseOperationPrompt:
           'We need your permission to retrieve encrypted data',
       });
