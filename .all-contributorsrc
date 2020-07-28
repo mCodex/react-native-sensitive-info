@@ -16,6 +16,16 @@
         "review",
         "ideas"
       ]
+    },
+    {
+      "login": "maggialejandro",
+      "name": "Alejandro",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/3394748?v=4",
+      "profile": "https://github.com/maggialejandro",
+      "contributions": [
+        "code",
+        "maintenance"
+      ]
     }
   ],
   "contributorsPerLine": 7,
