@@ -426,7 +426,8 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                                 @Override
                                 public void onAuthenticationFailed() {
-                                    pm.reject(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, strings.containsKey("notRecognized") ? strings.get("notRecognized").toString() : "Fingerprint not recognized, try again");
+                                    getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                            .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                 }
                             }
 
@@ -539,17 +540,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                                 @Override
                                 public void onAuthenticationFailed() {
-                                    pm.reject(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, strings.containsKey("notRecognized") ? strings.get("notRecognized").toString() : "Fingerprint not recognized, try again");
+                                    getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                            .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
                                 }
                             }
 
                             showDialog(strings, new BiometricPrompt.CryptoObject(cipher), new DecryptWithAesCallback());
                         } else {
                             mCancellationSignal = new CancellationSignal();
-                            ReactApplicationContext reactApplicationContext = getReactApplicationContext();
-                            BiometricManager biometricManager = BiometricManager.from(reactApplicationContext);
-
-
                             mFingerprintManager.authenticate(new FingerprintManager.CryptoObject(cipher), mCancellationSignal,
                                     0, new FingerprintManager.AuthenticationCallback() {
 
