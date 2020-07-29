@@ -10,7 +10,9 @@ const features = [
   {
     title: <>Security</>,
     imageUrl: 'img/undraw_security.svg',
-    description: <>A secure storage for tokens, app secrets and data in Read-Native apps</>,
+    description: (
+      <>A secure storage for tokens, app secrets and data in Read-Native apps</>
+    ),
   },
   {
     title: <>Fingerprint Support</>,
@@ -22,15 +24,11 @@ const features = [
   {
     title: <>Open-Source</>,
     imageUrl: 'img/undraw_community.svg',
-    description: (
-      <>
-       Developed by the community
-      </>
-    ),
+    description: <>Developed by the community</>,
   },
 ];
 
-function Feature({imageUrl, title, description}) {
+function Feature({ imageUrl, title, description }) {
   const imgUrl = useBaseUrl(imageUrl);
   return (
     <div className={classnames('col col--4', styles.feature)}>
@@ -47,11 +45,12 @@ function Feature({imageUrl, title, description}) {
 
 function Home() {
   const context = useDocusaurusContext();
-  const {siteConfig = {}} = context;
+  const { siteConfig = {} } = context;
   return (
     <Layout
       title={siteConfig.title}
-      description="Keep secrets safely in React-Native applications">
+      description="Keep secrets safely in React-Native applications"
+    >
       <header className={classnames('hero hero--primary', styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>
@@ -62,7 +61,8 @@ function Home() {
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
               )}
-              to={useBaseUrl('docs/')}>
+              to={useBaseUrl('docs/')}
+            >
               Get Started
             </Link>
           </div>

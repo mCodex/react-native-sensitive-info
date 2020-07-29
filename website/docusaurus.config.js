@@ -24,6 +24,12 @@ module.exports = {
           position: 'left',
         },
         {
+          to: 'docs/5.x',
+          activeBasePath: 'docs/5.x',
+          label: 'v5.x',
+          position: 'left',
+        },
+        {
           href: 'https://github.com/mcodex/react-native-sensitive-info',
           label: 'GitHub',
           position: 'right',
@@ -85,12 +91,12 @@ module.exports = {
       '@docusaurus/preset-classic',
       {
         docs: {
-          // It is recommended to set document id as docs home page (`docs/` path).
           homePageId: 'overview',
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
           editUrl:
             'https://github.com/mCodex/react-native-sensitive-info/tree/master/website',
+          showLastUpdateAuthor: true,
+          showLastUpdateTime: true,
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
