@@ -1,14 +1,11 @@
-<img alt="GoStack" src="./cover.png" />
-
-<center>
+<img alt="Cover" src="./cover.png" />
 
 [![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
+[![npm downloads](https://img.shields.io/npm/dm/react-native-sensitive-info)](https://img.shields.io/npm/dm/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![npm bundle size](https://img.shields.io/bundlephobia/min/react-native-sensitive-info)
-
-</center>
 
 # React Native Sensitive Info
 
