@@ -26,6 +26,19 @@ npm install --save git://github.com/mCodex/react-native-sensitive-info#keystore
 yarn add git://github.com/mCodex/react-native-sensitive-info#keystore
 ```
 
+### Next (v6.0.0)
+
+This version includes keystore usage by default. Also, includes many fixes and improvements which were outdated in keystore's branch due to lack of maintenance and only available in master's branch. You can read more [here](https://github.com/mCodex/react-native-sensitive-info/releases/tag/v6.0.0). 
+
+You can install by running:
+
+```bash
+npm install --save react-native-sensitive-info@next
+```
+
+```bash
+yarn add react-native-sensitive-info@next
+```
 
 ## Linking
 
