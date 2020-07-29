@@ -4,7 +4,7 @@ title: Fingerprint Protection
 sidebar_label: Fingerprint Protection
 ---
 
-You can easily protect stored data and unlocking it using fingerprint on Android, TouchID or FaceID on iOS. Before you proceed is important to check if user's device has any kind of sensors available.
+You can easily protect stored data and unlocking it using fingerprint on Android, TouchID or FaceID on iOS.
 
 ## Prerequisites
 
@@ -28,6 +28,8 @@ You need to add this permission into `Info.plist`:
 ```
 
 ## Saving
+
+Before you proceed is important to check if user's device has any kind of sensors available.
 
 ```javascript
 import SInfo from 'react-native-sensitive-info';

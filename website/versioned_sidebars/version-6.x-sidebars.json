@@ -88,6 +88,10 @@
         {
           "type": "doc",
           "id": "version-6.x/community_libraries"
+        },
+        {
+          "type": "doc",
+          "id": "version-6.x/contributing"
         }
       ]
     }

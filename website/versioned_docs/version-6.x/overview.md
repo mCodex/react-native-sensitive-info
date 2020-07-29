@@ -16,9 +16,9 @@ Below you can find the new incoming features from v6.x
 
 ### BREAKING CHANGES:
 
-* This version uses by default **keystore to encrypt/decrypt data** on Android. So, if you use the master branch in your project you may not be able to retrieve previous saved data. We still need more work to handle this. The discussion can be found [here](https://github.com/mCodex/react-native-sensitive-info/issues/196). On the other hand, if you already use keystore branch you can give it a try.
+* This version uses by default **keystore to encrypt/decrypt data** on Android. So, if you use the **master branch** or **v5.x** in your project you may not be able to retrieve previous saved data. We still need more work to handle this. The discussion can be found [here](https://github.com/mCodex/react-native-sensitive-info/issues/196). On the other hand, if you already use keystore branch you can give it a try.
 
-* In addiction to that the method `isHardwareDetected` was removed due to `isSensorAvailable`
+* The method `isHardwareDetected` was removed due to `isSensorAvailable`
 
 ### More changes
 
