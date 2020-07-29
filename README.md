@@ -14,11 +14,11 @@
 
 `react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods. 
 
-# Docs
+## Docs
 
-Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs) for installation and instruction usage.
+Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs) for installation and instructions usage.
 
-# Contributors ✨
+## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
@@ -38,6 +38,6 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
 
-# Contributing
+## Contributing
 
 Pull requests are always welcome :)
