@@ -12,23 +12,11 @@
 
 # React Native Sensitive Info
 
-`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
-
-# Install
-
-Install `react-native-sensitive-info` into your project using:
-
-```bash
-npm i -S react-native-sensitive-info
-```
-
-```bash
-yarn add react-native-sensitive-info
-```
+`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods. 
 
 # Docs
 
-Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs)
+Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs) for installation and instruction usage.
 
 # Contributors ✨
 
