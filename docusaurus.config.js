@@ -98,7 +98,7 @@ module.exports = {
           homePageId: "overview",
           sidebarPath: require.resolve("./sidebars.js"),
           editUrl:
-            "https://github.com/mCodex/react-native-sensitive-info/tree/website/website",
+            "https://github.com/mCodex/react-native-sensitive-info/tree/website/",
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
         },
