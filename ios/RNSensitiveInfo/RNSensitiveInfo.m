@@ -1,10 +1,9 @@
-/* Adapted From https://github.com/oblador/react-native-keychain */
+#import "RNSensitiveInfo.h"
 
 #import <Security/Security.h>
-#import "RNSensitiveInfo.h"
-#import "React/RCTConvert.h"
-#import "React/RCTBridge.h"
-#import "React/RCTUtils.h"
+#import <React/RCTBridgeModule.h>
+#import <React/RCTConvert.h>
+#import <React/RCTUtils.h>
 
 #if !TARGET_OS_TV
 #import <LocalAuthentication/LocalAuthentication.h>

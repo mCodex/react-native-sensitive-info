@@ -44,7 +44,7 @@ yarn add react-native-sensitive-info@next
 
 ### React-Native >= 0.60
 
-#### iOS / MacOS
+#### iOS
 
 Should be automatically linked when you run:
 
