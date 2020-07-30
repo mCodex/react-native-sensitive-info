@@ -4,7 +4,7 @@ title: getAllItems
 sidebar_label: getAllItems
 ---
 
-Get all items from storage
+Get all items from storage.
 
 ```javascript
 getAllItems(options) : Promise<[{
