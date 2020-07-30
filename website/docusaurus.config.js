@@ -10,13 +10,17 @@ module.exports = {
     googleAnalytics: {
       trackingID: 'UA-79205996-6',
     },
+    algolia: {
+      apiKey: 'db98b41e2171bc1f197a03a254c46b7b',
+      indexName: 'react-native-sensitive-info',
+    },
     navbar: {
       title: 'RNSInfo',
       logo: {
         alt: 'react-native-sensitive-info',
         src: 'img/logo.png',
       },
-      links: [
+      items: [
         {
           to: 'docs/',
           activeBasePath: 'docs',
