@@ -365,7 +365,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticationFailed() {
                                     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                            .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                            .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Authentication not recognized.");
                                 }
                             }
 
@@ -379,7 +379,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationFailed() {
                                             super.onAuthenticationFailed();
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                                    .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Fingerprint not recognized.");
                                         }
 
                                         @Override
@@ -392,7 +392,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
                                             super.onAuthenticationHelp(helpCode, helpString);
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                                    .emit(AppConstants.FINGERPRINT_AUTHENTICATION_HELP, helpString.toString());
                                         }
 
                                         @Override
@@ -444,7 +444,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 pm.reject(e);
             }
         } else {
-            pm.reject("Fingerprint not supported", "Fingerprint not supported");
+            pm.reject(AppConstants.E_BIOMETRIC_NOT_SUPPORTED, "Biometrics not supported");
         }
     }
 
@@ -491,7 +491,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticationFailed() {
                                     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                            .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                            .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Authentication not recognized.");
                                 }
                             }
 
@@ -505,7 +505,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationFailed() {
                                             super.onAuthenticationFailed();
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                                    .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Fingerprint not recognized.");
                                         }
 
                                         @Override
@@ -518,7 +518,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
                                             super.onAuthenticationHelp(helpCode, helpString);
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                                    .emit(AppConstants.FINGERPRINT_AUTHENTICATION_HELP, helpString.toString());
                                         }
 
                                         @Override
@@ -561,7 +561,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 pm.reject(e);
             }
         } else {
-            pm.reject("Fingerprint not supported", "Fingerprint not supported");
+            pm.reject(AppConstants.E_BIOMETRIC_NOT_SUPPORTED, "Biometrics not supported");
         }
     }
 }
