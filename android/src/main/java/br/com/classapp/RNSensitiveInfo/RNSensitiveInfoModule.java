@@ -38,6 +38,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -364,7 +365,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticationFailed() {
                                     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                            .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                            .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Authentication not recognized.");
                                 }
                             }
 
@@ -378,7 +379,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationFailed() {
                                             super.onAuthenticationFailed();
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                                    .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Fingerprint not recognized.");
                                         }
 
                                         @Override
@@ -391,7 +392,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
                                             super.onAuthenticationHelp(helpCode, helpString);
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                                    .emit(AppConstants.FINGERPRINT_AUTHENTICATION_HELP, helpString.toString());
                                         }
 
                                         @Override
@@ -425,13 +426,25 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     pm.reject(keyResetError);
                 }
                 pm.reject(e);
+            } catch (IllegalBlockSizeException e){
+                if(e.getCause() != null && e.getCause().getMessage().contains("Key user not authenticated")) {
+                    try {
+                        mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                        prepareKey();
+                        pm.reject(AppConstants.KM_ERROR_KEY_USER_NOT_AUTHENTICATED, e.getCause().getMessage());
+                    } catch (Exception keyResetError) {
+                        pm.reject(keyResetError);
+                    }
+                } else {
+                    pm.reject(e);
+                }
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
                 pm.reject(e);
             }
         } else {
-            pm.reject("Fingerprint not supported", "Fingerprint not supported");
+            pm.reject(AppConstants.E_BIOMETRIC_NOT_SUPPORTED, "Biometrics not supported");
         }
     }
 
@@ -478,7 +491,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                 @Override
                                 public void onAuthenticationFailed() {
                                     getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                            .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                            .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Authentication not recognized.");
                                 }
                             }
 
@@ -492,7 +505,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationFailed() {
                                             super.onAuthenticationFailed();
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", "Fingerprint not recognized.");
+                                                    .emit(AppConstants.E_AUTHENTICATION_NOT_RECOGNIZED, "Fingerprint not recognized.");
                                         }
 
                                         @Override
@@ -505,7 +518,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                                         public void onAuthenticationHelp(int helpCode, CharSequence helpString) {
                                             super.onAuthenticationHelp(helpCode, helpString);
                                             getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                                    .emit("FINGERPRINT_AUTHENTICATION_HELP", helpString.toString());
+                                                    .emit(AppConstants.FINGERPRINT_AUTHENTICATION_HELP, helpString.toString());
                                         }
 
                                         @Override
@@ -530,13 +543,25 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     pm.reject(keyResetError);
                 }
                 pm.reject(e);
+            } catch (IllegalBlockSizeException e){
+                if(e.getCause() != null && e.getCause().getMessage().contains("Key user not authenticated")) {
+                    try {
+                        mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                        prepareKey();
+                        pm.reject(AppConstants.KM_ERROR_KEY_USER_NOT_AUTHENTICATED, e.getCause().getMessage());
+                    } catch (Exception keyResetError) {
+                        pm.reject(keyResetError);
+                    }
+                } else {
+                    pm.reject(e);
+                }
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
                 pm.reject(e);
             }
         } else {
-            pm.reject("Fingerprint not supported", "Fingerprint not supported");
+            pm.reject(AppConstants.E_BIOMETRIC_NOT_SUPPORTED, "Biometrics not supported");
         }
     }
 }
