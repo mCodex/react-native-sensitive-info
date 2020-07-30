@@ -38,6 +38,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -425,6 +426,18 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     pm.reject(keyResetError);
                 }
                 pm.reject(e);
+            } catch (IllegalBlockSizeException e){
+                if(e.getCause() != null && e.getCause().getMessage().contains("Key user not authenticated")) {
+                    try {
+                        mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                        prepareKey();
+                        pm.reject(AppConstants.KM_ERROR_KEY_USER_NOT_AUTHENTICATED, e.getCause().getMessage());
+                    } catch (Exception keyResetError) {
+                        pm.reject(keyResetError);
+                    }
+                } else {
+                    pm.reject(e);
+                }
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
@@ -530,6 +543,18 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     pm.reject(keyResetError);
                 }
                 pm.reject(e);
+            } catch (IllegalBlockSizeException e){
+                if(e.getCause() != null && e.getCause().getMessage().contains("Key user not authenticated")) {
+                    try {
+                        mKeyStore.deleteEntry(KEY_ALIAS_AES);
+                        prepareKey();
+                        pm.reject(AppConstants.KM_ERROR_KEY_USER_NOT_AUTHENTICATED, e.getCause().getMessage());
+                    } catch (Exception keyResetError) {
+                        pm.reject(keyResetError);
+                    }
+                } else {
+                    pm.reject(e);
+                }
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
