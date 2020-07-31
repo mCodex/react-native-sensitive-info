@@ -1,4 +1,4 @@
-package br.com.classapp.RNSensitiveInfo;
+package dev.mcodex.RNSensitiveInfo;
 
 import android.app.Activity;
 import android.content.Context;
@@ -55,7 +55,7 @@ import javax.crypto.spec.IvParameterSpec;
 import androidx.fragment.app.FragmentActivity;
 import javax.security.auth.x500.X500Principal;
 
-import br.com.classapp.RNSensitiveInfo.utils.AppConstants;
+import dev.mcodex.RNSensitiveInfo.utils.AppConstants;
 
 public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
