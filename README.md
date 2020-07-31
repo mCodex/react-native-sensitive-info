@@ -1,36 +1,21 @@
-<img alt="GoStack" src="./cover.png" />
-
-<center>
+<img alt="Cover" src="./cover.png" />
 
 [![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 [![npm version](https://badge.fury.io/js/react-native-sensitive-info.svg)](https://badge.fury.io/js/react-native-sensitive-info)
+[![npm downloads](https://img.shields.io/npm/dm/react-native-sensitive-info)](https://img.shields.io/npm/dm/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![npm bundle size](https://img.shields.io/bundlephobia/min/react-native-sensitive-info)
 
-</center>
-
 # React Native Sensitive Info
 
-`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods.
+`react-native-sensitive-info` manages all data stored in Android Shared Preferences, iOS Keychain and Windows Credentials. You can set and get all key/value using simple methods. 
 
-# Install
+## Docs
 
-Install `react-native-sensitive-info` into your project using:
+Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs) for installation and instructions usage.
 
-```bash
-npm i -S react-native-sensitive-info
-```
-
-```bash
-yarn add react-native-sensitive-info
-```
-
-# Docs
-
-Check out the [docs](https://mcodex.github.io/react-native-sensitive-info/docs)
-
-# Contributors ✨
+## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
@@ -50,6 +35,6 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
 
-# Contributing
+## Contributing
 
 Pull requests are always welcome :)

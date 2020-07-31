@@ -1,4 +1,4 @@
-package br.com.classapp.RNSensitiveInfo.utils;
+package dev.mcodex.RNSensitiveInfo.utils;
 
 public interface AppConstants {
 

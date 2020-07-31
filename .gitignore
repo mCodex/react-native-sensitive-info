@@ -41,3 +41,5 @@ android/build/
 android/local.properties
 android.yml
 *.iml
+
+.DS_STORE

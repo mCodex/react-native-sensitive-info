@@ -1,10 +1,15 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "5.5.8",
-  "main": "RNSensitiveInfo.js",
+  "version": "6.0.0-alpha.4",
+  "main": "build/index.js",
+  "module": "build/index.es.js",
+  "jsnext:main": "build/index.es.js",
+  "types": "index.d.ts",
   "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
   "scripts": {
-    "start": "node node_modules/react-native/local-cli/cli.js start"
+    "build": "rimraf -rf build && rollup -c",
+    "prepublishOnly": "yarn build",
+    "localPublish": "yalc publish && cd example && yalc add react-native-sensitive-info --yarn && cd .."
   },
   "author": {
     "name": "mCodex & ClassApp",
@@ -22,7 +27,6 @@
     "type": "git",
     "url": "git://github.com/mcodex/react-native-sensitive-info.git"
   },
-  "types": "index.d.ts",
   "keywords": [
     "android",
     "ios",
@@ -31,10 +35,30 @@
     "react-native"
   ],
   "license": "MIT",
+  "peerDependencies": {
+    "react-native": "*"
+  },
   "devDependencies": {
-    "@react-native-community/eslint-config": "^0.0.7",
-    "eslint": "^6.8.0",
-    "eslint-plugin-prettier": "^3.1.2",
-    "prettier": "^1.19.1"
+    "@rollup/plugin-commonjs": "^14.0.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^8.4.0",
+    "@typescript-eslint/eslint-plugin": "^3.7.1",
+    "@typescript-eslint/parser": "^3.7.1",
+    "eslint": "^7.5.0",
+    "eslint-config-airbnb": "^18.2.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-import-resolver-typescript": "^2.0.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-react": "^7.20.4",
+    "eslint-plugin-react-hooks": "^4.0.8",
+    "prettier": "^2.0.5",
+    "react-native": "^0.63.2",
+    "rollup": "^2.23.0",
+    "rollup-plugin-peer-deps-external": "^2.2.3",
+    "rollup-plugin-typescript2": "^0.27.1",
+    "typescript": "^3.9.7",
+    "yalc": "^1.0.0-pre.40"
   }
 }

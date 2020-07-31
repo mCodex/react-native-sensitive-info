@@ -1,4 +1,4 @@
-package br.com.classapp.RNSensitiveInfo;
+package dev.mcodex.RNSensitiveInfo;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.JavaScriptModule;
