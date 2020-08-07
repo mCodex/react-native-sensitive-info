@@ -42,3 +42,6 @@ android.yml
 *.iml
 
 windows/.vs
+windows/packages
+windows/RNSensitiveInfo/bin
+windows/RNSensitiveInfo/obj

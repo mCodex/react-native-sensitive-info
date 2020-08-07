@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json.Linq;
+using Windows.Security.Credentials;
+
 using Microsoft.ReactNative.Managed;
 using Microsoft.ReactNative;
-using Windows.Security.Credentials;
 
 namespace RNSensitiveInfo
 {
@@ -33,7 +33,6 @@ namespace RNSensitiveInfo
                 else
                 {
                     throw new Exception("credential NOT FOUND");
-                    // How about reject exception here?
                 }
             }
             catch (Exception ex)
