@@ -13,7 +13,7 @@ namespace RNSensitiveInfo
     {
         
         [ReactMethod]
-        public void getItem(string key, JObject options, IReactPromise<string> promise)
+        public void getItem(string key, JSValue options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -43,7 +43,7 @@ namespace RNSensitiveInfo
         }
 
         [ReactMethod]
-        public void setItem(string key, string value, JObject options, IReactPromise<string> promise)
+        public void setItem(string key, string value, JSValue options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -65,7 +65,7 @@ namespace RNSensitiveInfo
         }
 
         [ReactMethod]
-        public void deleteItem(string key, JObject options, IReactPromise<string> promise)
+        public void deleteItem(string key, JSValue options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -88,7 +88,7 @@ namespace RNSensitiveInfo
             }
         }
 
-        public void getAllItems(JObject options, IReactPromise<Dictionary<string, string>> promise)
+        public void getAllItems(JSValue options, IReactPromise<Dictionary<string, string>> promise)
         {
             try
             {
@@ -136,14 +136,11 @@ namespace RNSensitiveInfo
 
         }
 
-        private string sharedPreferences(JObject options)
+        private string sharedPreferences(JSValue options)
         {
-            string name = options.Value<string>("sharedPreferencesName") ?? "keystore";
-            if (name == null)
-            {
-                name = "keystore";
-            }
-            return name;
+            var opt = options.AsObject();
+            var value = opt.GetValueOrDefault("sharedPreferencesNameee", "keystore");
+            return value.AsString();
         }
 
     }
