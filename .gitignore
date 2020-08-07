@@ -40,3 +40,5 @@ android/build/
 android/local.properties
 android.yml
 *.iml
+
+windows/.vs
