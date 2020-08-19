@@ -1,1 +1,8 @@
-example/
+*
+!android/**
+!ios/**
+!windows/**
+!./package.json
+!index.d.ts
+!react-native-sensitive-info.podspec
+!build/**

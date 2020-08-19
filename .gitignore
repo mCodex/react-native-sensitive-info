@@ -13,6 +13,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+build
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
@@ -45,3 +46,4 @@ windows/.vs
 windows/packages
 windows/RNSensitiveInfo/bin
 windows/RNSensitiveInfo/obj
+.DS_STORE
