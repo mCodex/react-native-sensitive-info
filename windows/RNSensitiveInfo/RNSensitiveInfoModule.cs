@@ -1,34 +1,23 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ReactNative.Bridge;
-using Newtonsoft.Json.Linq;
 using Windows.Security.Credentials;
+
+using Microsoft.ReactNative.Managed;
+using Microsoft.ReactNative;
 
 namespace RNSensitiveInfo
 {
-    public class RNSensitiveInfoModule : ReactContextNativeModuleBase
+    [ReactModule("RNSensitiveInfo")]
+    class RNSensitiveInfoModule
     {
-
-        public RNSensitiveInfoModule(ReactContext reactContext)
-            : base(reactContext)
-        {
-        }
-
-        public override string Name
-        {
-            get
-            {
-                return "RNSensitiveInfo";
-            }
-        }
-
+        
         [ReactMethod]
-        public async void getItem(string key, JObject options, IPromise promise)
+        public void getItem(string key, JSValue options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
-                promise.Reject(new ArgumentNullException("KEY IS REQUIRED"));
+                promise.Reject(new ReactError { Exception = new ArgumentNullException("KEY IS REQUIRED") });
                 return;
             }
 
@@ -48,16 +37,16 @@ namespace RNSensitiveInfo
             }
             catch (Exception ex)
             {
-                promise.Reject("ERROR GET : " + ex.Message);
+                promise.Reject(new ReactError { Message = "ERROR GET : " + ex.Message });
             }
         }
 
         [ReactMethod]
-        public async void setItem(string key, string value, JObject options, IPromise promise)
+        public void setItem(string key, string value, JSValue options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
-                promise.Reject(new ArgumentNullException("KEY IS REQUIRED"));
+                promise.Reject(new ReactError { Exception = new ArgumentNullException("KEY IS REQUIRED") });
                 return;
             }
 
@@ -70,16 +59,16 @@ namespace RNSensitiveInfo
             }
             catch (Exception ex)
             {
-                promise.Reject("ERROR SET : " + ex.Message);
+                promise.Reject(new ReactError { Message = "ERROR SET : " + ex.Message });
             }
         }
 
         [ReactMethod]
-        public async void deleteItem(string key, JObject options, IPromise promise)
+        public void deleteItem(string key, JSValue options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
-                promise.Reject(new ArgumentNullException("KEY IS REQUIRED"));
+                promise.Reject(new ReactError { Exception = new ArgumentNullException("KEY IS REQUIRED") });
                 return;
             }
 
@@ -94,17 +83,17 @@ namespace RNSensitiveInfo
             }
             catch (Exception ex)
             {
-                promise.Reject("ERROR DELETE : " + ex.Message);
+                promise.Reject(new ReactError { Message = "ERROR DELETE : " + ex.Message });
             }
         }
 
         [ReactMethod]
-        public async void getAllItems(JObject options, IPromise promise)
+        public void getAllItems(JSValue options, IReactPromise<JSValue> promise)
         {
             try
             {
                 string name = sharedPreferences(options);
-                Dictionary<string, string> result = new Dictionary<string, string>();
+                JSValueObject ret = new JSValueObject();
 
                 var vault = new PasswordVault();
                 var credentialList = vault.FindAllByResource(name);
@@ -113,15 +102,15 @@ namespace RNSensitiveInfo
                     credentialList.ToList().ForEach(item =>
                     {
                         var credential = prefs(name, item.UserName);
-                        result[item.UserName] = credential.Password;
+                        ret[item.UserName] = credential.Password;
                     });
-                    
+
                 }
-                promise.Resolve(result);
+                promise.Resolve(ret);
             }
             catch (Exception ex)
             {
-                promise.Reject("ERROR GET ALL : " + ex.Message);
+                promise.Reject(new ReactError { Message = "ERROR GET ALL : " + ex.Message });
             }
         }
 
@@ -144,18 +133,14 @@ namespace RNSensitiveInfo
             {
                 throw new Exception("ERROR SAVE PasswordVault " + e.Message);
             }
-            
+
         }
 
-
-        private string sharedPreferences(JObject options)
+        private string sharedPreferences(JSValue options)
         {
-            string name = options.Value<string>("sharedPreferencesName") ?? "keystore";
-            if (name == null)
-            {
-                name = "keystore";
-            }
-            return name;
+            var opt = options.AsObject();
+            var value = opt.GetValueOrDefault("sharedPreferencesNameee", "keystore");
+            return value.AsString();
         }
 
     }
