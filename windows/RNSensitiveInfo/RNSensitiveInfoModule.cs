@@ -87,12 +87,13 @@ namespace RNSensitiveInfo
             }
         }
 
-        public void getAllItems(JSValue options, IReactPromise<Dictionary<string, string>> promise)
+        [ReactMethod]
+        public void getAllItems(JSValue options, IReactPromise<JSValue> promise)
         {
             try
             {
                 string name = sharedPreferences(options);
-                Dictionary<string, string> ret = new Dictionary<string, string>();
+                JSValueObject ret = new JSValueObject();
 
                 var vault = new PasswordVault();
                 var credentialList = vault.FindAllByResource(name);
