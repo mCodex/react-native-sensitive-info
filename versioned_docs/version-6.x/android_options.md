@@ -21,6 +21,8 @@ SInfo.setItem('key1', 'value1', {
 });
 ```
 
+**Note**: Check out the full recipe to protect your data using fingerprint [here](/docs/protectingWithFingerprint)
+
 ## showModal & strings
 
 When `showModal` is `true`, an Android native prompt will show up asking for user's authentication.

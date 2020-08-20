@@ -19,6 +19,8 @@ SInfo.setItem('key1', 'value1', {
 });
 ```
 
+**Note**: Check out the full recipe to protect your data using fingerprint [here](/docs/protectingWithFingerprint)
+
 ## kSecAccessControl
 
 When passing in the [touchID](#touchID) option as `true`, you can also set `kSecAccessControl`. For example:

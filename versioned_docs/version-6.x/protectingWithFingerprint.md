@@ -50,6 +50,7 @@ const savingFirstData = await SInfo.setItem('key1', 'value1', {
     sharedPreferencesName: 'mySharedPrefs',
     keychainService: 'myKeychain',
     touchId: true, //add this key
+    showModal: true, //add this key
     kSecAccessControl: 'kSecAccessControlBiometryAny' // optional - Add support for FaceID
 });
 ```
@@ -64,6 +65,8 @@ To get protected data from user's device you just do:
 import SInfo from 'react-native-sensitive-info';
 
 const protectedData = await SInfo.getItem('key1', {
+    sharedPreferencesName: 'mySharedPrefs',
+    keychainService: 'myKeychain',
     touchID: true,
     showModal: true, //required (Android) - Will prompt user's fingerprint on Android
     strings: { // optional (Android) - You can personalize your prompt
