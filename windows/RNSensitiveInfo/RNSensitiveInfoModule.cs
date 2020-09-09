@@ -138,9 +138,16 @@ namespace RNSensitiveInfo
 
         private string sharedPreferences(JSValue options)
         {
+            JSValue val;
             var opt = options.AsObject();
-            var value = opt.GetValueOrDefault("sharedPreferencesNameee", "keystore");
-            return value.AsString();
+            if (opt.TryGetValue("sharedPreferencesName", out val))
+            {
+                return val.AsString();
+            }
+            else
+            {
+                return "shared_preferences";
+            }
         }
 
     }
