@@ -346,7 +346,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     KeyInfo info = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
 
                     if (info.isUserAuthenticationRequired() &&
-                            info.getUserAuthenticationValidityDurationSeconds() == -1) {
+                            info.getUserAuthenticationValidityDurationSeconds() <= 0) {
 
                         if (showModal) {
                             class PutExtraWithAESCallback extends BiometricPrompt.AuthenticationCallback {
@@ -472,7 +472,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     KeyInfo info = (KeyInfo) factory.getKeySpec(secretKey, KeyInfo.class);
 
                     if (info.isUserAuthenticationRequired() &&
-                            info.getUserAuthenticationValidityDurationSeconds() == -1) {
+                            info.getUserAuthenticationValidityDurationSeconds() <= 0) {
 
                         if (showModal) {
                             class DecryptWithAesCallback extends BiometricPrompt.AuthenticationCallback {
