@@ -32,7 +32,8 @@
     "ios",
     "keychain",
     "shared-preferences",
-    "react-native"
+    "react-native",
+    "windows"
   ],
   "license": "MIT",
   "peerDependencies": {

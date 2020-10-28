@@ -4,22 +4,29 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "appium": "appium",
     "ios": "react-native run-ios",
+    "windows": "react-native run-windows",
     "start": "react-native start",
     "test": "jest",
+    "test:windows": "yarn jest --setupFiles=./jest-setups/jest.setup.windows.js",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
     "@react-native-community/masked-view": "^0.1.10",
     "@react-navigation/native": "^5.7.2",
     "@react-navigation/stack": "^5.8.0",
+    "appium": "^1.18.3",
     "react": "16.13.1",
     "react-native": "0.63.2",
     "react-native-gesture-handler": "^1.7.0",
     "react-native-reanimated": "^1.10.1",
     "react-native-safe-area-context": "^3.1.1",
     "react-native-screens": "^2.9.0",
-    "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info"
+    "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info",
+    "react-native-windows": "^0.63.0-0",
+    "selenium-appium": "^0.0.15",
+    "selenium-webdriver": "^4.0.0-alpha.7"
   },
   "devDependencies": {
     "@babel/core": "^7.10.5",

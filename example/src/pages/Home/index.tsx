@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { View, Button, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Button, Alert, Text } from 'react-native';
 import SInfo from 'react-native-sensitive-info';
 
 const Home: React.FC = () => {
@@ -72,6 +72,27 @@ const Home: React.FC = () => {
     }
   }, []);
 
+  const [logText, setLogText] = useState('')
+  async function runTest(){
+    const options =  {
+      sharedPreferencesName: 'exampleAppTest',
+      keychainService: 'exampleAppTest',
+    };
+    let dbgText = '';
+    dbgText += `setItem(key1, value1): ${await SInfo.setItem('key1', 'value1', options)}\n`;
+    dbgText += `setItem(key2, value2): ${await SInfo.setItem('key2', 'value2', options)}\n`;
+    dbgText += `setItem(key3, value3): ${await SInfo.setItem('key3', 'value3', options)}\n`;
+    dbgText += `getItem(key2): ${await SInfo.getItem('key2', options)}\n`;
+    dbgText += `delItem(key2): ${await SInfo.deleteItem('key2', options)}\n`;
+    dbgText += `getAllItems():\n`
+    const allItems = await SInfo.getAllItems(options);
+    for (const key in allItems) {
+      dbgText += ` - ${key} : ${allItems[key]}\n`;
+    }
+    setLogText(dbgText);
+  };
+  runTest();
+
   return (
     <View>
       <Button
@@ -88,6 +109,8 @@ const Home: React.FC = () => {
       />
 
       <Button title="Get TouchID Data" onPress={getTouchIDItem} />
+
+      <Text>{logText}</Text>
     </View>
   );
 };
