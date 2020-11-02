@@ -66,6 +66,10 @@
         {
           "type": "doc",
           "id": "version-6.x/ios_options"
+        },
+        {
+          "type": "doc",
+          "id": "version-6.x/windows_options"
         }
       ]
     },

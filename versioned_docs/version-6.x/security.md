@@ -10,4 +10,6 @@ Jailbroken/Rooted devices can access your iOS' Keychain and Android's shared pre
 
 - **Android** it is implemented through [FingerprintManager](https://developer.android.com/reference/android/hardware/fingerprint/FingerprintManager.html) + Keystore . Keystore has a function called `setUserAuthenticationRequired` which makes Keystore requires user authentication before getting value.
 
+- **Windows:** it is implemented using [PasswordVault](https://docs.microsoft.com/en-us/uwp/api/windows.security.credentials.passwordvault?view=winrt-19041). Only the App itself can access the data stored in its Password Vault.
+
 Check out this [recipe](protectingWithFingerprint) to enable fingerprint/FaceID protection.

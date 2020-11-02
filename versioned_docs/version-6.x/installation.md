@@ -40,6 +40,14 @@ Should be automatically linked when you run:
 yarn android
 ```
 
+#### Windows with react-native-windows >= 0.63
+
+The C++ module should be automatically linked when you run:
+
+```
+yarn windows
+```
+
 ### React-Native < 0.60
 
 #### iOS
@@ -97,7 +105,23 @@ protected List<ReactPackage> getPackages() {
     );
 }
 ```
-##### Windows
+
+#### Windows using C++ on RNW >= 0.62
+
+* `npm install react-native-sensitive-info --save`
+* Open your solution in Visual Studio 2019 (eg. `windows\yourapp.sln`)
+* Right-click Solution icon in Solution Explorer > Add > Existing Project...
+* Add `node_modules\react-native-sensitive-info\windows\RNSensitiveInfoCPP\RNSensitiveInfoCPP.vcxproj`
+* Right-click main application project > Add > Reference...
+* Select `RNSensitiveInfoCPP` in Solution Projects
+* In app `pch.h` add `#include "winrt/RNSensitiveInfoCPP.h"`
+* In `App.cpp` add `PackageProviders().Append(winrt::RNSensitiveInfoCPP::ReactPackageProvider());` before `InitializeComponent();`
+
+#### Windows using C++ on RNW 0.61
+
+Do the same steps as for 0.62, but use `node_modules\RNSensitiveInfoCPP\windows\RNSensitiveInfoCPP61\RNSensitiveInfoCPP.vcxproj` in the 4th step.
+
+##### Windows C# Module
 
 * Open the solution in Visual Studio for your Windows apps.
 
