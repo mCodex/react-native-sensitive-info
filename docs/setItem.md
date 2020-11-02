@@ -10,7 +10,7 @@ Insert new data into the storage.
 setItem(key, value, options) : Promise<null>
 ```
 
-Check out the options that you can use for [Android](android_options) and [iOS](ios_options)
+Check out the options that you can use for [Android](android_options), [iOS](ios_options) and [Windows](windows_options).
 
 Example:
 

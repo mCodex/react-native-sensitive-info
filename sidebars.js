@@ -9,7 +9,7 @@ module.exports = {
       'isSensorAvailable',
       'setItem',
     ],
-    Options: ['android_options', 'ios_options'],
+    Options: ['android_options', 'ios_options', 'windows_options'],
     Recipes: ['protectingWithFingerprint'],
     More: ['community_libraries'],
   },
