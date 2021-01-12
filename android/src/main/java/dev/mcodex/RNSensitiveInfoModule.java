@@ -618,6 +618,9 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 } else {
                     pm.reject(e);
                 }
+             } catch (BadPaddingException e){
+                Log.d("RNSensitiveInfo", "Biometric key invalid");
+                pm.reject(AppConstants.E_BIOMETRICS_INVALIDATED, e.getCause().getMessage());
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
