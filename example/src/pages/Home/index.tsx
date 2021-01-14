@@ -45,6 +45,27 @@ const Home: React.FC = () => {
     }
   }, []);
 
+  const hasTouchIDItem = useCallback(async () => {
+
+    try {
+      const hasItem = await SInfo.hasItem(
+        'touchIdItem',
+        {
+          sharedPreferencesName: 'exampleApp',
+          keychainService: 'exampleApp',
+          kSecAccessControl: 'kSecAccessControlBiometryAny', // Enabling FaceID
+          touchID: true,
+          showModal: true,
+        },
+      );
+
+      Alert.alert(hasItem ? "Item is present" : "item is not present");
+    } catch (ex) {
+      Alert.alert('Error', ex.message);
+    }
+  }, []);
+
+
   const getTouchIDItem = useCallback(async () => {
     const deviceHasSensor = await SInfo.isSensorAvailable();
 
@@ -109,6 +130,7 @@ const Home: React.FC = () => {
       />
 
       <Button title="Get TouchID Data" onPress={getTouchIDItem} />
+      <Button title="Has TouchID Data" onPress={hasTouchIDItem} />
 
       <Text>{logText}</Text>
     </View>

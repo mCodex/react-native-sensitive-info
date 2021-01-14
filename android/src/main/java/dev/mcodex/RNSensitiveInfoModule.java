@@ -198,6 +198,15 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void hasItem(String key, ReadableMap options, Promise pm) {
+        String name = sharedPreferences(options);
+
+        String value = prefs(name).getString(key, null);
+
+        pm.resolve(value != null ? true : false);
+    }
+
+    @ReactMethod
     public void setItem(String key, String value, ReadableMap options, Promise pm) {
 
         String name = sharedPreferences(options);
