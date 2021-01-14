@@ -33,11 +33,13 @@ android {
     }
 }
 
-repositories {
-    jcenter()
-    google() //in newer versions of Android Studio
+allprojects {
+    repositories {
+        maven { url "$rootDir/../node_modules/react-native/android" } // All of React Native (JS, Android binaries) is installed from npm
+        jcenter()
+        google()
+    }
 }
-
 dependencies {
     implementation 'androidx.biometric:biometric:1.0.1'
     implementation 'com.facebook.react:react-native:+'
