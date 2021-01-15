@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Button, Alert, Text } from 'react-native';
+import { View, Button, Alert, Text, SafeAreaView } from 'react-native';
 import SInfo from 'react-native-sensitive-info';
 
 const Home: React.FC = () => {
@@ -115,7 +115,7 @@ const Home: React.FC = () => {
   runTest();
 
   return (
-    <View>
+    <SafeAreaView style={{ margin: 10 }}>
       <Button
         title="Add item using setItem"
         onPress={handleAddUsingSetItemOnPress}
@@ -133,7 +133,7 @@ const Home: React.FC = () => {
       <Button title="Has TouchID Data" onPress={hasTouchIDItem} />
 
       <Text>{logText}</Text>
-    </View>
+    </SafeAreaView>
   );
 };
 export default Home;
