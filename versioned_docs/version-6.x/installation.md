@@ -96,7 +96,7 @@ compile project(':react-native-sensitive-info')
 In your `MainApplication.java` add:
 
 ```java
-import br.com.classapp.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
+import dev.mcodex.RNSensitiveInfo.RNSensitiveInfoPackage; //<- You must import this
 
 protected List<ReactPackage> getPackages() {
     return Arrays.<ReactPackage>asList(
