@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Button, Alert, Text } from 'react-native';
+import { View, Button, Alert, Text, SafeAreaView } from 'react-native';
 import SInfo from 'react-native-sensitive-info';
 
 const Home: React.FC = () => {
@@ -44,6 +44,27 @@ const Home: React.FC = () => {
       Alert.alert('Error', ex.message);
     }
   }, []);
+
+  const hasTouchIDItem = useCallback(async () => {
+
+    try {
+      const hasItem = await SInfo.hasItem(
+        'touchIdItem',
+        {
+          sharedPreferencesName: 'exampleApp',
+          keychainService: 'exampleApp',
+          kSecAccessControl: 'kSecAccessControlBiometryAny', // Enabling FaceID
+          touchID: true,
+          showModal: true,
+        },
+      );
+
+      Alert.alert(hasItem ? "Item is present" : "item is not present");
+    } catch (ex) {
+      Alert.alert('Error', ex.message);
+    }
+  }, []);
+
 
   const getTouchIDItem = useCallback(async () => {
     const deviceHasSensor = await SInfo.isSensorAvailable();
@@ -94,7 +115,7 @@ const Home: React.FC = () => {
   runTest();
 
   return (
-    <View>
+    <SafeAreaView style={{ margin: 10 }}>
       <Button
         title="Add item using setItem"
         onPress={handleAddUsingSetItemOnPress}
@@ -109,9 +130,10 @@ const Home: React.FC = () => {
       />
 
       <Button title="Get TouchID Data" onPress={getTouchIDItem} />
+      <Button title="Has TouchID Data" onPress={hasTouchIDItem} />
 
       <Text>{logText}</Text>
-    </View>
+    </SafeAreaView>
   );
 };
 export default Home;

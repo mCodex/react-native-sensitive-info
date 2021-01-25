@@ -51,6 +51,10 @@ export declare function getItem(
   key: string,
   options: RNSensitiveInfoOptions,
 ): Promise<string>;
+export declare function hasItem(
+  key: string,
+  options: RNSensitiveInfoOptions,
+): Promise<boolean>;
 
 interface SensitiveInfoEntry {
   key: string;

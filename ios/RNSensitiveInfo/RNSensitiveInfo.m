@@ -226,6 +226,51 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
     });
 }
 
+RCT_EXPORT_METHOD(hasItem:(NSString *)key options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
+    NSString * keychainService = [RCTConvert NSString:options[@"keychainService"]];
+    if (keychainService == NULL) {
+        keychainService = @"app";
+    }
+    
+    // Create dictionary of search parameters
+    NSMutableDictionary* query = [NSMutableDictionary dictionaryWithObjectsAndKeys:(__bridge id)(kSecClassGenericPassword), kSecClass,
+                                  keychainService, kSecAttrService,
+                                  key, kSecAttrAccount,
+                                  kSecAttrSynchronizableAny, kSecAttrSynchronizable,
+                                  kCFBooleanTrue, kSecReturnAttributes,
+                                  kCFBooleanTrue, kSecReturnData,
+                                  nil];
+
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (UIApplication.sharedApplication.protectedDataAvailable) {
+            // Look up server in the keychain
+            NSDictionary* found = nil;
+            CFTypeRef foundTypeRef = NULL;
+            OSStatus osStatus = SecItemCopyMatching((__bridge CFDictionaryRef) query, (CFTypeRef*)&foundTypeRef);
+            
+            if (osStatus != noErr && osStatus != errSecItemNotFound) {
+                NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:osStatus userInfo:nil];
+                reject([NSString stringWithFormat:@"%ld",(long)error.code], [self messageForError:error], nil);
+                return;
+            }
+            
+            found = (__bridge NSDictionary*)(foundTypeRef);
+            if (!found) {
+                resolve(@(FALSE));
+            } else {
+                // Found
+                resolve(@(TRUE));
+            }
+        } else {
+            // TODO: could change to instead of erroring out, listen for protectedDataDidBecomeAvailable and call getItemWIthQuery when it does
+            // Experiment for now by returning an error and let the js side retry
+            reject(@"protected_data_unavailable", @"Protected data not available yet. Retry operation", nil);
+        }
+    });
+}
+
+
 - (void)getItemWithQuery:(NSDictionary *)query resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
     // Look up server in the keychain
     NSDictionary* found = nil;
@@ -245,7 +290,6 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
         // Found
         NSString* value = [[NSString alloc] initWithData:[found objectForKey:(__bridge id)(kSecValueData)] encoding:NSUTF8StringEncoding];
         resolve(value);
-        
     }
 }
 
