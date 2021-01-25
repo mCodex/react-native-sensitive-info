@@ -6,44 +6,44 @@ import android.content.SharedPreferences;
 import android.hardware.fingerprint.FingerprintManager;
 import android.os.Build;
 import android.os.CancellationSignal;
+import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyInfo;
-
-import java.security.InvalidKeyException;
-
-import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.biometric.BiometricConstants;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
+import androidx.fragment.app.FragmentActivity;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
-import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
-import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Calendar;
 import java.security.UnrecoverableKeyException;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
@@ -51,8 +51,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
-
-import androidx.fragment.app.FragmentActivity;
 import javax.security.auth.x500.X500Principal;
 
 import dev.mcodex.RNSensitiveInfo.utils.AppConstants;
@@ -618,6 +616,9 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                 } else {
                     pm.reject(e);
                 }
+             } catch (BadPaddingException e){
+                Log.d("RNSensitiveInfo", "Biometric key invalid");
+                pm.reject(AppConstants.E_BIOMETRICS_INVALIDATED, e.getCause().getMessage());
             } catch (SecurityException e) {
                 pm.reject(e);
             } catch (Exception e) {
