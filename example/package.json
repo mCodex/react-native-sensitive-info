@@ -24,7 +24,7 @@
     "react-native-safe-area-context": "^3.1.1",
     "react-native-screens": "^2.9.0",
     "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info",
-    "react-native-windows": "^0.63.0-0",
+    "react-native-windows": "^0.64.1",
     "selenium-appium": "^0.0.15",
     "selenium-webdriver": "^4.0.0-alpha.7"
   },
