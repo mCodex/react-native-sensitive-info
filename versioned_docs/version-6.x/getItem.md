@@ -16,7 +16,7 @@ Example:
 import RNSInfo from 'react-native-sensitive-info';
 
 const myFunc = async () => {
-    return SInfo.getItem('key1', {
+    return RNSInfo.getItem('key1', {
         sharedPreferencesName: 'mySharedPrefs',
         keychainService: 'myKeychain'
     });
