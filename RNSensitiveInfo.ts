@@ -2,24 +2,16 @@ import { NativeModules } from 'react-native';
 
 const { RNSensitiveInfo } = NativeModules;
 
-export default {
-  ...RNSensitiveInfo,
-  // setInvalidatedByBiometricEnrollment(
-  //   invalidatedByBiometricEnrollment
-  // ): Function {
-  //   if (RNSensitiveInfo.setInvalidatedByBiometricEnrollment == null) {
-  //     return;
-  //   }
+export const {
+  setItem,
+  getItem,
+  hasItem,
+  getAllItems,
+  deleteItem,
+  isSensorAvailable,
+  hasEnrolledFingerprints,
+  cancelFingerprintAuth,
+  setInvalidatedByBiometricEnrollment,
+} = RNSensitiveInfo;
 
-  //   return RNSensitiveInfo.setInvalidatedByBiometricEnrollment(
-  //     invalidatedByBiometricEnrollment
-  //   );
-  // },
-  // cancelFingerprintAuth() {
-  //   if (RNSensitiveInfo.cancelFingerprintAuth == null) {
-  //     return;
-  //   }
-
-  //   return RNSensitiveInfo.cancelFingerprintAuth();
-  // },
-};
+export default RNSensitiveInfo;
