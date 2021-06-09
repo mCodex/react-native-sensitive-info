@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Button, Alert, Text, SafeAreaView } from 'react-native';
+import { Alert, Button, SafeAreaView, Text } from 'react-native';
 import SInfo from 'react-native-sensitive-info';
 
 const Home: React.FC = () => {
@@ -7,16 +7,21 @@ const Home: React.FC = () => {
     SInfo.setItem('key1', 'value1', {
       sharedPreferencesName: 'exampleApp',
       keychainService: 'exampleApp',
+    }).catch((err) => {
+      Alert.alert('Error', err);
     });
   }, []);
 
   const handleReadingDataWithoutFingerprint = useCallback(async () => {
-    const data = await SInfo.getItem('key1', {
-      sharedPreferencesName: 'exampleApp',
-      keychainService: 'exampleApp',
-    });
-
-    Alert.alert('Data stored:', data);
+    try {
+      const data = await SInfo.getItem('key1', {
+        sharedPreferencesName: 'exampleApp',
+        keychainService: 'exampleApp',
+      });
+      Alert.alert('Data stored:', data);
+    } catch (err) {
+      Alert.alert('Error', String(err));
+    }
   }, []);
 
   const handleSetItemUsingTouchIDOnPress = useCallback(async () => {
@@ -46,25 +51,20 @@ const Home: React.FC = () => {
   }, []);
 
   const hasTouchIDItem = useCallback(async () => {
-
     try {
-      const hasItem = await SInfo.hasItem(
-        'touchIdItem',
-        {
-          sharedPreferencesName: 'exampleApp',
-          keychainService: 'exampleApp',
-          kSecAccessControl: 'kSecAccessControlBiometryAny', // Enabling FaceID
-          touchID: true,
-          showModal: true,
-        },
-      );
+      const hasItem = await SInfo.hasItem('touchIdItem', {
+        sharedPreferencesName: 'exampleApp',
+        keychainService: 'exampleApp',
+        kSecAccessControl: 'kSecAccessControlBiometryAny', // Enabling FaceID
+        touchID: true,
+        showModal: true,
+      });
 
-      Alert.alert(hasItem ? "Item is present" : "item is not present");
+      Alert.alert(hasItem ? 'Item is present' : 'item is not present');
     } catch (ex) {
       Alert.alert('Error', ex.message);
     }
   }, []);
-
 
   const getTouchIDItem = useCallback(async () => {
     const deviceHasSensor = await SInfo.isSensorAvailable();
@@ -93,25 +93,37 @@ const Home: React.FC = () => {
     }
   }, []);
 
-  const [logText, setLogText] = useState('')
-  async function runTest(){
-    const options =  {
+  const [logText, setLogText] = useState('');
+  async function runTest() {
+    const options = {
       sharedPreferencesName: 'exampleAppTest',
       keychainService: 'exampleAppTest',
     };
     let dbgText = '';
-    dbgText += `setItem(key1, value1): ${await SInfo.setItem('key1', 'value1', options)}\n`;
-    dbgText += `setItem(key2, value2): ${await SInfo.setItem('key2', 'value2', options)}\n`;
-    dbgText += `setItem(key3, value3): ${await SInfo.setItem('key3', 'value3', options)}\n`;
+    dbgText += `setItem(key1, value1): ${await SInfo.setItem(
+      'key1',
+      'value1',
+      options,
+    )}\n`;
+    dbgText += `setItem(key2, value2): ${await SInfo.setItem(
+      'key2',
+      'value2',
+      options,
+    )}\n`;
+    dbgText += `setItem(key3, value3): ${await SInfo.setItem(
+      'key3',
+      'value3',
+      options,
+    )}\n`;
     dbgText += `getItem(key2): ${await SInfo.getItem('key2', options)}\n`;
     dbgText += `delItem(key2): ${await SInfo.deleteItem('key2', options)}\n`;
-    dbgText += `getAllItems():\n`
+    dbgText += `getAllItems():\n`;
     const allItems = await SInfo.getAllItems(options);
     for (const key in allItems) {
       dbgText += ` - ${key} : ${allItems[key]}\n`;
     }
     setLogText(dbgText);
-  };
+  }
   runTest();
 
   return (
