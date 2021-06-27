@@ -7,7 +7,7 @@ def DEFAULT_MIN_SDK_VERSION                 = 23
 
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
         google() //in newer versions of Android Studio
     }
     dependencies {
@@ -36,7 +36,7 @@ android {
 allprojects {
     repositories {
         maven { url "$rootDir/../node_modules/react-native/android" } // All of React Native (JS, Android binaries) is installed from npm
-        jcenter()
+        mavenCentral()
         google()
     }
 }
