@@ -213,17 +213,12 @@ RCT_EXPORT_METHOD(getItem:(NSString *)key options:(NSDictionary *)options resolv
                               [self getItemWithQuery:query resolver:resolve rejecter:reject];
                           }];
         return;
+    } else if([RCTConvert NSString:options[@"kSecAttrAccessible"]] != NULL){
+        CFStringRef kSecAttrAccessibleValue = convertkSecAttrAccessible([RCTConvert NSString:options[@"kSecAttrAccessible"]]);
+        [query setValue:(__bridge id _Nullable)(kSecAttrAccessibleValue) forKey:(NSString *)kSecAttrAccessible];
     }
     
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (UIApplication.sharedApplication.protectedDataAvailable) {
-            [self getItemWithQuery:query resolver:resolve rejecter:reject];
-        } else {
-            // TODO: could change to instead of erroring out, listen for protectedDataDidBecomeAvailable and call getItemWIthQuery when it does
-            // Experiment for now by returning an error and let the js side retry
-            reject(@"protected_data_unavailable", @"Protected data not available yet. Retry operation", nil);
-        }
-    });
+    [self getItemWithQuery:query resolver:resolve rejecter:reject];
 }
 
 RCT_EXPORT_METHOD(hasItem:(NSString *)key options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject){
