@@ -29,6 +29,10 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -45,6 +49,7 @@ import java.util.concurrent.Executors;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -662,8 +667,25 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             c = Cipher.getInstance(RSA_ECB);
             c.init(Cipher.ENCRYPT_MODE, publicKey);
         }
-        byte[] encodedBytes = c.doFinal(bytes);
-        String encryptedBase64Encoded = Base64.encodeToString(encodedBytes, Base64.DEFAULT);
+
+        int cipherTextSize = 0;
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        DataOutputStream dataStream = new DataOutputStream(byteStream);
+        ByteArrayInputStream plaintextStream = new ByteArrayInputStream(bytes);
+        final int chunkSize = 4*1024;
+        byte[] buffer = new byte[chunkSize];
+        while (plaintextStream.available() > chunkSize) {
+            int readBytes = plaintextStream.read(buffer);
+            byte[] ciphertextChunk = c.update(buffer, 0, readBytes);
+            cipherTextSize += ciphertextChunk.length;
+            dataStream.write(ciphertextChunk);
+        }
+        int readBytes = plaintextStream.read(buffer);
+        byte[] ciphertextChunk= c.doFinal(buffer, 0, readBytes);
+        cipherTextSize += ciphertextChunk.length;
+        dataStream.write(ciphertextChunk);
+
+        String encryptedBase64Encoded = Base64.encodeToString(byteStream.toByteArray(), Base64.NO_WRAP);
         return encryptedBase64Encoded;
     }
 
@@ -685,7 +707,21 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             c = Cipher.getInstance(RSA_ECB);
             c.init(Cipher.DECRYPT_MODE, privateKey);
         }
-        byte[] decodedBytes = c.doFinal(Base64.decode(encrypted, Base64.DEFAULT));
+
+        byte[] bytes = Base64.decode(encrypted, Base64.NO_WRAP);
+        ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
+        DataInputStream dataStream = new DataInputStream(byteStream);
+
+        CipherInputStream cipherStream = new CipherInputStream(byteStream, c);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = cipherStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, len);
+        }
+
+        byte[] decodedBytes = outputStream.toByteArray();
         return new String(decodedBytes);
     }
 }
