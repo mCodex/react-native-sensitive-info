@@ -82,21 +82,21 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     public RNSensitiveInfoModule(ReactApplicationContext reactContext) {
         super(reactContext);
-        
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
             Exception cause = new RuntimeException("Keystore is not supported!");
             throw new RuntimeException("Android version is too low", cause);
         }
-        
+
         try {
             mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
             mKeyStore.load(null);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
         initKeyStore();
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
                 mFingerprintManager = (FingerprintManager) reactContext.getSystemService(Context.FINGERPRINT_SERVICE);
@@ -233,9 +233,12 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
         SharedPreferences.Editor editor = prefs(name).edit();
 
-        editor.remove(key).apply();
-
-        pm.resolve(null);
+        boolean wasRemoved = editor.remove(key).commit();
+        if(!wasRemoved){
+            pm.reject(new Exception("Could not remove " + key + " from Shared Preferences"));
+        } else {
+            pm.resolve(null);
+        }
     }
 
 
@@ -280,11 +283,14 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
 
 
-    private void putExtra(String key, String value, SharedPreferences mSharedPreferences) {
+    private void putExtra(String key, String value, SharedPreferences mSharedPreferences) throws Exception {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
-        editor.putString(key, value).apply();
+        boolean wasWritten = editor.putString(key, value).commit();
+        if(!wasWritten){
+            throw new Exception("Could not write " + key + " to Shared Preferences");
+        }
     }
-    
+
     /**
      * Generates a new RSA key and stores it under the { @code KEY_ALIAS } in the
      * Android Keystore.
@@ -313,7 +319,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
                     .setStartDate(notBefore.getTime())
                     .setEndDate(notAfter.getTime())
                     .build();
-                    KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance("RSA", ANDROID_KEYSTORE_PROVIDER);   
+                    KeyPairGenerator kpGenerator = KeyPairGenerator.getInstance("RSA", ANDROID_KEYSTORE_PROVIDER);
                     kpGenerator.initialize(spec);
                     kpGenerator.generateKeyPair();
                 }
@@ -374,7 +380,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
     }
 
     private void prepareKey() throws Exception {
-        
+
         KeyGenerator keyGenerator = KeyGenerator.getInstance(
                 KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE_PROVIDER);
 
@@ -486,8 +492,13 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
                 String result = base64IV + DELIMITER + base64Cipher;
 
-                putExtra(key, result, mSharedPreferences);
-                pm.resolve(value);
+                try {
+                    putExtra(key, result, mSharedPreferences);
+                    pm.resolve(value);
+                } catch(Exception e){
+                    pm.reject(e);
+                }
+
             } catch (InvalidKeyException | UnrecoverableKeyException e) {
                 try {
                     mKeyStore.deleteEntry(KEY_ALIAS_AES);
@@ -637,11 +648,11 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
             pm.reject(AppConstants.E_BIOMETRIC_NOT_SUPPORTED, "Biometrics not supported");
         }
     }
-    
+
     public String encrypt(String input) throws Exception {
         byte[] bytes = input.getBytes();
         Cipher c;
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Key secretKey = ((KeyStore.SecretKeyEntry) mKeyStore.getEntry(KEY_ALIAS, null)).getSecretKey();
             c = Cipher.getInstance(AES_GCM);
