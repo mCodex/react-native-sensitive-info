@@ -95,7 +95,7 @@ module.exports = {
       "@docusaurus/preset-classic",
       {
         docs: {
-          homePageId: "overview",
+          // homePageId: "overview",
           sidebarPath: require.resolve("./sidebars.js"),
           editUrl:
             "https://github.com/mCodex/react-native-sensitive-info/tree/website/",

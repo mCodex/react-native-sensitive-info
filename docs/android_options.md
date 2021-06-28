@@ -44,9 +44,9 @@ strings: {
 If you want to control the behaviour on android when new fingers are enrolled or removed on the device on any device with API level greater than 24. You should call during the initialization of your app to the function `setInvalidatedByBiometricEnrollment`. This will re-initialise the internal android Key generator with the flag set to keep/invalidate the credentials upon fingers change.
 
 ```javascript
-import SInfo from 'react-native-sensitive-info';
+import SInfo from "react-native-sensitive-info";
 
 SInfo.setInvalidatedByBiometricEnrollment(false);
 ```
 
-[You can check out more here](https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec.Builder#setInvalidatedByBiometricEnrollment(boolean))
+[You can check out more here](<https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec.Builder#setInvalidatedByBiometricEnrollment(boolean)>)
