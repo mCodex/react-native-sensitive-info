@@ -4,8 +4,8 @@
   <ShortName>React-Native-Sensitive-Info</ShortName>
   <Description>Search React-Native-Sensitive-Info</Description>
   <InputEncoding>UTF-8</InputEncoding>
-  <Image width="16" height="16" type="image/x-icon">https://mcodex.github.io/img/favicon.ico</Image>
-  <Url type="text/html" method="get" template="https://mcodex.github.io/search?q={searchTerms}"/>
-  <Url type="application/opensearchdescription+xml" rel="self" template="https://mcodex.github.io/opensearch.xml" />
-  <moz:SearchForm>https://mcodex.github.io</moz:SearchForm>
+  <Image width="16" height="16" type="image/x-icon">https://mcodex.github.io/react-native-sensitive-info/img/favicon.ico</Image>
+  <Url type="text/html" method="get" template="https://mcodex.github.io/react-native-sensitive-info/search?q={searchTerms}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://mcodex.github.io/react-native-sensitive-info/opensearch.xml" />
+  <moz:SearchForm>https://mcodex.github.io/react-native-sensitive-info/</moz:SearchForm>
 </OpenSearchDescription>
