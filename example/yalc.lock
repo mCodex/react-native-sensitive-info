@@ -2,7 +2,7 @@
   "version": "v1",
   "packages": {
     "react-native-sensitive-info": {
-      "signature": "6bfcbcd659f5cf3568862ad3a3551636",
+      "signature": "6df0d326eefade5de6dccc33c41f2a57",
       "file": true
     }
   }
