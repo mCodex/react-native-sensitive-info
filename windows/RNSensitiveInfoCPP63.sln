@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RNSensitiveInfoCPP", "RNSensitiveInfoCPP\RNSensitiveInfoCPP.vcxproj", "{471024f1-cd6d-4f1e-a6c7-0037152c850e}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RNSensitiveInfoCPP", "RNSensitiveInfoCPP\RNSensitiveInfoCPP.vcxproj", "{471024F1-CD6D-4F1E-A6C7-0037152C850E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ReactNative", "ReactNative", "{4F6E56C3-12C5-4457-9239-0ACF0B7150A8}"
 EndProject
@@ -39,7 +39,6 @@ Global
 		..\node_modules\react-native-windows\Microsoft.ReactNative.Cxx\Microsoft.ReactNative.Cxx.vcxitems*{da8b35b3-da00-4b02-bde6-6a397b3fd46b}*SharedItemsImports = 9
 		..\node_modules\react-native-windows\include\Include.vcxitems*{ef074ba1-2d54-4d49-a28e-5e040b47cd2e}*SharedItemsImports = 9
 		..\node_modules\react-native-windows\Chakra\Chakra.vcxitems*{f7d32bd0-2749-483e-9a0d-1635ef7e3136}*SharedItemsImports = 4
-		..\node_modules\react-native-windows\JSI\Shared\JSI.Shared.vcxitems*{f7d32bd0-2749-483e-9a0d-1635ef7e3136}*SharedItemsImports = 4
 		..\node_modules\react-native-windows\Microsoft.ReactNative.Cxx\Microsoft.ReactNative.Cxx.vcxitems*{f7d32bd0-2749-483e-9a0d-1635ef7e3136}*SharedItemsImports = 4
 		..\node_modules\react-native-windows\Mso\Mso.vcxitems*{f7d32bd0-2749-483e-9a0d-1635ef7e3136}*SharedItemsImports = 4
 		..\node_modules\react-native-windows\Shared\Shared.vcxitems*{f7d32bd0-2749-483e-9a0d-1635ef7e3136}*SharedItemsImports = 4
@@ -59,30 +58,30 @@ Global
 		WinUI3|x86 = WinUI3|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|ARM.ActiveCfg = Debug|ARM
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|ARM.Build.0 = Debug|ARM
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|ARM64.ActiveCfg = Debug|ARM64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|ARM64.Build.0 = Debug|ARM64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|x64.ActiveCfg = Debug|x64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|x64.Build.0 = Debug|x64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|x86.ActiveCfg = Debug|Win32
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Debug|x86.Build.0 = Debug|Win32
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|ARM.ActiveCfg = Release|ARM
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|ARM.Build.0 = Release|ARM
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|ARM64.ActiveCfg = Release|ARM64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|ARM64.Build.0 = Release|ARM64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|x64.ActiveCfg = Release|x64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|x64.Build.0 = Release|x64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|x86.ActiveCfg = Release|Win32
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.Release|x86.Build.0 = Release|Win32
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|ARM.ActiveCfg = Release|ARM
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|ARM.Build.0 = Release|ARM
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|ARM64.ActiveCfg = Release|ARM64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|ARM64.Build.0 = Release|ARM64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|x64.ActiveCfg = Release|x64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|x64.Build.0 = Release|x64
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|x86.ActiveCfg = Release|Win32
-		{471024f1-cd6d-4f1e-a6c7-0037152c850e}.WinUI3|x86.Build.0 = Release|Win32
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|ARM.ActiveCfg = Debug|ARM
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|ARM.Build.0 = Debug|ARM
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|ARM64.Build.0 = Debug|ARM64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|x64.ActiveCfg = Debug|x64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|x64.Build.0 = Debug|x64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|x86.ActiveCfg = Debug|Win32
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Debug|x86.Build.0 = Debug|Win32
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|ARM.ActiveCfg = Release|ARM
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|ARM.Build.0 = Release|ARM
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|ARM64.ActiveCfg = Release|ARM64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|ARM64.Build.0 = Release|ARM64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|x64.ActiveCfg = Release|x64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|x64.Build.0 = Release|x64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|x86.ActiveCfg = Release|Win32
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.Release|x86.Build.0 = Release|Win32
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|ARM.ActiveCfg = Release|ARM
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|ARM.Build.0 = Release|ARM
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|ARM64.ActiveCfg = Release|ARM64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|ARM64.Build.0 = Release|ARM64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|x64.ActiveCfg = Release|x64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|x64.Build.0 = Release|x64
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|x86.ActiveCfg = Release|Win32
+		{471024F1-CD6D-4F1E-A6C7-0037152C850E}.WinUI3|x86.Build.0 = Release|Win32
 		{FCA38F3C-7C73-4C47-BE4E-32F77FA8538D}.Debug|ARM.ActiveCfg = Debug|ARM
 		{FCA38F3C-7C73-4C47-BE4E-32F77FA8538D}.Debug|ARM.Build.0 = Debug|ARM
 		{FCA38F3C-7C73-4C47-BE4E-32F77FA8538D}.Debug|ARM64.ActiveCfg = Debug|ARM64
