@@ -22,8 +22,7 @@ namespace winrt::RNSensitiveInfoCPP {
     }
     try {
       auto name = getSharedPreferences(options);
-      auto vault = PasswordVault();
-      auto data = vault.Retrieve(winrt::to_hstring(name), winrt::to_hstring(key));
+      auto data = PasswordVault.Retrieve(winrt::to_hstring(name), winrt::to_hstring(key));
       if (!data) {
         promise.Reject("key not found");
       } else {
@@ -44,11 +43,10 @@ namespace winrt::RNSensitiveInfoCPP {
     }
     try {
       auto name = getSharedPreferences(options);
-      auto vault = PasswordVault();
       PasswordCredential creds(winrt::to_hstring(name),
                                winrt::to_hstring(key),
                                winrt::to_hstring(value));
-      vault.Add(creds);
+      PasswordVault.Add(creds);
       promise.Resolve(value);
     } catch (...) {
       promise.Reject("cannot access datastore");
@@ -64,12 +62,11 @@ namespace winrt::RNSensitiveInfoCPP {
     }
     try {
       auto name = getSharedPreferences(options);
-      auto vault = PasswordVault();
-      auto data = vault.Retrieve(winrt::to_hstring(name), winrt::to_hstring(key));
+      auto data = PasswordVault.Retrieve(winrt::to_hstring(name), winrt::to_hstring(key));
       if (!data) {
         promise.Reject("key not found");
       } else {
-        vault.Remove(data);
+        PasswordVault.Remove(data);
         promise.Resolve(key);
       }
     } catch (...) {
@@ -81,11 +78,10 @@ namespace winrt::RNSensitiveInfoCPP {
                                     winrt::Microsoft::ReactNative::ReactPromise<winrt::Microsoft::ReactNative::JSValueObject> const& promise) noexcept {
     try {
       auto name = getSharedPreferences(options);
-      auto vault = PasswordVault();
-      auto allKeys = vault.FindAllByResource(winrt::to_hstring(name));
+      auto allKeys = PasswordVault.FindAllByResource(winrt::to_hstring(name));
       winrt::Microsoft::ReactNative::JSValueObject returnValue;
       for (auto const& key : allKeys) {
-        auto data = vault.Retrieve(winrt::to_hstring(name), key.UserName());
+        auto data = PasswordVault.Retrieve(winrt::to_hstring(name), key.UserName());
         returnValue[winrt::to_string(key.UserName())] = winrt::to_string(data.Password());
       }
       promise.Resolve(returnValue);

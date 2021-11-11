@@ -15,6 +15,7 @@ namespace winrt::RNSensitiveInfoCPP {
   REACT_MODULE(RNSensitiveInfo);
   struct RNSensitiveInfo {
     const std::string Name = "RNSensitiveInfo";
+    const Windows::Security::Credentials::PasswordVault PasswordVault = Windows::Security::Credentials::PasswordVault();
     
     REACT_METHOD(getItem);
     void getItem(std::string key,
