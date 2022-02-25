@@ -38,6 +38,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
@@ -96,8 +97,19 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         try {
             mKeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER);
             mKeyStore.load(null);
+            if (mKeyStore.containsAlias(KEY_ALIAS)) {
+                mKeyStore.getEntry(KEY_ALIAS, null);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            if (e instanceof UnrecoverableKeyException) {
+                try {
+                    mKeyStore.deleteEntry(KEY_ALIAS);
+                } catch (KeyStoreException keyStoreException) {
+                    keyStoreException.printStackTrace();
+                }
+            } else {
+                e.printStackTrace();
+            }
         }
 
         initKeyStore();
