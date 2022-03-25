@@ -10,7 +10,9 @@
     "start": "react-native start",
     "test": "jest",
     "test:windows": "yarn jest --setupFiles=./jest-setups/jest.setup.windows.js",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "prepare": "yarn run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "dependencies": {
     "@react-native-community/masked-view": "^0.1.10",
@@ -26,7 +28,8 @@
     "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info",
     "react-native-windows": "^0.63.0-0",
     "selenium-appium": "^0.0.15",
-    "selenium-webdriver": "^4.0.0-alpha.7"
+    "selenium-webdriver": "^4.0.0-alpha.7",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@babel/core": "^7.10.5",
@@ -52,5 +55,6 @@
       "json",
       "node"
     ]
-  }
+  },
+  "snyk": true
 }
