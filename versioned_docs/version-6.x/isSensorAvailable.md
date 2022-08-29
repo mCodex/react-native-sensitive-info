@@ -17,5 +17,5 @@ Example:
 ```javascript
 import RNSInfo from 'react-native-sensitive-info';
 
-SINFo.isSensorAvailable();
+RNSInfo.isSensorAvailable();
 ```
