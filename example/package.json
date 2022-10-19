@@ -26,7 +26,7 @@
     "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info",
     "react-native-windows": "^0.63.0-0",
     "selenium-appium": "^0.0.15",
-    "selenium-webdriver": "^4.0.0-alpha.7"
+    "selenium-webdriver": "^4.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.10.5",
