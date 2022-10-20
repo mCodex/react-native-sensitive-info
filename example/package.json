@@ -20,7 +20,7 @@
     "react": "16.13.1",
     "react-native": "0.63.2",
     "react-native-gesture-handler": "^1.7.0",
-    "react-native-reanimated": "^1.10.1",
+    "react-native-reanimated": "^2.10.0",
     "react-native-safe-area-context": "^3.1.1",
     "react-native-screens": "^2.9.0",
     "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info",
