@@ -16,17 +16,17 @@
     "@react-native-community/masked-view": "^0.1.10",
     "@react-navigation/native": "^5.7.2",
     "@react-navigation/stack": "^5.8.0",
-    "appium": "^1.18.3",
+    "appium": "^2.0.0",
     "react": "16.13.1",
-    "react-native": "0.63.2",
+    "react-native": "0.69.0",
     "react-native-gesture-handler": "^1.7.0",
     "react-native-reanimated": "^1.10.1",
     "react-native-safe-area-context": "^3.1.1",
     "react-native-screens": "^2.9.0",
     "react-native-sensitive-info": "file:.yalc/react-native-sensitive-info",
-    "react-native-windows": "^0.63.0-0",
+    "react-native-windows": "^1.0.0",
     "selenium-appium": "^0.0.15",
-    "selenium-webdriver": "^4.0.0-alpha.7"
+    "selenium-webdriver": "^4.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.10.5",
