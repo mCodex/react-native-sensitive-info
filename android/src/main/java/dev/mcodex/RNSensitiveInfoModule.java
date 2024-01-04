@@ -12,6 +12,7 @@ import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.Log;
+import android.annotation.SuppressLint;
 
 import androidx.annotation.NonNull;
 import androidx.biometric.BiometricConstants;
@@ -334,6 +335,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @SuppressLint("RestrictedApi")
     private void showDialog(final HashMap strings, final BiometricPrompt.CryptoObject cryptoObject, final BiometricPrompt.AuthenticationCallback callback) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
 
