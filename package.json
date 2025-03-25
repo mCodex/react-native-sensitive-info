@@ -1,14 +1,15 @@
 {
   "name": "react-native-sensitive-info",
   "version": "6.0.0-alpha.9",
-  "main": "build/index.js",
+  "main": "build/index.cjs.js",
   "module": "build/index.es.js",
   "jsnext:main": "build/index.es.js",
-  "types": "index.d.ts",
+  "types": "build/index.d.ts",
   "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
   "scripts": {
     "build": "rimraf -rf build && rollup -c",
     "prepublishOnly": "yarn build",
+    "prepare": "yarn build",
     "localPublish": "yalc publish && cd example && yalc add react-native-sensitive-info --yarn && cd .."
   },
   "keywords": [
@@ -47,5 +48,8 @@
     "rollup-plugin-typescript2": "^0.29.0",
     "typescript": "^4.0.5",
     "yalc": "^1.0.0-pre.45"
+  },
+  "dependencies": {
+    "rimraf": "^6.0.1"
   }
 }
