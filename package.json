@@ -11,22 +11,6 @@
     "prepublishOnly": "yarn build",
     "localPublish": "yalc publish && cd example && yalc add react-native-sensitive-info --yarn && cd .."
   },
-  "author": {
-    "name": "mCodex & ClassApp",
-    "email": "mtw.andrade@gmail.com"
-  },
-  "contributors": [
-    "Mateus Andrade mtw.andrade@gmail.com",
-    "Samin Shams <samin@classapp.co>"
-  ],
-  "homepage": "https://mcodex.dev/react-native-sensitive-info/",
-  "bugs": {
-    "url": "https://github.com/mcodex/react-native-sensitive-info/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/mcodex/react-native-sensitive-info.git"
-  },
   "keywords": [
     "android",
     "ios",
