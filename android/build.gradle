@@ -11,7 +11,7 @@ buildscript {
         google() //in newer versions of Android Studio
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath 'com.android.tools.build:gradle:8.7.2'
     }
 }
 
@@ -41,6 +41,6 @@ allprojects {
     }
 }
 dependencies {
-    implementation 'androidx.biometric:biometric:1.0.1'
+    implementation 'androidx.biometric:biometric:1.2.0-alpha05'
     implementation 'com.facebook.react:react-native:+'
 }
