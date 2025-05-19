@@ -1,46 +1,129 @@
-apply plugin: 'com.android.library'
-
-def DEFAULT_COMPILE_SDK_VERSION             = 29
-def DEFAULT_BUILD_TOOLS_VERSION             = "29.0.2"
-def DEFAULT_TARGET_SDK_VERSION              = 29
-def DEFAULT_MIN_SDK_VERSION                 = 23
-
 buildscript {
-    repositories {
-        mavenCentral()
-        google() //in newer versions of Android Studio
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.1'
-    }
+  ext.getExtOrDefault = {name ->
+    return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties['SensitiveInfo_' + name]
+  }
+
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.7.2"
+    // noinspection DifferentKotlinGradleVersion
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
+  }
+}
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+apply from: '../nitrogen/generated/android/sensitiveinfo+autolinking.gradle'
+
+apply plugin: "com.facebook.react"
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["SensitiveInfo_" + name]).toInteger()
 }
 
 android {
-    compileSdkVersion project.hasProperty('compileSdkVersion') ? project.compileSdkVersion : DEFAULT_COMPILE_SDK_VERSION
-    buildToolsVersion project.hasProperty('buildToolsVersion') ? project.buildToolsVersion : DEFAULT_BUILD_TOOLS_VERSION
+  namespace "com.margelo.nitro.sensitiveinfo"
 
-    defaultConfig {
-        minSdkVersion project.hasProperty('minSdkVersion') ? project.minSdkVersion : DEFAULT_MIN_SDK_VERSION
-        targetSdkVersion project.hasProperty('targetSdkVersion') ? project.targetSdkVersion : DEFAULT_TARGET_SDK_VERSION
-        versionCode 1
-        versionName "1.0"
-        ndk {
-            abiFilters "armeabi-v7a", "x86"
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -fstack-protector-all"
+        arguments "-DANDROID_STL=c++_shared"
+        abiFilters (*reactNativeArchitectures())
+
+        buildTypes {
+          debug {
+            cppFlags "-O1 -g"
+          }
+          release {
+            cppFlags "-O2"
+          }
         }
+      }
     }
-    lintOptions {
-        warning 'InvalidPackage'
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
     }
+  }
+
+  packagingOptions {
+    excludes = [
+            "META-INF",
+            "META-INF/**",
+            "**/libc++_shared.so",
+            "**/libfbjni.so",
+            "**/libjsi.so",
+            "**/libfolly_json.so",
+            "**/libfolly_runtime.so",
+            "**/libglog.so",
+            "**/libhermes.so",
+            "**/libhermes-executor-debug.so",
+            "**/libhermes_executor.so",
+            "**/libreactnative.so",
+            "**/libreactnativejni.so",
+            "**/libturbomodulejsijni.so",
+            "**/libreact_nativemodule_core.so",
+            "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig true
+    prefab true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    disable "GradleCompatible"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  sourceSets {
+    main {
+      java.srcDirs += [
+        "generated/java",
+        "generated/jni"
+      ]
+    }
+  }
 }
 
-allprojects {
-    repositories {
-        maven { url "$rootDir/../node_modules/react-native/android" } // All of React Native (JS, Android binaries) is installed from npm
-        mavenCentral()
-        google()
-    }
+repositories {
+  mavenCentral()
+  google()
 }
+
+def kotlin_version = getExtOrDefault("kotlinVersion")
+
 dependencies {
-    implementation 'androidx.biometric:biometric:1.0.1'
-    implementation 'com.facebook.react:react-native:+'
+  implementation "com.facebook.react:react-android"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  implementation project(":react-native-nitro-modules")
 }
+

@@ -1,0 +1,17 @@
+{
+  "cxxNamespace": ["sensitiveinfo"],
+  "ios": {
+    "iosModuleName": "SensitiveInfo"
+  },
+  "android": {
+    "androidNamespace": ["sensitiveinfo"],
+    "androidCxxLibName": "sensitiveinfo"
+  },
+  "autolinking": {
+    "SensitiveInfo": {
+      "swift": "SensitiveInfo",
+      "kotlin": "SensitiveInfo"
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}
