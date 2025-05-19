@@ -26,53 +26,82 @@ export default function App() {
   // Set value
   const handleSet = async () => {
     setError(null);
-    const result = await SensitiveInfo.setItem(TEST_KEY, input, {
-      biometric: false,
-    });
-    if (result.error) setError(result.error.message);
-    else Alert.alert('Success', 'Value set securely!');
+    try {
+      const result = await SensitiveInfo.setItem(TEST_KEY, input);
+      if (result.error) {
+        setError(result.error.message);
+      } else {
+        Alert.alert('Success', 'Value set securely!');
+      }
+    } catch (e: any) {
+      setError(e.message || String(e));
+    }
   };
 
   // Get value
   const handleGet = async () => {
     setError(null);
-    const result = await SensitiveInfo.getItem(TEST_KEY);
-    if (result.error) setError(result.error.message);
-    setOutput(result.value ?? null);
+    try {
+      const result = await SensitiveInfo.getItem(TEST_KEY);
+      if (result.error) {
+        setError(result.error.message);
+        setOutput(null);
+      } else {
+        setOutput(result.value ?? null);
+      }
+    } catch (e: any) {
+      setError(e.message || String(e));
+    }
   };
 
   // Delete value
   const handleDelete = async () => {
     setError(null);
-    const result = await SensitiveInfo.deleteItem(TEST_KEY);
-    if (result.error) setError(result.error.message);
-    else {
-      setOutput(null);
-      Alert.alert('Deleted', 'Value deleted securely!');
+    try {
+      const result = await SensitiveInfo.deleteItem(TEST_KEY);
+      if (result.error) {
+        setError(result.error.message);
+      } else {
+        setOutput(null);
+        Alert.alert('Deleted', 'Value deleted securely!');
+      }
+    } catch (e: any) {
+      setError(e.message || String(e));
     }
   };
 
   // Set value with biometric
   const handleSetBiometric = async () => {
     setError(null);
-    const result = await SensitiveInfo.setItem(TEST_KEY, input, {
-      biometric: true,
-    });
-    if (result.error) setError(result.error.message);
-    else Alert.alert('Success', 'Value set with biometric!');
+    try {
+      const result = await SensitiveInfo.setItem(TEST_KEY, input, true);
+      if (result.error) {
+        setError(result.error.message);
+      } else {
+        Alert.alert('Success', 'Value set with biometric!');
+      }
+    } catch (e: any) {
+      setError(e.message || String(e));
+    }
   };
 
   // Authenticate with biometric
   const handleBiometricAuth = async () => {
     setError(null);
-    const result = await SensitiveInfo.authenticate({
-      promptOptions: { title: 'Authenticate' },
-    });
-    if (result.error) setError(result.error.message);
-    else
-      setBiometricResult(
-        result.value?.success ? 'Authenticated!' : 'Failed or cancelled'
-      );
+    try {
+      const result = await SensitiveInfo.authenticate('Authenticate');
+
+      if (result.error) {
+        setError(result.error.message);
+        setBiometricResult('Failed or cancelled');
+      } else {
+        setBiometricResult(
+          result.value?.success ? 'Authenticated!' : 'Failed or cancelled'
+        );
+      }
+    } catch (e: any) {
+      setError(e.message || String(e));
+    }
   };
 
   return (

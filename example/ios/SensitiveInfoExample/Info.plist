@@ -26,7 +26,6 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
@@ -43,10 +42,23 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	  <key>NSFaceIDUsageDescription</key>
+  <string>This app uses Face ID to protect your sensitive information.</string>
+  <key>NSBiometricsUsageDescription</key>
+  <string>This app uses biometrics to protect your sensitive information.</string>
+  <key>NSPrivacyAccessedAPITypes</key>
+  <array>
+	<string>NSPrivacyAccessedAPICategoryFaceID</string>
+	<string>NSPrivacyAccessedAPICategoryBiometrics</string>
+  </array>
 </dict>
 </plist>

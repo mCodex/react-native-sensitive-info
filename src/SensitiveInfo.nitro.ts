@@ -1,52 +1,47 @@
 import type { HybridObject } from 'react-native-nitro-modules';
 
-export type SensitiveInfoOptions = {
-  requireBiometric?: boolean;
-  promptOptions?: BiometricPromptOptions;
-  biometric?: boolean; // for compatibility with JS API
-};
-
-export interface BiometricPromptOptions {
-  /** Title for the biometric prompt (Android only) */
-  title?: string;
-  /** Subtitle for the biometric prompt (Android only) */
-  subtitle?: string;
-  /** Description for the biometric prompt (Android only) */
-  description?: string;
-  /** Negative button text (Android only) */
-  negativeButtonText?: string;
-  /** Reason for authentication (iOS only) */
-  reason?: string;
-}
-
 export interface SensitiveInfo
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   /**
    * Store a value securely.
    * @param key The key to store the value under.
    * @param value The value to store.
-   * @param options Optional: require biometric authentication to access this value.
+   * @param requireBiometric Require biometric authentication to access this value.
+   * @param promptTitle Title for the biometric prompt (Android/iOS).
+   * @param promptSubtitle Subtitle for the biometric prompt (Android only).
+   * @param promptDescription Description for the biometric prompt (Android only).
+   * @param promptNegativeButton Negative button text (Android only).
+   * @param promptReason Reason for authentication (iOS only).
    */
   setItem(
     key: string,
     value: string,
-    options?: {
-      requireBiometric?: boolean;
-      promptOptions?: BiometricPromptOptions;
-    }
+    requireBiometric?: boolean,
+    promptTitle?: string,
+    promptSubtitle?: string,
+    promptDescription?: string,
+    promptNegativeButton?: string,
+    promptReason?: string
   ): Promise<void>;
 
   /**
    * Retrieve a value securely.
    * @param key The key to retrieve.
-   * @param options Optional: require biometric authentication to access this value.
+   * @param requireBiometric Require biometric authentication to access this value.
+   * @param promptTitle Title for the biometric prompt (Android/iOS).
+   * @param promptSubtitle Subtitle for the biometric prompt (Android only).
+   * @param promptDescription Description for the biometric prompt (Android only).
+   * @param promptNegativeButton Negative button text (Android only).
+   * @param promptReason Reason for authentication (iOS only).
    */
   getItem(
     key: string,
-    options?: {
-      requireBiometric?: boolean;
-      promptOptions?: BiometricPromptOptions;
-    }
+    requireBiometric?: boolean,
+    promptTitle?: string,
+    promptSubtitle?: string,
+    promptDescription?: string,
+    promptNegativeButton?: string,
+    promptReason?: string
   ): Promise<string | null>;
 
   /**
@@ -62,7 +57,17 @@ export interface SensitiveInfo
 
   /**
    * Prompt the user for biometric authentication only (no storage).
-   * @param options Prompt customization options.
+   * @param promptTitle Title for the biometric prompt (Android/iOS).
+   * @param promptSubtitle Subtitle for the biometric prompt (Android only).
+   * @param promptDescription Description for the biometric prompt (Android only).
+   * @param promptNegativeButton Negative button text (Android only).
+   * @param promptReason Reason for authentication (iOS only).
    */
-  authenticate(options?: BiometricPromptOptions): Promise<boolean>;
+  authenticate(
+    promptTitle?: string,
+    promptSubtitle?: string,
+    promptDescription?: string,
+    promptNegativeButton?: string,
+    promptReason?: string
+  ): Promise<boolean>;
 }

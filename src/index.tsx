@@ -1,32 +1,35 @@
 import { useCallback, useState } from 'react';
-import type {
-  SensitiveInfo,
-  SensitiveInfoOptions,
-} from './SensitiveInfo.nitro';
+import type { SensitiveInfo } from './SensitiveInfo.nitro';
 import type { SensitiveInfoResult } from './types';
 
 import { NitroModules } from 'react-native-nitro-modules';
+
 export const SensitiveInfoHybridObject =
   NitroModules.createHybridObject<SensitiveInfo>('SensitiveInfo');
 
-// Unified API with automatic biometric detection and result objects
 export async function setItem(
   key: string,
   value: string,
-  options?: SensitiveInfoOptions
+  biometric?: boolean,
+  sharedPreferencesName?: string,
+  keychainService?: string
 ): Promise<SensitiveInfoResult<{ success: true }>> {
   try {
     // Store a metadata flag for biometric
-    if (options?.biometric) {
-      await SensitiveInfoHybridObject.setItem(
-        `__meta__${key}`,
-        'biometric',
-        {}
-      );
-    } else {
-      await SensitiveInfoHybridObject.setItem(`__meta__${key}`, 'none', {});
-    }
-    await SensitiveInfoHybridObject.setItem(key, value, options);
+    await SensitiveInfoHybridObject.setItem(
+      `__meta__${key}`,
+      biometric ? 'biometric' : 'none',
+      false,
+      sharedPreferencesName ?? '',
+      keychainService ?? ''
+    );
+    await SensitiveInfoHybridObject.setItem(
+      key,
+      value,
+      biometric ?? false,
+      sharedPreferencesName ?? '',
+      keychainService ?? ''
+    );
     return { value: { success: true } };
   } catch (error: any) {
     return {
@@ -40,15 +43,23 @@ export async function setItem(
 
 export async function getItem(
   key: string,
-  options?: SensitiveInfoOptions
+  sharedPreferencesName?: string,
+  keychainService?: string
 ): Promise<SensitiveInfoResult<string | null>> {
   try {
     // Automatic biometric detection
-    const meta = await SensitiveInfoHybridObject.getItem(`__meta__${key}`);
-    const biometric = meta === 'biometric';
+    const meta = await SensitiveInfoHybridObject.getItem(
+      `__meta__${key}`,
+      false,
+      sharedPreferencesName ?? '',
+      keychainService ?? ''
+    );
+    const biometricFlag = meta === 'biometric';
     const result = await SensitiveInfoHybridObject.getItem(
       key,
-      biometric ? { ...options, biometric: true } : options
+      biometricFlag,
+      sharedPreferencesName ?? '',
+      keychainService ?? ''
     );
     return { value: result };
   } catch (error: any) {
@@ -83,13 +94,10 @@ export async function isBiometricAvailable(): Promise<boolean> {
 }
 
 export async function authenticate(
-  options?: SensitiveInfoOptions
+  prompt?: string
 ): Promise<SensitiveInfoResult<{ success: boolean }>> {
   try {
-    // Only pass promptOptions to native authenticate
-    const result = await SensitiveInfoHybridObject.authenticate(
-      options?.promptOptions
-    );
+    const result = await SensitiveInfoHybridObject.authenticate(prompt ?? '');
     return { value: { success: result } };
   } catch (error: any) {
     return {
@@ -102,38 +110,57 @@ export async function authenticate(
 }
 
 // React Hooks
-export function useSensitiveInfo(key: string, options?: SensitiveInfoOptions) {
+export function useSensitiveInfo(
+  key: string,
+  biometric?: boolean,
+  sharedPreferencesName?: string,
+  keychainService?: string
+) {
   const [value, setValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // const stableOptions = JSON.stringify(options);
   const get = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await getItem(key, options);
+
+    const result = await getItem(key);
+
     setValue(result.value ?? null);
     if (result.error) setError(result.error.message);
     setLoading(false);
     return result;
-  }, [key, options]);
+  }, [key]);
 
   const set = useCallback(
-    async (val: string, opts?: SensitiveInfoOptions) => {
+    async (
+      val: string,
+      biometricArg?: boolean,
+      sharedPreferencesNameArg?: string,
+      keychainServiceArg?: string
+    ) => {
       setLoading(true);
       setError(null);
-      const result = await setItem(key, val, opts ?? options);
+      const result = await setItem(
+        key,
+        val,
+        biometricArg ?? biometric,
+        sharedPreferencesNameArg ?? sharedPreferencesName,
+        keychainServiceArg ?? keychainService
+      );
       if (result.error) setError(result.error.message);
       setLoading(false);
       return result;
     },
-    [key, options]
+    [key, biometric, sharedPreferencesName, keychainService]
   );
 
   const del = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     const result = await deleteItem(key);
+
     if (result.error) setError(result.error.message);
     setLoading(false);
     setValue(null);
@@ -143,21 +170,20 @@ export function useSensitiveInfo(key: string, options?: SensitiveInfoOptions) {
   return { value, error, loading, get, set, del };
 }
 
-export function useBiometricAuth(options?: SensitiveInfoOptions) {
+export function useBiometricAuth(prompt?: string) {
   const [success, setSuccess] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // const stableOptions = JSON.stringify(options);
   const authenticateFn = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await authenticate(options);
+    const result = await authenticate(prompt);
     setSuccess(result.value?.success ?? false);
     if (result.error) setError(result.error.message);
     setLoading(false);
     return result;
-  }, [options]);
+  }, [prompt]);
 
   return { success, error, loading, authenticate: authenticateFn };
 }
