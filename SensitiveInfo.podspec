@@ -13,10 +13,23 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/mCodex/react-native-sensitive-info.git", :tag => "#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m,mm,swift}"
+
+  s.source_files = [
+    "ios/**/*.{swift}",
+    "ios/**/*.{m,mm}",
+    "cpp/**/*.{hpp,cpp}",
+  ]
+
+  s.pod_target_xcconfig = {
+    # C++ compiler flags, mainly for folly.
+    "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) FOLLY_NO_CONFIG FOLLY_CFG_NO_COROUTINES"
+  }
+
+  s.dependency 'React-jsi'
+  s.dependency 'React-callinvoker'
 
   load 'nitrogen/generated/ios/SensitiveInfo+autolinking.rb'
   add_nitrogen_files(s)
 
- install_modules_dependencies(s)
+  install_modules_dependencies(s)
 end

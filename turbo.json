@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "tasks": {
     "build:android": {
       "env": ["ORG_GRADLE_PROJECT_newArchEnabled"],
       "inputs": [
