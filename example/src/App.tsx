@@ -18,6 +18,7 @@ import {
   SearchItemForm,
   StoredItemsList,
   SecurityInfo,
+  BiometricSecurityDemo,
 } from './components';
 import { useSensitiveInfo, useTheme } from './hooks';
 import { commonStyles } from './styles/commonStyles';
@@ -132,6 +133,8 @@ export default function App() {
           onRefresh={loadAllItems}
           onRemoveItem={removeItemById}
         />
+
+        <BiometricSecurityDemo />
 
         <SecurityInfo theme={theme} />
 

@@ -6,3 +6,4 @@ export { StoreItemForm } from './StoreItemForm';
 export { SearchItemForm } from './SearchItemForm';
 export { StoredItemsList } from './StoredItemsList';
 export { SecurityInfo } from './SecurityInfo';
+export { BiometricSecurityDemo } from './BiometricSecurityDemo';
