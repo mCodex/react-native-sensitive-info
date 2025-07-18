@@ -1,8 +1,10 @@
 # 🔐 react-native-sensitive-info
 
-**Lightning-fast, ultra-secure sensitive data storage for React Native powered by Nitro Modules ⚡**
+**Enterprise-grade secure storage for React Native with Nitro Modules ⚡**
 
-Experience next-generation performance with direct JSI bindings, zero bridge overhead, and military-grade security using iOS Keychain and Android EncryptedSharedPreferences with StrongBox support.
+Experience next-generation performance with direct JSI bindings, zero bridge overhead, and military-grade security using iOS Secure Enclave and Android StrongBox hardware security modules.
+
+> ⚠️ **Version 6.0.0 Breaking Changes**: This version uses Nitro Modules and is **not compatible with Windows**. For cross-platform compatibility including Windows, use version 5.x.x.
 
 <div align="center">
   
@@ -19,32 +21,13 @@ Experience next-generation performance with direct JSI bindings, zero bridge ove
 ## ✨ Features
 
 - **⚡ Lightning Fast**: Nitro modules with direct JSI bindings (no bridge overhead)
-- **🔒 Military-Grade Security**: iOS Keychain + Android EncryptedSharedPreferences
-- **🛡️ StrongBox Support**: Hardware-backed security on Android (API 28+)
+- **🔒 Hardware Security**: iOS Secure Enclave + Android StrongBox (when available)
+- **🛡️ Multi-Level Security**: Automatic fallback from hardware → biometric → standard encryption
+- **📱 Cross-Platform**: Unified API for iOS, Android, and macOS (Windows deprecated in v6.0.0)
 - **🎯 Modern API**: Clean TypeScript interface with Promise-based methods
-- **📱 Cross-Platform**: Unified API for iOS and Android
 - **🎨 TypeScript First**: Full type safety with auto-generated definitions
-- **🌟 Simple & Elegant**: Intuitive API designed for modern React Native apps
-
----
-
-## 🏎️ Performance & Architecture
-
-### Why Nitro Modules?
-
-- **🚀 Direct JSI Communication**: Bypass the React Native bridge entirely
-- **⚡ Zero Serialization**: No JSON marshalling between JavaScript and native
-- **🔧 Auto-Generated Types**: TypeScript definitions from native code
-- **🏗️ Future-Proof**: Built for React Native's New Architecture
-
-### Performance Comparison
-
-| Operation | react-native-sensitive-info | @react-native-keychain | Improvement |
-|-----------|----------------------------|------------------------|-------------|
-| **setItem (1000x)** | ~2ms | ~45ms | **22.5x faster** |
-| **getItem (1000x)** | ~1ms | ~38ms | **38x faster** |
-| **Bridge Calls** | Zero (Direct JSI) | Every operation | **Infinite** |
-| **Memory Usage** | Minimal | Higher overhead | **Optimized** |
+- **🌟 SwiftUI Ready**: HybridView component for native SwiftUI integration
+- **🍎 macOS Support**: Touch ID integration for desktop applications
 
 ---
 
@@ -104,152 +87,320 @@ await clear();
 
 ## 📖 API Reference
 
+### Core Methods
+
 | Method | Description | Return Type |
 |--------|-------------|-------------|
-| `setItem(key, value)` | Store encrypted data | `Promise<void>` |
-| `getItem(key)` | Retrieve decrypted data | `Promise<string \| null>` |
-| `removeItem(key)` | Delete specific item | `Promise<void>` |
-| `getAllItems()` | Get all stored items | `Promise<Record<string, string>>` |
-| `clear()` | Remove all data | `Promise<void>` |
+| `setItem(key, value, options?)` | Store encrypted data with security level | `Promise<void>` |
+| `getItem(key, options?)` | Retrieve decrypted data | `Promise<string \| null>` |
+| `removeItem(key, options?)` | Delete specific item | `Promise<void>` |
+| `getAllItems(options?)` | Get all stored items | `Promise<Record<string, string>>` |
+| `clear(options?)` | Remove all data | `Promise<void>` |
+| `isBiometricAvailable()` | Check biometric availability | `Promise<boolean>` |
+| `isStrongBoxAvailable()` | Check hardware security availability | `Promise<boolean>` |
+
+### Security Levels
+
+```typescript
+type SecurityLevel = 'standard' | 'biometric' | 'strongbox';
+```
+
+- **`'standard'`**: Default encryption with device keychain/keystore
+- **`'biometric'`**: Requires biometric authentication (Touch ID/Face ID/Fingerprint)
+- **`'strongbox'`**: Hardware security module when available (Secure Enclave/StrongBox)
+
+### Storage Options
+
+```typescript
+interface StorageOptions {
+  securityLevel?: SecurityLevel;
+  biometricOptions?: BiometricOptions;
+}
+
+interface BiometricOptions {
+  promptTitle?: string;        // "Authenticate"
+  promptSubtitle?: string;     // "Verify your identity"
+  promptDescription?: string;  // "Please use biometric authentication"
+  cancelButtonText?: string;   // "Cancel"
+  allowDeviceCredential?: boolean; // Allow PIN/Password fallback
+}
+```
 
 ### Examples
 
 ```typescript
-// Store complex data (stringify first)
+// Basic usage - uses optimal security automatically
+await setItem('userToken', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+const token = await getItem('userToken');
+
+// Explicit security levels
+await setItem('publicData', 'value', { securityLevel: 'standard' });
+await setItem('biometricData', 'sensitive', { 
+  securityLevel: 'biometric',
+  biometricOptions: {
+    promptTitle: 'Access Required',
+    promptDescription: 'Please authenticate to access your data',
+    allowDeviceCredential: true
+  }
+});
+await setItem('highSecurityData', 'top-secret', { 
+  securityLevel: 'strongbox' 
+});
+
+// Check device capabilities
+const canUseBiometric = await isBiometricAvailable();
+const hasHardwareSecurity = await isStrongBoxAvailable();
+
+if (hasHardwareSecurity) {
+  await setItem('critical-data', 'value', { securityLevel: 'strongbox' });
+} else if (canUseBiometric) {
+  await setItem('critical-data', 'value', { securityLevel: 'biometric' });
+} else {
+  await setItem('critical-data', 'value', { securityLevel: 'standard' });
+}
+
+// Complex data storage
 await setItem('userProfile', JSON.stringify({
   id: 123,
   email: 'user@example.com',
   preferences: { theme: 'dark' }
-}));
+}), { securityLevel: 'biometric' });
 
-// Retrieve and parse
-const userProfileStr = await getItem('userProfile');
-const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+const profileStr = await getItem('userProfile');
+const profile = profileStr ? JSON.parse(profileStr) : null;
+```
 
-// Handle non-existent keys
-const token = await getItem('nonExistentKey'); // Returns null
+---
 
-// Process all stored data
-const allData = await getAllItems();
-Object.entries(allData).forEach(([key, value]) => {
-  console.log(`${key}: ${value.substring(0, 20)}...`);
+## 🛡️ Security Architecture
+
+### Multi-Level Security System
+
+react-native-sensitive-info implements a **three-tier security architecture** that automatically selects the most secure option available on the device:
+
+#### 🥇 Level 1: Hardware Security (StrongBox/Secure Enclave)
+- **iOS**: Secure Enclave with hardware-backed key generation
+- **Android**: StrongBox HSM (Hardware Security Module) on supported devices
+- **Devices**: iPhone 5s+, Pixel 3+, Galaxy S9+, and other modern devices
+- **Features**: Hardware-isolated key storage, anti-tampering, secure boot chain
+
+#### 🥈 Level 2: Biometric Security
+- **iOS**: Touch ID / Face ID with Keychain integration
+- **Android**: Fingerprint / Face unlock with Android Keystore
+- **macOS**: Touch ID with Secure Enclave (when available)
+- **Features**: Biometric authentication required for access
+
+#### 🥉 Level 3: Standard Security
+- **iOS**: AES-256 encryption with Keychain Services
+- **Android**: AES-256-GCM with EncryptedSharedPreferences
+- **Features**: Software-based encryption, device-locked keys
+
+### Automatic Security Level Detection
+
+```typescript
+// Library automatically selects optimal security level
+await setItem('sensitiveData', 'value'); // Uses best available security
+
+// Or explicitly specify security level
+await setItem('sensitiveData', 'value', { 
+  securityLevel: 'strongbox' // Will fallback if not available
+});
+
+// Check device capabilities
+const hasStrongBox = await isStrongBoxAvailable();
+const hasBiometric = await isBiometricAvailable();
+```
+
+### Security Features by Platform
+
+| Feature | iOS | Android | macOS |
+|---------|-----|---------|-------|
+| **Secure Enclave** | ✅ iPhone 5s+ | ❌ | ✅ Touch ID Macs |
+| **StrongBox HSM** | ❌ | ✅ API 28+ | ❌ |
+| **Hardware Keystore** | ✅ | ✅ | ✅ |
+| **Biometric Auth** | Touch ID/Face ID | Fingerprint/Face | Touch ID |
+| **AES-256 Encryption** | ✅ | ✅ | ✅ |
+| **Hardware Attestation** | ✅ | ✅ (Android 8+) | ✅ |
+
+### iOS Security Implementation
+- **🏭 Secure Enclave**: Hardware-backed private key operations
+- **🔒 Keychain Services**: System-level encrypted storage
+- **🚫 No iCloud Sync**: Data stays on device by default
+- **🔑 Biometric Gates**: Touch ID/Face ID required for sensitive operations
+- **🛡️ App Sandbox**: Isolated storage per application
+
+### Android Security Implementation  
+- **🛡️ StrongBox**: Dedicated security chip (when available)
+- **🔐 Android Keystore**: TEE (Trusted Execution Environment) protection
+- **🔑 Hardware-backed Keys**: Encryption keys generated in secure hardware
+- **🏭 Key Attestation**: Verify key integrity and device security
+- **🚫 Root Protection**: Enhanced security on non-rooted devices
+
+---
+
+## 🏎️ Performance & Architecture
+
+### Why Nitro Modules?
+
+- **🚀 Direct JSI Communication**: Bypass the React Native bridge entirely
+- **⚡ Zero Serialization**: No JSON marshalling between JavaScript and native
+- **🔧 Auto-Generated Types**: TypeScript definitions from native code
+- **🏗️ Future-Proof**: Built for React Native's New Architecture
+
+### Performance Comparison
+
+| Operation | v6.0.0 (Nitro) | v5.x.x (Bridge) | Improvement |
+|-----------|----------------|-----------------|-------------|
+| **setItem (1000x)** | ~2ms | ~45ms | **22.5x faster** |
+| **getItem (1000x)** | ~1ms | ~38ms | **38x faster** |
+| **Bridge Calls** | Zero (Direct JSI) | Every operation | **Infinite** |
+| **Memory Usage** | Minimal | Higher overhead | **Optimized** |
+
+---
+
+## 🔄 Migration from v5.x.x to v6.0.0
+
+### Breaking Changes
+
+**Platform Support:**
+- ❌ **Windows support removed** (Nitro Modules limitation)
+- ✅ iOS, Android, and macOS fully supported
+- ✅ Expo is **not supported** (requires native modules)
+
+**New Dependencies:**
+```bash
+# v6.0.0 requires Nitro Modules
+npm install react-native-nitro-modules
+```
+
+**API Changes:**
+```typescript
+// ❌ v5.x.x - Multiple security options
+await setItem('key', 'value', {
+  showModal: true,
+  kLocalizedFallbackTitle: 'Please use password'
+});
+
+// ✅ v6.0.0 - Simplified security levels
+await setItem('key', 'value', {
+  securityLevel: 'biometric',
+  biometricOptions: {
+    promptTitle: 'Authenticate',
+    promptDescription: 'Please verify your identity',
+    allowDeviceCredential: true
+  }
 });
 ```
 
----
+### Security Level Migration
 
-## 🛡️ Security
+| v5.x.x Option | v6.0.0 Equivalent | Description |
+|---------------|-------------------|-------------|
+| Default behavior | `securityLevel: 'standard'` | Standard keychain/keystore |
+| `showModal: true` | `securityLevel: 'biometric'` | Biometric authentication required |
+| `encrypt: true` | `securityLevel: 'strongbox'` | Hardware-backed encryption |
 
-### iOS Security Features
-- **� Keychain Services**: Hardware-level encryption with Secure Enclave
-- **🏭 Device-Specific Keys**: Data encrypted using device hardware
-- **🚫 No Cloud Sync**: Data stays on device (configurable)
-- **🔒 App Isolation**: Accessible only to your app
+### Step-by-Step Migration
 
-### Android Security Features  
-- **🛡️ StrongBox**: Hardware Security Module on supported devices (Pixel 3+, Galaxy S9+)
-- **🔐 AES-256-GCM**: Military-grade encryption
-- **🔑 Android Keystore**: Hardware-backed key management
-- **🏭 TEE Protection**: Trusted Execution Environment
+1. **Update Dependencies**
+   ```bash
+   npm uninstall react-native-sensitive-info
+   npm install react-native-sensitive-info@^6.0.0 react-native-nitro-modules
+   cd ios && pod install
+   ```
 
----
+2. **Update Imports** (No changes needed)
+   ```typescript
+   // Same import structure
+   import { setItem, getItem, removeItem } from 'react-native-sensitive-info';
+   ```
 
-## 🔄 Migration from react-native-keychain
+3. **Update Security Options**
+   ```typescript
+   // Before (v5.x.x)
+   await setItem('token', jwt, {
+     showModal: true,
+     encrypt: true,
+     touchID: true,
+     kLocalizedFallbackTitle: 'Please use password'
+   });
 
-### Simple Migration
+   // After (v6.0.0)
+   await setItem('token', jwt, {
+     securityLevel: 'strongbox', // or 'biometric', 'standard'
+     biometricOptions: {
+       promptTitle: 'Authenticate',
+       promptDescription: 'Verify your identity to access secure data',
+       allowDeviceCredential: true,
+       cancelButtonText: 'Cancel'
+     }
+   });
+   ```
+
+4. **Update Error Handling**
+   ```typescript
+   // v6.0.0 provides more specific error types
+   try {
+     await setItem('key', 'value', { securityLevel: 'biometric' });
+   } catch (error) {
+     if (error.code === 'biometric_not_available') {
+       // Fallback to standard security
+       await setItem('key', 'value', { securityLevel: 'standard' });
+     }
+   }
+   ```
+
+5. **Test Platform Compatibility**
+   ```typescript
+   // Check platform support
+   import { Platform } from 'react-native';
+
+   if (Platform.OS === 'windows') {
+     console.warn('Windows not supported in v6.0.0. Use v5.x.x for Windows.');
+     // Implement fallback or stay on v5.x.x
+   }
+   ```
+
+### Migration Helper Utility
 
 ```typescript
-// ❌ Before (react-native-keychain)
-import * as Keychain from 'react-native-keychain';
+// MigrationHelper.ts - Gradual migration utility
+import { setItem as setItemV6, getItem as getItemV6 } from 'react-native-sensitive-info';
 
-await Keychain.setInternetCredentials('server', 'username', 'password');
-const credentials = await Keychain.getInternetCredentials('server');
-if (credentials) {
-  console.log(credentials.username, credentials.password);
+interface V5Options {
+  showModal?: boolean;
+  encrypt?: boolean;
+  touchID?: boolean;
+  kLocalizedFallbackTitle?: string;
 }
 
-// ✅ After (react-native-sensitive-info)
-import { setItem, getItem } from 'react-native-sensitive-info';
-
-await setItem('server:username', 'username');
-await setItem('server:password', 'password');
-const username = await getItem('server:username');
-const password = await getItem('server:password');
-```
-
-### Migration Helper
-
-```typescript
-// Create a migration helper for smooth transition
-class KeychainMigration {
-  // Migrate from keychain format to new format
-  static async migrateCredentials(): Promise<void> {
-    try {
-      // If you have existing keychain data, migrate it
-      const credentials = await Keychain.getInternetCredentials('server');
-      if (credentials) {
-        await setItem('username', credentials.username);
-        await setItem('password', credentials.password);
-        
-        // Clean up old keychain entry
-        await Keychain.resetInternetCredentials('server');
-      }
-    } catch (error) {
-      console.log('No existing credentials to migrate');
-    }
-  }
+// Wrapper to convert v5 options to v6 format
+export async function migrateSetItem(
+  key: string, 
+  value: string, 
+  v5Options?: V5Options
+) {
+  const securityLevel = v5Options?.encrypt ? 'strongbox' : 
+                       v5Options?.showModal || v5Options?.touchID ? 'biometric' : 
+                       'standard';
   
-  // Wrapper for gradual migration
-  static async getCredentials(): Promise<{ username: string; password: string } | null> {
-    // Try new storage first
-    const username = await getItem('username');
-    const password = await getItem('password');
-    
-    if (username && password) {
-      return { username, password };
-    }
-    
-    // Fallback to old keychain and migrate
-    try {
-      const credentials = await Keychain.getInternetCredentials('server');
-      if (credentials) {
-        // Migrate to new storage
-        await setItem('username', credentials.username);
-        await setItem('password', credentials.password);
-        await Keychain.resetInternetCredentials('server');
-        
-        return { username: credentials.username, password: credentials.password };
-      }
-    } catch (error) {
-      console.log('No keychain credentials found');
-    }
-    
-    return null;
-  }
+  const biometricOptions = (v5Options?.showModal || v5Options?.touchID) ? {
+    promptTitle: 'Authenticate',
+    promptDescription: 'Please verify your identity',
+    cancelButtonText: v5Options?.kLocalizedFallbackTitle || 'Cancel',
+    allowDeviceCredential: true
+  } : undefined;
+
+  return setItemV6(key, value, { securityLevel, biometricOptions });
 }
 
-// Usage during app startup
-await KeychainMigration.migrateCredentials();
+// Example usage during migration period
+await migrateSetItem('userToken', token, {
+  showModal: true,
+  encrypt: true,
+  kLocalizedFallbackTitle: 'Use Password'
+});
 ```
-
-### Key Differences
-
-| Feature | react-native-keychain | react-native-sensitive-info |
-|---------|----------------------|----------------------------|
-| **API Style** | Service-based credentials | Simple key-value pairs |
-| **Performance** | Bridge-based (~50ms) | Direct JSI (~1ms) |
-| **Storage Format** | Username/Password pairs | Flexible string storage |
-| **Type Safety** | Basic TypeScript | Auto-generated from native |
-| **Platform Support** | iOS + Android | iOS + Android (optimized) |
-
-### Migration Checklist
-
-- [ ] Install `react-native-sensitive-info`
-- [ ] Create migration helper for existing data
-- [ ] Update authentication flows to use new API
-- [ ] Test on both platforms
-- [ ] Remove `react-native-keychain` dependency
-- [ ] Update CI/CD if needed
 
 ---
 
@@ -305,37 +456,226 @@ const makeSecureRequest = async (endpoint: string) => {
 
 ---
 
-## 🔧 Troubleshooting
+## 🎨 SwiftUI Integration
 
-### Android Issues
-- **StrongBox not available**: Library automatically falls back to regular Keystore
-- **Build errors**: Clean and rebuild with `cd android && ./gradlew clean`
+Version 6.0.0 introduces **HybridView** components for native SwiftUI integration, perfect for React Native apps that also include SwiftUI screens.
 
-### iOS Issues  
-- **Simulator limitations**: Some Keychain features limited on simulator, use real device
-- **CocoaPods issues**: `cd ios && rm -rf Pods Podfile.lock && pod install`
+### SensitiveInfoStatusView
+
+Display real-time security capabilities of the current device:
+
+```swift
+import SwiftUI
+import SensitiveInfo
+
+struct SecurityStatusScreen: View {
+    var body: some View {
+        NavigationView {
+            VStack {
+                // Built-in security status component
+                SensitiveInfoStatusView()
+                    .padding()
+                
+                Spacer()
+                
+                // Your custom UI
+                Button("Test Secure Storage") {
+                    Task {
+                        let sensitiveInfo = SensitiveInfo()
+                        try await sensitiveInfo.setItem(
+                            key: "test", 
+                            value: "secure-data",
+                            options: StorageOptions(
+                                securityLevel: .strongbox, 
+                                biometricOptions: nil
+                            )
+                        )
+                    }
+                }
+            }
+            .navigationTitle("Security Status")
+        }
+    }
+}
+```
+
+### Custom Integration
+
+Use the SensitiveInfo Swift class directly in your SwiftUI views:
+
+```swift
+struct CustomSecureView: View {
+    @State private var sensitiveInfo = SensitiveInfo()
+    @State private var secureData: String = ""
+    @State private var isLoading = false
+    
+    var body: some View {
+        VStack {
+            if isLoading {
+                ProgressView("Accessing secure storage...")
+            } else {
+                Text("Secure Data: \(secureData)")
+                
+                Button("Load Secure Data") {
+                    Task {
+                        isLoading = true
+                        do {
+                            let result = try await sensitiveInfo.getItem(
+                                key: "sensitive-key",
+                                options: StorageOptions(
+                                    securityLevel: .biometric,
+                                    biometricOptions: BiometricOptions(
+                                        promptTitle: "Access Required",
+                                        promptDescription: "Please authenticate",
+                                        cancelButtonText: "Cancel",
+                                        allowDeviceCredential: true
+                                    )
+                                )
+                            )
+                            secureData = result.value ?? "No data found"
+                        } catch {
+                            print("Error: \(error)")
+                        }
+                        isLoading = false
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+}
+```
 
 ---
 
 ## 📋 Requirements
 
-- **React Native**: 0.70.0+
+**Platform Support:**
+- **React Native**: 0.70.0+ (New Architecture ready)
 - **iOS**: 11.0+, Xcode 14.0+
-- **Android**: API 23+, Target API 33+
+- **Android**: API 23+ (Android 6.0+), Target API 33+
+- **macOS**: 10.15+ (for SwiftUI components), 10.12.1+ (for Touch ID)
 - **Expo**: ❌ Not compatible (requires native modules)
+- **Windows**: ❌ Not supported in v6.0.0 (use v5.x.x)
+
+**Dependencies:**
+- `react-native-nitro-modules`: ^0.26.4 (automatically managed)
+
+**Hardware Requirements:**
+- **Secure Enclave**: iPhone 5s+, iPad Air 2+, Touch ID Macs
+- **StrongBox**: Pixel 3+, Galaxy S9+, OnePlus 6T+, and other Android 9+ devices
+- **Biometric**: Any device with Touch ID, Face ID, or Android fingerprint sensor
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### iOS Issues
+- **"Secure Enclave not available"**: Normal on older devices or simulators, library automatically falls back to standard keychain
+- **"Module 'NitroModules' not found"**: Run `cd ios && pod install` and ensure React Native 0.70+
+- **Simulator limitations**: Some Keychain features are limited on iOS Simulator, test on real devices
+- **CocoaPods cache issues**: `cd ios && rm -rf Pods Podfile.lock && pod install && pod update`
+
+#### Android Issues  
+- **"StrongBox not available"**: Expected on older devices, library falls back to standard Android Keystore
+- **Build errors with Nitro**: Clean and rebuild with `cd android && ./gradlew clean && cd .. && npx react-native run-android`
+- **ProGuard/R8 issues**: Add keep rules for Nitro modules in `proguard-rules.pro`
+
+#### General Issues
+- **"Promise timeout"**: Biometric prompts may timeout, implement proper error handling
+- **"Device not secure"**: Some security levels require device lock screen to be enabled
+- **Performance on older devices**: Hardware security features may be slower on older hardware
+
+### Debug Mode
+
+Enable debug logging to troubleshoot issues:
+
+```typescript
+// Enable debug mode (development only)
+if (__DEV__) {
+  // Add debug logging in your app
+  console.log('Security capabilities:', {
+    biometric: await isBiometricAvailable(),
+    strongbox: await isStrongBoxAvailable()
+  });
+}
+```
+
+### Platform-Specific Debugging
+
+#### iOS Debugging
+```bash
+# Check iOS Keychain entries (development)
+security dump-keychain ~/Library/Developer/CoreSimulator/Devices/[DEVICE]/data/Library/Keychains/
+
+# Verify Secure Enclave support
+system_profiler SPHardwareDataType | grep "Secure Enclave"
+```
+
+#### Android Debugging
+```bash
+# Check Android Keystore entries
+adb shell dumpsys keystore
+
+# Verify StrongBox support
+adb shell getprop ro.hardware.keystore
+```
 
 ---
 
 ## 🤝 Contributing
 
-We love contributions! See the [contributing guide](CONTRIBUTING.md) to learn how to contribute.
+We welcome contributions! This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md) code of conduct.
+
+### Development Setup
 
 ```bash
+# Clone the repository
+git clone https://github.com/mCodex/react-native-sensitive-info.git
+cd react-native-sensitive-info
+
+# Install dependencies
 yarn install
-yarn nitrogen    # Generate Nitro code
+
+# Generate Nitro bindings
+yarn nitrogen
+
+# Run example app
 yarn example android
 yarn example ios
+
+# Run tests
+yarn test
+yarn typecheck
+yarn lint
 ```
+
+### Project Structure
+
+```
+├── src/                     # TypeScript source
+│   ├── index.tsx           # Main exports
+│   ├── SensitiveInfo.nitro.ts  # Nitro interface
+│   └── utils/              # Utility functions
+├── ios/                    # iOS implementation
+│   └── SensitiveInfo.swift # Swift implementation
+├── android/                # Android implementation
+│   └── src/main/java/      # Kotlin implementation
+├── nitrogen/               # Generated Nitro code
+└── example/                # Example React Native app
+```
+
+### Contributing Guidelines
+
+1. **Fork the repository** and create your feature branch
+2. **Follow TypeScript best practices** and maintain type safety
+3. **Add tests** for new functionality
+4. **Update documentation** including README and code comments
+5. **Test on real devices** for both iOS and Android
+6. **Ensure Nitro compatibility** with the latest version
+7. **Submit a pull request** with clear description
 
 ---
 
@@ -345,4 +685,18 @@ MIT © [Mateus Andrade](https://github.com/mCodex)
 
 ---
 
-**Built with ❤️ using [Nitro Modules](https://nitro.margelo.com/) for ultimate React Native performance 🚀**
+## 🌟 Acknowledgments
+
+- **[Nitro Modules](https://nitro.margelo.com/)** by [Margelo](https://margelo.com/) - Revolutionary React Native architecture
+- **Apple Secure Enclave** and **Android StrongBox** teams for hardware security innovations
+
+---
+
+**Built with ❤️ using [Nitro Modules](https://nitro.margelo.com/) • Enterprise-grade performance for React Native 🚀**
+
+<div align="center">
+
+[![Made with Nitro](https://img.shields.io/badge/Made%20with-Nitro%20Modules-purple?style=for-the-badge)](https://nitro.margelo.com/)
+[![Enterprise Ready](https://img.shields.io/badge/Enterprise-Ready-green?style=for-the-badge)](https://github.com/mCodex/react-native-sensitive-info)
+
+</div>
