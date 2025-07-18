@@ -16,7 +16,7 @@ include_directories("src/main/cpp" "../cpp")
 
 find_library(LOG_LIB log)
 
-# Link all libraries together
+# Link additional libraries
 target_link_libraries(
         ${PACKAGE_NAME}
         ${LOG_LIB}

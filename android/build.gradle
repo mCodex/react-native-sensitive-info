@@ -125,5 +125,8 @@ dependencies {
   implementation "com.facebook.react:react-android"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
   implementation project(":react-native-nitro-modules")
+
+  // Secure storage support
+  implementation "androidx.security:security-crypto:1.0.0"
 }
 

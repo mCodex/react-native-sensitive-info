@@ -11017,7 +11017,7 @@ __metadata:
     "@react-native/metro-config": 0.79.x
     "@react-native/typescript-config": 0.79.x
     "@types/react": ^19.1.8
-    react: 19.1.0
+    react: 19.0.0
     react-native: 0.79.x
     react-native-builder-bob: ^0.40.12
     react-native-monorepo-config: ^0.1.9
@@ -11168,6 +11168,13 @@ __metadata:
   version: 0.14.2
   resolution: "react-refresh@npm:0.14.2"
   checksum: d80db4bd40a36dab79010dc8aa317a5b931f960c0d83c4f3b81f0552cbcf7f29e115b84bb7908ec6a1eb67720fff7023084eff73ece8a7ddc694882478464382
+  languageName: node
+  linkType: hard
+
+"react@npm:19.0.0":
+  version: 19.0.0
+  resolution: "react@npm:19.0.0"
+  checksum: 86de15d85b2465feb40297a90319c325cb07cf27191a361d47bcfe8c6126c973d660125aa67b8f4cbbe39f15a2f32efd0c814e98196d8e5b68c567ba40a399c6
   languageName: node
   linkType: hard
 

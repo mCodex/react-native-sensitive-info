@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "0.1.0",
+  "version": "6.0.0",
   "description": "..",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

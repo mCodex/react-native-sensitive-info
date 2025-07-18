@@ -1,4 +1,4 @@
-package com.sensitiveinfo
+package com.margelo.nitro.sensitiveinfo
 
 import com.facebook.react.TurboReactPackage
 import com.facebook.react.bridge.NativeModule
