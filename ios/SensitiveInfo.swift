@@ -214,10 +214,10 @@ public class SensitiveInfoImpl {
         return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
     }
     
-    // MARK: - Service Selection
+    // MARK: - Service Selection with Smart Fallback
     
     private func getService(for securityLevel: SecurityLevel?) -> String {
-        let level = securityLevel ?? getOptimalSecurityLevel()
+        let level = getOptimalSecurityLevel(for: securityLevel)
         
         switch level {
         case .biometric:
@@ -229,10 +229,42 @@ public class SensitiveInfoImpl {
         }
     }
     
+    /// Get the optimal security level with smart fallback
+    private func getOptimalSecurityLevel(for requestedLevel: SecurityLevel?) -> SecurityLevel {
+        guard let requestedLevel = requestedLevel else {
+            return getOptimalSecurityLevel()
+        }
+        
+        switch requestedLevel {
+        case .biometric:
+            // Check if biometric is available
+            if isBiometricCapable() {
+                return .biometric
+            } else {
+                // Fallback to strongbox if available, otherwise standard
+                let fallbackLevel: SecurityLevel = isSecureEnclaveAvailable() ? .strongbox : .standard
+                print("⚠️ SensitiveInfo: Biometric authentication not available, falling back to \(fallbackLevel.rawValue)")
+                return fallbackLevel
+            }
+        case .strongbox:
+            // Check if strongbox is available
+            if isSecureEnclaveAvailable() {
+                return .strongbox
+            } else {
+                // Fallback to biometric if available, otherwise standard
+                let fallbackLevel: SecurityLevel = isBiometricCapable() ? .biometric : .standard
+                print("⚠️ SensitiveInfo: Secure Enclave not available, falling back to \(fallbackLevel.rawValue)")
+                return fallbackLevel
+            }
+        case .standard:
+            return .standard
+        }
+    }
+    
     // MARK: - Keychain Query Construction
     
     private func getKeychainQuery(for key: String, service: String, securityLevel: SecurityLevel?) -> [String: Any] {
-        let level = securityLevel ?? getOptimalSecurityLevel()
+        let level = getOptimalSecurityLevel(for: securityLevel)
         
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

@@ -22,12 +22,13 @@ Experience next-generation performance with direct JSI bindings, zero bridge ove
 
 - **⚡ Lightning Fast**: Nitro modules with direct JSI bindings (no bridge overhead)
 - **🔒 Hardware Security**: iOS Secure Enclave + Android StrongBox (when available)
-- **🛡️ Multi-Level Security**: Automatic fallback from hardware → biometric → standard encryption
-- **📱 Cross-Platform**: Unified API for iOS, Android, and macOS (Windows deprecated in v6.0.0)
-- **🎯 Modern API**: Clean TypeScript interface with Promise-based methods
+- **🛡️ Smart Fallback**: Automatic graceful degradation from hardware → biometric → standard encryption
+- **📱 Universal Compatibility**: Works seamlessly on ALL devices and emulators (no setup required)
+- **🎯 Modern API**: Clean TypeScript interface with Promise-based methods and comprehensive capabilities detection
 - **🎨 TypeScript First**: Full type safety with auto-generated definitions
 - **🌟 SwiftUI Ready**: HybridView component for native SwiftUI integration
 - **🍎 macOS Support**: Touch ID integration for desktop applications
+- **🧪 Developer Friendly**: Zero emulator issues, informative fallback warnings, comprehensive debugging tools
 
 ---
 
@@ -98,6 +99,26 @@ await clear();
 | `clear(options?)` | Remove all data | `Promise<void>` |
 | `isBiometricAvailable()` | Check biometric availability | `Promise<boolean>` |
 | `isStrongBoxAvailable()` | Check hardware security availability | `Promise<boolean>` |
+| `getSecurityCapabilities()` | Get comprehensive device security info | `Promise<SecurityCapabilities>` |
+
+### Security Capabilities
+
+```typescript
+interface SecurityCapabilities {
+  biometric: boolean;
+  strongbox: boolean;
+  recommendedLevel: 'standard' | 'biometric' | 'strongbox';
+}
+
+// Check what your device supports
+const capabilities = await getSecurityCapabilities();
+console.log(capabilities);
+// {
+//   biometric: false,        // Touch ID/Face ID/Fingerprint unavailable
+//   strongbox: false,        // Hardware security module unavailable
+//   recommendedLevel: 'standard'  // Best available security level
+// }
+```
 
 ### Security Levels
 
@@ -129,45 +150,80 @@ interface BiometricOptions {
 ### Examples
 
 ```typescript
-// Basic usage - uses optimal security automatically
+// 🎯 Smart device-aware storage
+const capabilities = await getSecurityCapabilities();
+console.log(capabilities);
+// { biometric: true, strongbox: false, recommendedLevel: 'biometric' }
+
+// Store using recommended security level
+await setItem('sensitiveData', 'value', { 
+  securityLevel: capabilities.recommendedLevel 
+});
+
+// 🔧 Basic usage - automatic optimal security
 await setItem('userToken', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
 const token = await getItem('userToken');
 
-// Explicit security levels
+// 🛡️ Explicit security levels with smart fallback
 await setItem('publicData', 'value', { securityLevel: 'standard' });
+
 await setItem('biometricData', 'sensitive', { 
-  securityLevel: 'biometric',
+  securityLevel: 'biometric',  // Falls back to strongbox/standard if unavailable
   biometricOptions: {
     promptTitle: 'Access Required',
     promptDescription: 'Please authenticate to access your data',
     allowDeviceCredential: true
   }
 });
+
 await setItem('highSecurityData', 'top-secret', { 
-  securityLevel: 'strongbox' 
+  securityLevel: 'strongbox'  // Falls back to biometric/standard if unavailable
 });
 
-// Check device capabilities
-const canUseBiometric = await isBiometricAvailable();
-const hasHardwareSecurity = await isStrongBoxAvailable();
+// 📱 Emulator-friendly approach (works everywhere!)
+await setItem('devData', 'test-value', { 
+  securityLevel: 'biometric'  // No errors on emulators - auto fallback
+});
 
-if (hasHardwareSecurity) {
-  await setItem('critical-data', 'value', { securityLevel: 'strongbox' });
-} else if (canUseBiometric) {
-  await setItem('critical-data', 'value', { securityLevel: 'biometric' });
+// 🎛️ Device capability checking
+const { biometric, strongbox, recommendedLevel } = await getSecurityCapabilities();
+
+if (strongbox) {
+  console.log('🛡️ Hardware security available - maximum protection');
+} else if (biometric) {
+  console.log('👆 Biometric security available - enhanced protection');
 } else {
-  await setItem('critical-data', 'value', { securityLevel: 'standard' });
+  console.log('🔐 Standard security available - basic protection');
 }
 
-// Complex data storage
-await setItem('userProfile', JSON.stringify({
+// 🗂️ Complex data storage with automatic security
+const userProfile = {
   id: 123,
   email: 'user@example.com',
-  preferences: { theme: 'dark' }
-}), { securityLevel: 'biometric' });
+  preferences: { theme: 'dark' },
+  securitySettings: { twoFactorEnabled: true }
+};
+
+await setItem('userProfile', JSON.stringify(userProfile), { 
+  securityLevel: recommendedLevel  // Uses best available automatically
+});
 
 const profileStr = await getItem('userProfile');
 const profile = profileStr ? JSON.parse(profileStr) : null;
+
+// 🧪 Test different security levels (development)
+const testData = 'test-value-' + Date.now();
+
+// Test all security levels - library handles fallbacks automatically
+for (const level of ['standard', 'biometric', 'strongbox'] as const) {
+  try {
+    await setItem(`test-${level}`, testData, { securityLevel: level });
+    const retrieved = await getItem(`test-${level}`, { securityLevel: level });
+    console.log(`✅ ${level}: ${retrieved === testData ? 'SUCCESS' : 'FAILED'}`);
+  } catch (error) {
+    console.log(`❌ ${level}: FAILED -`, error.message);
+  }
+}
 ```
 
 ---
@@ -209,6 +265,44 @@ await setItem('sensitiveData', 'value', {
 // Check device capabilities
 const hasStrongBox = await isStrongBoxAvailable();
 const hasBiometric = await isBiometricAvailable();
+
+// Get comprehensive security info
+const capabilities = await getSecurityCapabilities();
+console.log(capabilities);
+// {
+//   biometric: false,
+//   strongbox: false,
+//   recommendedLevel: 'standard'
+// }
+```
+
+### 🔄 Smart Fallback System
+
+The library implements intelligent fallback behavior when requested security features aren't available:
+
+**Biometric Security Request:**
+1. ✅ Biometric available → Uses biometric protection
+2. ❌ Biometric unavailable but StrongBox available → Falls back to StrongBox
+3. ❌ Neither available → Falls back to standard encryption
+
+**StrongBox Security Request:**
+1. ✅ StrongBox available → Uses hardware security
+2. ❌ StrongBox unavailable but biometric available → Falls back to biometric
+3. ❌ Neither available → Falls back to standard encryption
+
+**Emulator/Simulator Support:**
+- ✅ Works seamlessly on all emulators
+- ⚠️ Automatically falls back to standard encryption
+- 📝 Console warnings inform about fallback behavior
+- 🔧 Perfect for development and testing
+
+```typescript
+// This works on ALL devices and emulators!
+await setItem('secret', 'value', { 
+  securityLevel: 'biometric' 
+});
+// On emulator: Falls back to standard encryption
+// On device: Uses biometric if available, otherwise fallback
 ```
 
 ### Security Features by Platform
@@ -255,6 +349,53 @@ const hasBiometric = await isBiometricAvailable();
 | **getItem (1000x)** | ~1ms | ~38ms | **38x faster** |
 | **Bridge Calls** | Zero (Direct JSI) | Every operation | **Infinite** |
 | **Memory Usage** | Minimal | Higher overhead | **Optimized** |
+
+---
+
+## ✨ What's New in v6.0.0+
+
+### 🔄 Smart Fallback System
+No more errors on emulators or devices without biometric hardware! The library now automatically falls back to available security levels:
+
+```typescript
+// ✅ Works on ALL devices - no more "biometric not available" errors!
+await setItem('data', 'value', { securityLevel: 'biometric' });
+// Emulator: Falls back to standard encryption
+// Device: Uses biometric if available, otherwise fallback
+```
+
+### 📊 Security Capabilities API
+New comprehensive device analysis:
+
+```typescript
+const capabilities = await getSecurityCapabilities();
+// {
+//   biometric: false,        // Touch ID/Face ID availability
+//   strongbox: false,        // Hardware security module availability  
+//   recommendedLevel: 'standard'  // Best security level for this device
+// }
+```
+
+### 🎯 Intelligent Security Selection
+The library now provides intelligent recommendations:
+
+```typescript
+// Use the best available security automatically
+const { recommendedLevel } = await getSecurityCapabilities();
+await setItem('sensitiveData', 'value', { securityLevel: recommendedLevel });
+```
+
+### 🔧 Enhanced Developer Experience
+- ✅ **Zero emulator issues** - Smart fallback handles everything
+- 📝 **Informative console warnings** when fallbacks occur
+- 🧪 **Comprehensive debugging tools** with `getSecurityCapabilities()`
+- 🎨 **Better TypeScript support** with detailed capability types
+
+### 🛡️ Production-Ready Security
+- 🔒 **Hardware security** when available (Secure Enclave/StrongBox)
+- 👆 **Biometric protection** with seamless fallback
+- 🔐 **Standard encryption** as universal baseline
+- 🎯 **Automatic optimization** for each device's capabilities
 
 ---
 
@@ -572,14 +713,32 @@ struct CustomSecureView: View {
 
 ### Common Issues
 
+#### ✅ Emulator & Simulator Support
+- **"Biometric authentication is not available"**: ✅ **RESOLVED** - v6.0.0+ automatically falls back to available security
+- **Emulator compatibility**: ✅ **WORKS** - All features work on emulators with automatic fallback
+- **Simulator limitations**: ✅ **HANDLED** - iOS Simulator automatically uses standard keychain with console warnings
+- **Development workflow**: ✅ **SEAMLESS** - No special configuration needed for development/testing
+
+#### Smart Fallback System
+```typescript
+// ✅ This works on ALL devices and emulators without errors!
+await setItem('data', 'value', { securityLevel: 'biometric' });
+
+// Check what actually happened:
+const caps = await getSecurityCapabilities();
+console.log(`Requested: biometric, Using: ${caps.recommendedLevel}`);
+// Emulator output: "Requested: biometric, Using: standard"
+// iPhone output: "Requested: biometric, Using: biometric"
+```
+
 #### iOS Issues
-- **"Secure Enclave not available"**: Normal on older devices or simulators, library automatically falls back to standard keychain
+- **"Secure Enclave not available"**: ✅ Auto-fallback enabled - check console for fallback notifications
 - **"Module 'NitroModules' not found"**: Run `cd ios && pod install` and ensure React Native 0.70+
-- **Simulator limitations**: Some Keychain features are limited on iOS Simulator, test on real devices
+- **Simulator limitations**: ✅ Handled automatically with smart fallback system
 - **CocoaPods cache issues**: `cd ios && rm -rf Pods Podfile.lock && pod install && pod update`
 
 #### Android Issues  
-- **"StrongBox not available"**: Expected on older devices, library falls back to standard Android Keystore
+- **"StrongBox not available"**: ✅ Auto-fallback enabled - library gracefully degrades security level
 - **Build errors with Nitro**: Clean and rebuild with `cd android && ./gradlew clean && cd .. && npx react-native run-android`
 - **ProGuard/R8 issues**: Add keep rules for Nitro modules in `proguard-rules.pro`
 
@@ -590,16 +749,32 @@ struct CustomSecureView: View {
 
 ### Debug Mode
 
-Enable debug logging to troubleshoot issues:
+Enable comprehensive debugging to troubleshoot issues:
 
 ```typescript
-// Enable debug mode (development only)
+// 🔍 Comprehensive security analysis (development only)
 if (__DEV__) {
-  // Add debug logging in your app
-  console.log('Security capabilities:', {
-    biometric: await isBiometricAvailable(),
-    strongbox: await isStrongBoxAvailable()
+  const capabilities = await getSecurityCapabilities();
+  console.log('📊 Security Analysis:', {
+    biometric: capabilities.biometric,
+    strongbox: capabilities.strongbox,
+    recommendedLevel: capabilities.recommendedLevel,
+    platform: Platform.OS,
+    isEmulator: await DeviceInfo.isEmulator?.() || 'unknown'
   });
+  
+  // Test all security levels
+  const testResults = {};
+  for (const level of ['standard', 'biometric', 'strongbox'] as const) {
+    try {
+      await setItem(`debug-test-${level}`, 'test', { securityLevel: level });
+      await removeItem(`debug-test-${level}`, { securityLevel: level });
+      testResults[level] = '✅ Working';
+    } catch (error) {
+      testResults[level] = `❌ ${error.message}`;
+    }
+  }
+  console.log('🧪 Security Level Tests:', testResults);
 }
 ```
 

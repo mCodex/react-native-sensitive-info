@@ -89,8 +89,28 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
 
   private fun getPreferencesForSecurityLevel(securityLevel: SecurityLevel?): android.content.SharedPreferences {
     return when (securityLevel) {
-      SecurityLevel.BIOMETRIC -> biometricPrefs
-      SecurityLevel.STRONGBOX -> strongBoxPrefs
+      SecurityLevel.BIOMETRIC -> {
+        // Check if biometric authentication is available
+        if (isBiometricAvailableInternal()) {
+          biometricPrefs
+        } else {
+          // Fallback to StrongBox if available, otherwise standard
+          val fallbackLevel = if (isStrongBoxAvailableInternal()) "strongbox" else "standard"
+          println("⚠️ SensitiveInfo: Biometric authentication not available, falling back to $fallbackLevel")
+          if (isStrongBoxAvailableInternal()) strongBoxPrefs else standardPrefs
+        }
+      }
+      SecurityLevel.STRONGBOX -> {
+        // Check if StrongBox is available
+        if (isStrongBoxAvailableInternal()) {
+          strongBoxPrefs
+        } else {
+          // Fallback to biometric if available, otherwise standard
+          val fallbackLevel = if (isBiometricAvailableInternal()) "biometric" else "standard"
+          println("⚠️ SensitiveInfo: StrongBox not available, falling back to $fallbackLevel")
+          if (isBiometricAvailableInternal()) biometricPrefs else standardPrefs
+        }
+      }
       else -> standardPrefs
     }
   }
@@ -132,16 +152,20 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
 
   @DoNotStrip
   override fun isBiometricAvailable(): Promise<Boolean> = Promise.async {
-    val biometricManager = BiometricManager.from(context)
-    when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
-      BiometricManager.BIOMETRIC_SUCCESS -> true
-      else -> false
-    }
+    isBiometricAvailableInternal()
   }
 
   @DoNotStrip
   override fun isStrongBoxAvailable(): Promise<Boolean> = Promise.async {
     isStrongBoxAvailableInternal()
+  }
+
+  private fun isBiometricAvailableInternal(): Boolean {
+    val biometricManager = BiometricManager.from(context)
+    return when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+      BiometricManager.BIOMETRIC_SUCCESS -> true
+      else -> false
+    }
   }
 
   private fun isStrongBoxAvailableInternal(): Boolean {

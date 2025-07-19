@@ -19,6 +19,7 @@ import {
   StoredItemsList,
   SecurityInfo,
   BiometricSecurityDemo,
+  SecurityCapabilitiesDemo,
 } from './components';
 import { useSensitiveInfo, useTheme } from './hooks';
 import { commonStyles } from './styles/commonStyles';
@@ -135,6 +136,8 @@ export default function App() {
         />
 
         <BiometricSecurityDemo />
+
+        <SecurityCapabilitiesDemo />
 
         <SecurityInfo theme={theme} />
 

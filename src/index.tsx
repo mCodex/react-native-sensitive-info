@@ -65,6 +65,35 @@ export function isStrongBoxAvailable(): Promise<boolean> {
   return SensitiveInfoHybridObject.isStrongBoxAvailable();
 }
 
+/**
+ * Get the available security capabilities of the device.
+ * This helps determine what security levels are actually supported.
+ */
+export async function getSecurityCapabilities(): Promise<{
+  biometric: boolean;
+  strongbox: boolean;
+  recommendedLevel: 'standard' | 'biometric' | 'strongbox';
+}> {
+  const [biometric, strongbox] = await Promise.all([
+    isBiometricAvailable(),
+    isStrongBoxAvailable(),
+  ]);
+
+  let recommendedLevel: 'standard' | 'biometric' | 'strongbox' = 'standard';
+
+  if (strongbox) {
+    recommendedLevel = 'strongbox';
+  } else if (biometric) {
+    recommendedLevel = 'biometric';
+  }
+
+  return {
+    biometric,
+    strongbox,
+    recommendedLevel,
+  };
+}
+
 // Export React hooks
 export { useSensitiveInfo } from './hooks/useSensitiveInfo';
 export type { StoredItem } from './hooks/useSensitiveInfo';
