@@ -1,35 +1,29 @@
 import { useEffect } from 'react';
 import {
-  SafeAreaView,
+  View,
   ScrollView,
-  StatusBar,
-  TouchableOpacity,
-  Alert,
   Text,
   StyleSheet,
+  TouchableOpacity,
+  Alert,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { clear } from 'react-native-sensitive-info';
 import {
   AppHeader,
-  AppFooter,
-  PerformanceCard,
-  QuickActions,
   StoreItemForm,
   SearchItemForm,
   StoredItemsList,
-  SecurityInfo,
   BiometricSecurityDemo,
-  SecurityCapabilitiesDemo,
 } from './components';
-import { useSensitiveInfo, useTheme } from './hooks';
-import { commonStyles } from './styles/commonStyles';
+import { useSensitiveInfo } from './hooks';
+import { darkTheme } from './styles/darkTheme';
 
 export default function App() {
-  const { theme, isDarkMode, setDarkMode } = useTheme(false);
   const {
     storedItems,
     isLoading,
-    lastOperation,
     loadAllItems,
     storeItem,
     searchItem,
@@ -40,116 +34,124 @@ export default function App() {
     loadAllItems();
   }, [loadAllItems]);
 
-  const handleClearAll = async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      Alert.alert(
-        'Clear All Data',
-        'This will permanently delete all stored items. Are you sure?',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          {
-            text: 'Clear All',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await clear();
-                await loadAllItems();
-                Alert.alert('Success', 'All data cleared!');
-                resolve(true);
-              } catch (error) {
-                console.error('Error clearing data:', error);
-                Alert.alert('Error', 'Failed to clear data');
-                resolve(false);
-              }
-            },
+  const handleClearAll = async () => {
+    Alert.alert(
+      'Clear All Data',
+      'This will permanently delete all stored items. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clear();
+              await loadAllItems();
+              Alert.alert('Success', 'All data cleared!');
+            } catch (error) {
+              console.error('Error clearing data:', error);
+              Alert.alert('Error', 'Failed to clear data');
+            }
           },
-        ]
-      );
-    });
-  };
-
-  const handleOperationComplete = (message: string) => {
-    // This would typically update performance metrics
-    console.log('Operation completed:', message);
+        },
+      ]
+    );
   };
 
   return (
-    <SafeAreaView
-      style={[commonStyles.container, { backgroundColor: theme.background }]}
-    >
+    <>
       <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.background}
+        barStyle="light-content"
+        backgroundColor={darkTheme.background}
+        translucent={false}
       />
-
-      <ScrollView
-        style={commonStyles.scrollView}
-        contentContainerStyle={commonStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <AppHeader
-          theme={theme}
-          isDarkMode={isDarkMode}
-          onThemeToggle={setDarkMode}
-        />
-
-        <PerformanceCard lastOperation={lastOperation} theme={theme} />
-
-        <QuickActions
-          theme={theme}
-          isLoading={isLoading}
-          onOperationComplete={handleOperationComplete}
-          onDataReload={loadAllItems}
-        />
-
-        <TouchableOpacity
-          style={[
-            commonStyles.actionButton,
-            commonStyles.dangerButton,
-            styles.clearAllButton,
-            { backgroundColor: theme.danger },
-          ]}
-          onPress={handleClearAll}
-          disabled={isLoading}
+      <SafeAreaView style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={commonStyles.actionButtonText}>🗑️ Clear All Data</Text>
-        </TouchableOpacity>
+          <AppHeader />
 
-        <StoreItemForm
-          theme={theme}
-          isLoading={isLoading}
-          onStoreItem={storeItem}
-        />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🔐 Sensitive Info Demo</Text>
+            <Text style={styles.sectionDescription}>
+              Secure storage with automatic fallback from biometric to standard
+              encryption. Test both biometric authentication and regular
+              keychain storage.
+            </Text>
+          </View>
 
-        <SearchItemForm
-          theme={theme}
-          isLoading={isLoading}
-          onSearchItem={searchItem}
-        />
+          <BiometricSecurityDemo />
 
-        <StoredItemsList
-          theme={theme}
-          items={storedItems}
-          isLoading={isLoading}
-          onRefresh={loadAllItems}
-          onRemoveItem={removeItemById}
-        />
+          <TouchableOpacity
+            style={[styles.clearButton, isLoading && styles.disabledButton]}
+            onPress={handleClearAll}
+            disabled={isLoading}
+          >
+            <Text style={styles.clearButtonText}>🗑️ Clear All Data</Text>
+          </TouchableOpacity>
 
-        <BiometricSecurityDemo />
+          <StoreItemForm isLoading={isLoading} onStoreItem={storeItem} />
 
-        <SecurityCapabilitiesDemo />
+          <SearchItemForm isLoading={isLoading} onSearchItem={searchItem} />
 
-        <SecurityInfo theme={theme} />
-
-        <AppFooter theme={theme} />
-      </ScrollView>
-    </SafeAreaView>
+          <StoredItemsList
+            items={storedItems}
+            isLoading={isLoading}
+            onRefresh={loadAllItems}
+            onRemoveItem={removeItemById}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  clearAllButton: {
+  container: {
+    flex: 1,
+    backgroundColor: darkTheme.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  section: {
+    margin: 20,
+    padding: 20,
+    backgroundColor: darkTheme.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: darkTheme.border,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: darkTheme.text,
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: darkTheme.textSecondary,
+    lineHeight: 20,
+  },
+  clearButton: {
     marginHorizontal: 20,
     marginBottom: 20,
+    backgroundColor: darkTheme.danger,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    color: darkTheme.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

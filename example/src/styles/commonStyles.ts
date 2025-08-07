@@ -1,122 +1,181 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { darkTheme } from './darkTheme';
 
+/**
+ * Common styles used across the application
+ */
 export const commonStyles = StyleSheet.create({
+  // Layout styles
   container: {
     flex: 1,
+    backgroundColor: darkTheme.background,
   },
-  scrollView: {
-    flex: 1,
+
+  scrollContainer: {
+    flexGrow: 1,
+    padding: darkTheme.spacing.md,
   },
-  scrollContent: {
-    paddingBottom: 40,
-  },
+
   section: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
+    marginBottom: darkTheme.spacing.lg,
   },
-  sectionHeader: {
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  spaceBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+
+  // Card styles
+  card: {
+    backgroundColor: darkTheme.surface,
+    borderRadius: darkTheme.borderRadius.lg,
+    padding: darkTheme.spacing.md,
+    marginBottom: darkTheme.spacing.md,
+    ...darkTheme.shadow,
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  multilineInput: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  primaryButton: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  buttonRow: {
+
+  cardHeader: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: darkTheme.spacing.md,
   },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+
+  // Typography styles
+  title: {
+    fontSize: darkTheme.typography.fontSize.xl,
+    fontWeight: darkTheme.typography.fontWeight.bold,
+    color: darkTheme.text,
+    marginBottom: darkTheme.spacing.md,
   },
-  dangerButton: {
-    marginTop: 8,
+
+  subtitle: {
+    fontSize: darkTheme.typography.fontSize.lg,
+    fontWeight: darkTheme.typography.fontWeight.semibold,
+    color: darkTheme.text,
+    marginBottom: darkTheme.spacing.sm,
   },
-  refreshButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+
+  bodyText: {
+    fontSize: darkTheme.typography.fontSize.md,
+    color: darkTheme.text,
+    lineHeight: 24,
   },
-  refreshButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+
+  captionText: {
+    fontSize: darkTheme.typography.fontSize.sm,
+    color: darkTheme.textSecondary,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
+
+  mutedText: {
+    fontSize: darkTheme.typography.fontSize.sm,
+    color: darkTheme.textMuted,
   },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-  },
-  resultCard: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
+
+  // Input styles
+  input: {
+    backgroundColor: darkTheme.inputBackground,
+    borderColor: darkTheme.inputBorder,
     borderWidth: 1,
+    borderRadius: darkTheme.borderRadius.md,
+    padding: darkTheme.spacing.md,
+    color: darkTheme.text,
+    fontSize: darkTheme.typography.fontSize.md,
+    marginBottom: darkTheme.spacing.md,
   },
-  resultLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 4,
+
+  inputFocused: {
+    borderColor: darkTheme.inputFocus,
   },
-  resultValue: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+
+  // Button styles
+  button: {
+    borderRadius: darkTheme.borderRadius.md,
+    padding: darkTheme.spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
-  monoText: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+
+  buttonPrimary: {
+    backgroundColor: darkTheme.buttonPrimary,
+  },
+
+  buttonSecondary: {
+    backgroundColor: darkTheme.buttonSecondary,
+  },
+
+  buttonDanger: {
+    backgroundColor: darkTheme.buttonDanger,
+  },
+
+  buttonSuccess: {
+    backgroundColor: darkTheme.buttonSuccess,
+  },
+
+  buttonText: {
+    fontSize: darkTheme.typography.fontSize.md,
+    fontWeight: darkTheme.typography.fontWeight.semibold,
+    color: darkTheme.text,
+  },
+
+  buttonIcon: {
+    marginRight: darkTheme.spacing.sm,
+  },
+
+  // Status styles
+  statusBadge: {
+    paddingHorizontal: darkTheme.spacing.sm,
+    paddingVertical: darkTheme.spacing.xs,
+    borderRadius: darkTheme.borderRadius.sm,
+    alignSelf: 'flex-start',
+  },
+
+  statusSuccess: {
+    backgroundColor: darkTheme.success,
+  },
+
+  statusWarning: {
+    backgroundColor: darkTheme.warning,
+  },
+
+  statusDanger: {
+    backgroundColor: darkTheme.danger,
+  },
+
+  statusInfo: {
+    backgroundColor: darkTheme.info,
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: darkTheme.divider,
+    marginVertical: darkTheme.spacing.md,
+  },
+
+  // Loading/Empty states
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  emptyState: {
+    padding: darkTheme.spacing.xl,
+    alignItems: 'center',
+  },
+
+  emptyStateText: {
+    fontSize: darkTheme.typography.fontSize.md,
+    color: darkTheme.textMuted,
+    textAlign: 'center',
+    marginTop: darkTheme.spacing.md,
   },
 });

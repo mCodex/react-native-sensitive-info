@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import type { Theme } from '../types';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { commonStyles } from '../styles/commonStyles';
+import { darkTheme } from '../styles/darkTheme';
 
 interface SearchItemFormProps {
-  theme: Theme;
   isLoading: boolean;
   onSearchItem: (key: string) => Promise<string | null>;
 }
 
 export function SearchItemForm({
-  theme,
   isLoading,
   onSearchItem,
 }: SearchItemFormProps) {
@@ -23,65 +27,38 @@ export function SearchItemForm({
   };
 
   return (
-    <View
-      style={[
-        commonStyles.section,
-        { backgroundColor: theme.card, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[commonStyles.sectionTitle, { color: theme.text }]}>
-        🔍 Search Item
-      </Text>
+    <View style={[commonStyles.card, styles.container]}>
+      <Text style={[commonStyles.subtitle, styles.title]}>🔍 Search Item</Text>
 
       <TextInput
-        style={[
-          commonStyles.input,
-          {
-            backgroundColor: theme.inputBackground,
-            borderColor: theme.border,
-            color: theme.text,
-          },
-        ]}
+        style={commonStyles.input}
         placeholder="Enter key to search"
-        placeholderTextColor={theme.textSecondary}
+        placeholderTextColor={darkTheme.textMuted}
         value={searchKey}
         onChangeText={setSearchKey}
         autoCapitalize="none"
         autoCorrect={false}
+        editable={!isLoading}
       />
 
       <TouchableOpacity
         style={[
-          commonStyles.secondaryButton,
-          { backgroundColor: theme.accent },
+          commonStyles.button,
+          commonStyles.buttonSecondary,
+          styles.button,
         ]}
         onPress={handleSearch}
         disabled={isLoading || !searchKey.trim()}
       >
-        <Text style={commonStyles.secondaryButtonText}>
+        <Text style={commonStyles.buttonText}>
           {isLoading ? '🔄 Searching...' : '🔍 Search'}
         </Text>
       </TouchableOpacity>
 
       {searchResult !== null && (
-        <View
-          style={[
-            commonStyles.resultCard,
-            {
-              backgroundColor: theme.inputBackground,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Text
-            style={[commonStyles.resultLabel, { color: theme.textSecondary }]}
-          >
-            Result for "{searchKey}":
-          </Text>
-          <Text
-            style={[commonStyles.resultValue, { color: theme.text }]}
-            selectable
-          >
+        <View style={styles.resultCard}>
+          <Text style={styles.resultLabel}>Result for "{searchKey}":</Text>
+          <Text style={styles.resultValue} selectable>
             {searchResult || 'null (not found)'}
           </Text>
         </View>
@@ -89,3 +66,35 @@ export function SearchItemForm({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginHorizontal: darkTheme.spacing.lg,
+  },
+  title: {
+    marginBottom: darkTheme.spacing.md,
+  },
+  button: {
+    marginTop: darkTheme.spacing.sm,
+  },
+  resultCard: {
+    marginTop: darkTheme.spacing.md,
+    padding: darkTheme.spacing.md,
+    backgroundColor: darkTheme.inputBackground,
+    borderRadius: darkTheme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: darkTheme.border,
+  },
+  resultLabel: {
+    fontSize: darkTheme.typography.fontSize.sm,
+    fontWeight: darkTheme.typography.fontWeight.semibold,
+    color: darkTheme.textSecondary,
+    marginBottom: darkTheme.spacing.xs,
+  },
+  resultValue: {
+    fontSize: darkTheme.typography.fontSize.sm,
+    color: darkTheme.text,
+    fontFamily: 'Menlo',
+    lineHeight: 20,
+  },
+});

@@ -29,6 +29,7 @@ export function useSensitiveInfo(): UseSensitiveInfoReturn {
   const loadAllItems = useCallback(async () => {
     try {
       setIsLoading(true);
+
       const startTime = Date.now();
       const items = await getAllItems();
       const endTime = Date.now();
@@ -94,6 +95,7 @@ export function useSensitiveInfo(): UseSensitiveInfoReturn {
 
       try {
         setIsLoading(true);
+
         const startTime = Date.now();
         const result = await getItem(key.trim());
         const endTime = Date.now();

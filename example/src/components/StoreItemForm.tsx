@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import type { Theme } from '../types';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { commonStyles } from '../styles/commonStyles';
+import { darkTheme } from '../styles/darkTheme';
 
 interface StoreItemFormProps {
-  theme: Theme;
   isLoading: boolean;
   onStoreItem: (key: string, value: string) => Promise<boolean>;
 }
 
-export function StoreItemForm({
-  theme,
-  isLoading,
-  onStoreItem,
-}: StoreItemFormProps) {
+export function StoreItemForm({ isLoading, onStoreItem }: StoreItemFormProps) {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
@@ -26,62 +27,60 @@ export function StoreItemForm({
   };
 
   return (
-    <View
-      style={[
-        commonStyles.section,
-        { backgroundColor: theme.card, borderColor: theme.border },
-      ]}
-    >
-      <Text style={[commonStyles.sectionTitle, { color: theme.text }]}>
+    <View style={[commonStyles.card, styles.container]}>
+      <Text style={[commonStyles.subtitle, styles.title]}>
         💾 Store New Item
       </Text>
 
       <TextInput
-        style={[
-          commonStyles.input,
-          {
-            backgroundColor: theme.inputBackground,
-            borderColor: theme.border,
-            color: theme.text,
-          },
-        ]}
+        style={commonStyles.input}
         placeholder="Enter key (e.g., 'userToken')"
-        placeholderTextColor={theme.textSecondary}
+        placeholderTextColor={darkTheme.textMuted}
         value={newKey}
         onChangeText={setNewKey}
         autoCapitalize="none"
         autoCorrect={false}
+        editable={!isLoading}
       />
 
       <TextInput
-        style={[
-          commonStyles.input,
-          commonStyles.multilineInput,
-          {
-            backgroundColor: theme.inputBackground,
-            borderColor: theme.border,
-            color: theme.text,
-          },
-        ]}
+        style={[commonStyles.input, styles.multilineInput]}
         placeholder="Enter value (e.g., 'eyJhbGciOiJIUzI1NiIs...')"
-        placeholderTextColor={theme.textSecondary}
+        placeholderTextColor={darkTheme.textMuted}
         value={newValue}
         onChangeText={setNewValue}
         multiline
         numberOfLines={3}
         autoCapitalize="none"
         autoCorrect={false}
+        editable={!isLoading}
       />
 
       <TouchableOpacity
-        style={[commonStyles.primaryButton, { backgroundColor: theme.primary }]}
+        style={[commonStyles.button, commonStyles.buttonPrimary, styles.button]}
         onPress={handleStore}
         disabled={isLoading || !newKey.trim() || !newValue.trim()}
       >
-        <Text style={commonStyles.primaryButtonText}>
+        <Text style={commonStyles.buttonText}>
           {isLoading ? '🔄 Storing...' : '🔒 Store Securely'}
         </Text>
       </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginHorizontal: darkTheme.spacing.lg,
+  },
+  title: {
+    marginBottom: darkTheme.spacing.md,
+  },
+  multilineInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  button: {
+    marginTop: darkTheme.spacing.sm,
+  },
+});
