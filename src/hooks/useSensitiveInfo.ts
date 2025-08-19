@@ -22,13 +22,13 @@ export interface StoredItem {
   truncated?: boolean;
 }
 
-interface SecurityCapabilities {
+export interface SecurityCapabilities {
   biometric: boolean;
   strongbox: boolean;
   hardwareSecurityModule: boolean;
 }
 
-interface UseSensitiveInfoReturn {
+export interface UseSensitiveInfoReturn {
   storedItems: StoredItem[];
   isLoading: boolean;
   lastOperation: string;

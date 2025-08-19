@@ -4,7 +4,14 @@ import type {
   BiometricPromptMethods,
   BiometricPromptProps,
 } from './BiometricPromptView.nitro';
-import type { SensitiveInfo, StorageOptions } from './SensitiveInfo.nitro';
+import type {
+  SensitiveInfo,
+  StorageOptions,
+  BiometricStorageOptions,
+  StandardOrStrongBoxOptions,
+  SecurityLevel,
+} from './SensitiveInfo.nitro';
+import { withBiometrics, withStrongBox } from './SensitiveInfo.nitro';
 
 const SensitiveInfoHybridObject =
   NitroModules.createHybridObject<SensitiveInfo>('SensitiveInfo');
@@ -12,6 +19,19 @@ const SensitiveInfoHybridObject =
 /**
  * Get a stored value by key.
  */
+export function getItem(key: string): Promise<string | null>;
+export function getItem(
+  key: string,
+  options: StandardOrStrongBoxOptions
+): Promise<string | null>;
+export function getItem(
+  key: string,
+  options: BiometricStorageOptions
+): Promise<string | null>;
+export function getItem(
+  key: string,
+  options?: StorageOptions
+): Promise<string | null>;
 export function getItem(
   key: string,
   options?: StorageOptions
@@ -22,6 +42,22 @@ export function getItem(
 /**
  * Store a value under the specified key.
  */
+export function setItem(key: string, value: string): Promise<void>;
+export function setItem(
+  key: string,
+  value: string,
+  options: StandardOrStrongBoxOptions
+): Promise<void>;
+export function setItem(
+  key: string,
+  value: string,
+  options: BiometricStorageOptions
+): Promise<void>;
+export function setItem(
+  key: string,
+  value: string,
+  options?: StorageOptions
+): Promise<void>;
 export function setItem(
   key: string,
   value: string,
@@ -33,6 +69,19 @@ export function setItem(
 /**
  * Remove the value for the given key.
  */
+export function removeItem(key: string): Promise<void>;
+export function removeItem(
+  key: string,
+  options: StandardOrStrongBoxOptions
+): Promise<void>;
+export function removeItem(
+  key: string,
+  options: BiometricStorageOptions
+): Promise<void>;
+export function removeItem(
+  key: string,
+  options?: StorageOptions
+): Promise<void>;
 export function removeItem(
   key: string,
   options?: StorageOptions
@@ -43,6 +92,16 @@ export function removeItem(
 /**
  * Retrieve all stored key-value pairs.
  */
+export function getAllItems(): Promise<Record<string, string>>;
+export function getAllItems(
+  options: StandardOrStrongBoxOptions
+): Promise<Record<string, string>>;
+export function getAllItems(
+  options: BiometricStorageOptions
+): Promise<Record<string, string>>;
+export function getAllItems(
+  options?: StorageOptions
+): Promise<Record<string, string>>;
 export function getAllItems(
   options?: StorageOptions
 ): Promise<Record<string, string>> {
@@ -52,6 +111,10 @@ export function getAllItems(
 /**
  * Clear all stored items.
  */
+export function clear(): Promise<void>;
+export function clear(options: StandardOrStrongBoxOptions): Promise<void>;
+export function clear(options: BiometricStorageOptions): Promise<void>;
+export function clear(options?: StorageOptions): Promise<void>;
 export function clear(options?: StorageOptions): Promise<void> {
   return SensitiveInfoHybridObject.clear(options);
 }
@@ -74,17 +137,19 @@ export function isStrongBoxAvailable(): Promise<boolean> {
  * Get the available security capabilities of the device.
  * This helps determine what security levels are actually supported.
  */
-export async function getSecurityCapabilities(): Promise<{
+export type SecurityCapabilities = {
   biometric: boolean;
   strongbox: boolean;
-  recommendedLevel: 'standard' | 'biometric' | 'strongbox';
-}> {
+  recommendedLevel: SecurityLevel;
+};
+
+export async function getSecurityCapabilities(): Promise<SecurityCapabilities> {
   const [biometric, strongbox] = await Promise.all([
     isBiometricAvailable(),
     isStrongBoxAvailable(),
   ]);
 
-  let recommendedLevel: 'standard' | 'biometric' | 'strongbox' = 'standard';
+  let recommendedLevel: SecurityLevel = 'standard';
 
   if (strongbox) {
     recommendedLevel = 'strongbox';
@@ -101,7 +166,11 @@ export async function getSecurityCapabilities(): Promise<{
 
 // Export React hooks
 export { useSensitiveInfo } from './hooks/useSensitiveInfo';
-export type { StoredItem } from './hooks/useSensitiveInfo';
+export type {
+  StoredItem,
+  UseSensitiveInfoReturn,
+  SecurityCapabilities as HookSecurityCapabilities,
+} from './hooks/useSensitiveInfo';
 export { BiometricAuthenticator } from './utils/BiometricAuthenticator';
 
 // Hybrid View: BiometricPromptView
@@ -136,4 +205,59 @@ export type {
   StorageOptions,
   SecurityLevel,
   BiometricOptions,
+} from './SensitiveInfo.nitro';
+
+export {
+  SecurityLevels,
+  withBiometrics,
+  withStrongBox,
+  withStandard,
+} from './SensitiveInfo.nitro';
+
+// Ergonomic wrappers (opt-in) — avoids creating option objects on the call-site
+export function setItemBiometric(
+  key: string,
+  value: string,
+  biometric?: BiometricStorageOptions['biometricOptions']
+): Promise<void> {
+  return setItem(key, value, withBiometrics(biometric));
+}
+
+export function getItemBiometric(
+  key: string,
+  biometric?: BiometricStorageOptions['biometricOptions']
+): Promise<string | null> {
+  return getItem(key, withBiometrics(biometric));
+}
+
+export function removeItemBiometric(
+  key: string,
+  biometric?: BiometricStorageOptions['biometricOptions']
+): Promise<void> {
+  return removeItem(key, withBiometrics(biometric));
+}
+
+export function setItemStrongBox(key: string, value: string): Promise<void> {
+  return setItem(key, value, withStrongBox());
+}
+
+export function getItemStrongBox(key: string): Promise<string | null> {
+  return getItem(key, withStrongBox());
+}
+
+export function removeItemStrongBox(key: string): Promise<void> {
+  return removeItem(key, withStrongBox());
+}
+
+export function getAllItemsStrongBox(): Promise<Record<string, string>> {
+  return getAllItems(withStrongBox());
+}
+
+export function clearStrongBox(): Promise<void> {
+  return clear(withStrongBox());
+}
+
+export type {
+  BiometricStorageOptions,
+  StandardOrStrongBoxOptions,
 } from './SensitiveInfo.nitro';
