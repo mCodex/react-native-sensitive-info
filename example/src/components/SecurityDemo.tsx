@@ -108,7 +108,7 @@ export const SecurityDemo: React.FC = () => {
           onPress={() =>
             withUi('Store (biometric)', async () => {
               setUsedStore(expectedBiometricStore);
-              await setItem('demo:bio', 'biometric-secret', {
+              const opts = {
                 securityLevel: 'biometric',
                 biometricOptions: {
                   promptTitle: 'Authenticate',
@@ -116,7 +116,10 @@ export const SecurityDemo: React.FC = () => {
                   cancelButtonText: 'Cancel',
                   allowDeviceCredential: true,
                 },
-              });
+              } as const;
+
+              // Automatic native prompt will be shown by the library
+              await setItem('demo:bio', 'biometric-secret', opts);
               setStatus('Stored (biometric)');
             })
           }
@@ -130,7 +133,7 @@ export const SecurityDemo: React.FC = () => {
           onPress={() =>
             withUi('Read (biometric)', async () => {
               setUsedStore(expectedBiometricStore);
-              const v = await getItem('demo:bio', {
+              const opts = {
                 securityLevel: 'biometric',
                 biometricOptions: {
                   promptTitle: 'Authenticate',
@@ -138,7 +141,10 @@ export const SecurityDemo: React.FC = () => {
                   cancelButtonText: 'Cancel',
                   allowDeviceCredential: true,
                 },
-              });
+              } as const;
+
+              // Automatic native prompt will be shown by the library
+              const v = await getItem('demo:bio', opts);
               setValue(v);
               setStatus(`Read (bio): ${v ?? 'null'}`);
             })
@@ -183,24 +189,29 @@ export const SecurityDemo: React.FC = () => {
         </Text>
 
         <View style={styles.spacer} />
+
         <Text style={styles.infoTitle}>How storage is chosen</Text>
         <Text style={styles.infoText}>
           • If you don't pass a securityLevel, data is stored with the standard
           keychain/keystore.
         </Text>
+
         <Text style={styles.infoText}>
           • When requesting biometric/strongbox, the library attempts that
           level.
         </Text>
+
         <Text style={styles.infoText}>
           • If unavailable, it falls back to what's available.
         </Text>
+
         <Text style={styles.infoText}>
           • Actual fallback behavior may differ between iOS and Android. The
           "Expected store used" value above is based on detected capabilities
           and may differ from the exact platform behavior.
         </Text>
       </View>
+      {/* No explicit prompt component needed — the library will show native prompts automatically */}
     </View>
   );
 };

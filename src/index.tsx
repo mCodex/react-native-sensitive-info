@@ -1,4 +1,9 @@
 import { NitroModules } from 'react-native-nitro-modules';
+import { getHostComponent, type ViewConfig } from 'react-native-nitro-modules';
+import type {
+  BiometricPromptMethods,
+  BiometricPromptProps,
+} from './BiometricPromptView.nitro';
 import type { SensitiveInfo, StorageOptions } from './SensitiveInfo.nitro';
 
 const SensitiveInfoHybridObject =
@@ -97,6 +102,34 @@ export async function getSecurityCapabilities(): Promise<{
 // Export React hooks
 export { useSensitiveInfo } from './hooks/useSensitiveInfo';
 export type { StoredItem } from './hooks/useSensitiveInfo';
+export { BiometricAuthenticator } from './utils/BiometricAuthenticator';
+
+// Hybrid View: BiometricPromptView
+let _BiometricPromptNativeView: any;
+try {
+  // Provide a minimal ViewConfig. Nitro uses uiViewClassName for lookup,
+  // and validAttributes to pass props to the native Hybrid View.
+  const viewConfig: ViewConfig<BiometricPromptProps> = {
+    uiViewClassName: 'BiometricPromptView',
+    bubblingEventTypes: {},
+    directEventTypes: {},
+    validAttributes: {
+      promptTitle: true,
+      promptSubtitle: true,
+      promptDescription: true,
+      cancelButtonText: true,
+      allowDeviceCredential: true,
+    },
+  } as const;
+  _BiometricPromptNativeView = getHostComponent<
+    BiometricPromptProps,
+    BiometricPromptMethods
+  >('BiometricPromptView', () => viewConfig);
+} catch {
+  // During tests or when nitrogen hasn't run yet.
+}
+
+export const BiometricPromptView = _BiometricPromptNativeView as any;
 
 // Export types
 export type {

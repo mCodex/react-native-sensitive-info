@@ -1,2 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application>
+		<activity
+			android:name=".TransparentBiometricActivity"
+			android:exported="false"
+			android:theme="@style/Theme.Transparent"/>
+	</application>
 </manifest>

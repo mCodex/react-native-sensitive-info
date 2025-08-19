@@ -149,16 +149,12 @@ class KeychainManager {
         let effectiveSecurityLevel = options?.securityLevel ?? securityLevel
         
         // Apply security level specific settings
-        switch effectiveSecurityLevel {
+    switch effectiveSecurityLevel {
         case .standard:
             // Basic keychain storage, no special flags needed
             break
             
-        case .biometric:
-            #if targetEnvironment(simulator)
-            // On simulator, biometric isn't fully supported, so use standard
-            print("⚠️ SensitiveInfo: Biometric not fully supported on simulator, using standard keychain")
-            #else
+    case .biometric:
             if #available(iOS 11.3, *) {
                 var error: Unmanaged<CFError>?
                 query[kSecAttrAccessControl as String] = SecAccessControlCreateWithFlags(
@@ -168,7 +164,6 @@ class KeychainManager {
                     &error
                 )
             }
-            #endif
             
         case .strongbox:
             #if targetEnvironment(simulator)
@@ -204,6 +199,10 @@ fileprivate class SensitiveInfoCore {
     
     /// Store an item with automatic fallback
     public func setItem(key: String, value: String, options: StorageOptions?) throws {
+        // If biometric level is requested, proactively authenticate before touching Keychain
+        if options?.securityLevel == .biometric {
+            try Self.authenticateIfNeeded(options: options)
+        }
         let result = KeychainManager.executeWithFallback(key: key, options: options) { level, query in
             var mutableQuery = query
             mutableQuery[kSecValueData as String] = value.data(using: .utf8)
@@ -236,6 +235,10 @@ fileprivate class SensitiveInfoCore {
     
     /// Get an item with automatic fallback
     public func getItem(key: String, options: StorageOptions?) throws -> String? {
+        // If biometric level is requested, proactively authenticate before touching Keychain
+        if options?.securityLevel == .biometric {
+            try Self.authenticateIfNeeded(options: options)
+        }
         let result = KeychainManager.executeWithFallback(key: key, options: options) { level, query in
             var mutableQuery = query
             mutableQuery[kSecReturnData as String] = true
@@ -269,6 +272,9 @@ fileprivate class SensitiveInfoCore {
     
     /// Remove an item with automatic fallback
     public func removeItem(key: String, options: StorageOptions?) throws {
+        if options?.securityLevel == .biometric {
+            try Self.authenticateIfNeeded(options: options)
+        }
         let result = KeychainManager.executeWithFallback(key: key, options: options) { level, query in
             let status = SecItemDelete(query as CFDictionary)
             if status == errSecSuccess || status == errSecItemNotFound {
@@ -288,6 +294,9 @@ fileprivate class SensitiveInfoCore {
     
     /// Get all items
     public func getAllItems(options: StorageOptions?) throws -> [String: String] {
+        if options?.securityLevel == .biometric {
+            try Self.authenticateIfNeeded(options: options)
+        }
         var allItems: [String: String] = [:]
         
         // Try all security levels to get all stored items
@@ -321,6 +330,9 @@ fileprivate class SensitiveInfoCore {
     
     /// Clear all items
     public func clear(options: StorageOptions?) throws {
+        if options?.securityLevel == .biometric {
+            try Self.authenticateIfNeeded(options: options)
+        }
         let levels: [SecurityLevel] = [.standard, .biometric, .strongbox]
         
         for level in levels {
@@ -335,13 +347,9 @@ fileprivate class SensitiveInfoCore {
     
     /// Check if biometric authentication is available
     public func isBiometricAvailable() -> Bool {
-        #if targetEnvironment(simulator)
-        return false // Biometric not fully supported on simulator
-        #else
         let context = LAContext()
         var error: NSError?
         return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
-        #endif
     }
     
     /// Check if Secure Enclave is available
@@ -354,6 +362,49 @@ fileprivate class SensitiveInfoCore {
         }
         return false
         #endif
+    }
+}
+
+// MARK: - Biometric Authentication Helper
+
+extension SensitiveInfoCore {
+    /// On iOS, proactively show biometric prompt for operations targeting `.biometric` security level.
+    /// This avoids requiring JS to manually call a prompt.
+    static func authenticateIfNeeded(options: StorageOptions?) throws {
+        let context = LAContext()
+        var evalError: NSError?
+
+    // Allow device credential fallback if requested via BiometricOptions.
+    // NOTE: On iOS Simulator there is no passcode, so `.deviceOwnerAuthentication` is unavailable.
+    // In that case, force biometrics-only so prompts can appear while testing.
+    #if targetEnvironment(simulator)
+    let allowCredential = false
+    #else
+    let allowCredential = options?.biometricOptions?.allowDeviceCredential ?? false
+    #endif
+        let policy: LAPolicy = allowCredential ? .deviceOwnerAuthentication : .deviceOwnerAuthenticationWithBiometrics
+
+        guard context.canEvaluatePolicy(policy, error: &evalError) else {
+            // Let fallback logic proceed without forcing an error when biometrics are unavailable
+            return
+        }
+
+        // Use provided description as the reason if available
+        let reason = options?.biometricOptions?.promptDescription ?? "Authenticate to proceed"
+
+        // Block current thread until authentication finishes. All public APIs expose Promises and run off main thread.
+        var authError: Error? = nil
+        let semaphore = DispatchSemaphore(value: 0)
+        context.evaluatePolicy(policy, localizedReason: reason) { success, error in
+            if !success {
+                authError = error ?? SensitiveInfoError.operationFailed("Authentication failed")
+            }
+            semaphore.signal()
+        }
+        semaphore.wait()
+        if let authError = authError {
+            throw authError
+        }
     }
 }
 

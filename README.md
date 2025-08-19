@@ -710,6 +710,33 @@ struct CustomSecureView: View {
 
 ## 🔧 Troubleshooting
 
+<details>
+<summary><strong>iOS Simulator: Face ID prompt doesn’t appear</strong></summary>
+
+- Ensure Simulator has biometrics enrolled: Features → Face ID → Enrolled
+- When the system prompt appears, complete with Features → Face ID → Matching Face (or Non‑matching Face to test failures)
+- If you used allowDeviceCredential on Simulator, iOS doesn’t have a passcode; we force biometrics‑only under the hood so the prompt still appears.
+- If you get locked out after too many failures, reset Face ID in Simulator (toggle Enrolled off/on) and retry.
+
+</details>
+
+<details>
+<summary><strong>Android: Prompt requires a foreground Activity</strong></summary>
+
+- BiometricPrompt needs an active foreground Activity (FragmentActivity). Make sure you call getItem/setItem while your app is in the foreground.
+- If you’re launching prompts from background services, you’ll need to bring an Activity to the front or use a transparent activity approach.
+
+</details>
+
+<details>
+<summary><strong>Pods/Headers mismatch after Nitro changes</strong></summary>
+
+- If you see “file not found” for generated headers, clean Pods and DerivedData:
+  - cd ios && pod deintegrate && pod install
+  - Clean build folder in Xcode (or delete DerivedData)
+
+</details>
+
 ### Common Issues
 
 #### ✅ Emulator & Simulator Support

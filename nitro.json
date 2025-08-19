@@ -11,6 +11,10 @@
     "SensitiveInfo": {
       "swift": "RNSensitiveInfo",
       "kotlin": "SensitiveInfo"
+    },
+    "BiometricPromptView": {
+      "swift": "HybridBiometricPromptView",
+      "kotlin": "HybridBiometricPromptView"
     }
   },
   "ignorePaths": ["node_modules"]

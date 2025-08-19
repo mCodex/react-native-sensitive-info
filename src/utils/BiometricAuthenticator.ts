@@ -16,68 +16,67 @@ const createFallbackBiometricAuth = (): BiometricAuthModule => ({
   isAvailable: async () => false,
   authenticate: async () => {
     throw new Error(
-      'Biometric authentication is not available. Please install react-native-biometrics for enhanced biometric support.'
+      'Biometric authentication is not available on this device.'
     );
   },
 });
 
-let biometricAuth: BiometricAuthModule;
+let biometricAuth: BiometricAuthModule | undefined;
 
-try {
-  // Try to use react-native-biometrics if available
-  const ReactNativeBiometrics = require('react-native-biometrics').default;
-  const rnBiometrics = new ReactNativeBiometrics();
+// Prefer our built-in native modules first (no external deps)
+if (Platform.OS === 'android') {
+  const AndroidBiometric = NativeModules.AndroidBiometric;
+  if (AndroidBiometric) {
+    biometricAuth = {
+      isAvailable: () => AndroidBiometric.isAvailable(),
+      authenticate: (options = {}) => AndroidBiometric.authenticate(options),
+    };
+  }
+}
 
-  biometricAuth = {
-    isAvailable: async () => {
-      try {
-        const { available } = await rnBiometrics.isSensorAvailable();
-        return available;
-      } catch {
-        return false;
-      }
-    },
-    authenticate: async (options = {}) => {
-      const { success } = await rnBiometrics.simplePrompt({
-        promptMessage:
-          options.promptDescription || 'Authenticate to access sensitive data',
-        cancelButtonText: options.cancelButtonText || 'Cancel',
-      });
-      return success;
-    },
-  };
-} catch {
-  // Fallback implementation without external dependencies
-  if (Platform.OS === 'ios') {
-    // iOS fallback using LocalAuthentication through native modules
-    const LocalAuthentication = NativeModules.LocalAuthentication;
-    if (LocalAuthentication) {
-      biometricAuth = {
-        isAvailable: () => LocalAuthentication.isAvailable(),
-        authenticate: (options = {}) =>
-          LocalAuthentication.authenticate({
-            reason:
-              options.promptDescription ||
-              'Authenticate to access sensitive data',
-            fallbackTitle: options.allowDeviceCredential
-              ? 'Use Passcode'
-              : undefined,
-          }),
-      };
-    } else {
-      biometricAuth = createFallbackBiometricAuth();
-    }
-  } else {
-    // Android fallback - use our own native implementation
+if (Platform.OS === 'ios' && !biometricAuth) {
+  const LocalAuthentication = NativeModules.LocalAuthentication;
+  if (LocalAuthentication) {
+    biometricAuth = {
+      isAvailable: () => LocalAuthentication.isAvailable(),
+      authenticate: (options = {}) =>
+        LocalAuthentication.authenticate({
+          reason:
+            options.promptDescription ||
+            'Authenticate to access sensitive data',
+          allowDeviceCredential: options.allowDeviceCredential ?? false,
+        }),
+    };
+  }
+}
+
+// Note: HybridView is render-based; for imperative prompts we use bridge modules above.
+
+// Final fallback
+if (!biometricAuth) {
+  if (Platform.OS === 'android') {
     const AndroidBiometric = NativeModules.AndroidBiometric;
-    if (AndroidBiometric) {
-      biometricAuth = {
-        isAvailable: () => AndroidBiometric.isAvailable(),
-        authenticate: (options = {}) => AndroidBiometric.authenticate(options),
-      };
-    } else {
-      biometricAuth = createFallbackBiometricAuth();
-    }
+    biometricAuth = AndroidBiometric
+      ? {
+          isAvailable: () => AndroidBiometric.isAvailable(),
+          authenticate: (options = {}) =>
+            AndroidBiometric.authenticate(options),
+        }
+      : createFallbackBiometricAuth();
+  } else {
+    const LocalAuthentication = NativeModules.LocalAuthentication;
+    biometricAuth = LocalAuthentication
+      ? {
+          isAvailable: () => LocalAuthentication.isAvailable(),
+          authenticate: (options = {}) =>
+            LocalAuthentication.authenticate({
+              reason:
+                options.promptDescription ||
+                'Authenticate to access sensitive data',
+              allowDeviceCredential: options.allowDeviceCredential ?? false,
+            }),
+        }
+      : createFallbackBiometricAuth();
   }
 }
 
@@ -91,11 +90,13 @@ export interface BiometricOptions {
 
 export class BiometricAuthenticator {
   static async isAvailable(): Promise<boolean> {
-    return biometricAuth.isAvailable();
+    const impl = biometricAuth ?? createFallbackBiometricAuth();
+    return impl.isAvailable();
   }
 
   static async authenticate(options?: BiometricOptions): Promise<boolean> {
-    return biometricAuth.authenticate(options);
+    const impl = biometricAuth ?? createFallbackBiometricAuth();
+    return impl.authenticate(options);
   }
 }
 

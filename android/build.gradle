@@ -132,5 +132,8 @@ dependencies {
   // Biometric authentication support
   implementation "androidx.biometric:biometric:1.1.0"
   implementation "androidx.fragment:fragment-ktx:1.6.2"
+  
+  // Material Components for theme parent (Theme.MaterialComponents.*)
+  implementation "com.google.android.material:material:1.12.0"
 }
 

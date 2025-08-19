@@ -25,6 +25,7 @@ Pod::Spec.new do |s|
     "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) FOLLY_NO_CONFIG FOLLY_CFG_NO_COROUTINES"
   }
 
+  s.dependency 'React-Core'
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
 

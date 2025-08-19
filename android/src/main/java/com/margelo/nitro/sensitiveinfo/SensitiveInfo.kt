@@ -1,16 +1,23 @@
 package com.margelo.nitro.sensitiveinfo
 
 import android.content.Context
+import android.app.Activity
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.facebook.proguard.annotations.DoNotStrip
+import com.facebook.react.bridge.ReactApplicationContext
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.NitroModules
 import java.security.KeyStore
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import javax.crypto.KeyGenerator
 
 /**
@@ -130,6 +137,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
    */
   @DoNotStrip
   override fun getItem(key: String, options: StorageOptions?): Promise<String?> = Promise.async {
+  authenticateIfNeeded(options)
     val securityLevel = options?.securityLevel
     val prefs = getPreferencesForSecurityLevel(securityLevel)
     prefs.getString(key, null)
@@ -140,6 +148,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
    */
   @DoNotStrip
   override fun setItem(key: String, value: String, options: StorageOptions?): Promise<Unit> = Promise.async {
+  authenticateIfNeeded(options)
     val securityLevel = options?.securityLevel
     val prefs = getPreferencesForSecurityLevel(securityLevel)
     prefs.edit().putString(key, value).apply()
@@ -150,6 +159,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
    */
   @DoNotStrip
   override fun removeItem(key: String, options: StorageOptions?): Promise<Unit> = Promise.async {
+  authenticateIfNeeded(options)
     val securityLevel = options?.securityLevel
     val prefs = getPreferencesForSecurityLevel(securityLevel)
     prefs.edit().remove(key).apply()
@@ -160,6 +170,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
    */
   @DoNotStrip
   override fun getAllItems(options: StorageOptions?): Promise<Map<String, String>> = Promise.async {
+  authenticateIfNeeded(options)
     val securityLevel = options?.securityLevel
     val prefs = getPreferencesForSecurityLevel(securityLevel)
     prefs.all.mapValues { it.value as? String ?: "" }
@@ -170,6 +181,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
    */
   @DoNotStrip
   override fun clear(options: StorageOptions?): Promise<Unit> = Promise.async {
+  authenticateIfNeeded(options)
     val securityLevel = options?.securityLevel
     val prefs = getPreferencesForSecurityLevel(securityLevel)
     prefs.edit().clear().apply()
@@ -225,5 +237,70 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     } else {
       false
     }
+  }
+}
+
+// --- Biometric helper ---
+private fun SensitiveInfo.authenticateIfNeeded(options: StorageOptions?) {
+  if (options?.securityLevel != SecurityLevel.BIOMETRIC) return
+
+  val reactContext = NitroModules.applicationContext as? ReactApplicationContext
+    ?: throw IllegalStateException("ReactApplicationContext is null")
+  val activity = reactContext.currentActivity as? FragmentActivity
+    ?: throw IllegalStateException("Current Activity is null for biometric prompt")
+
+  val manager = BiometricManager.from(activity)
+  val allowCredential = options.biometricOptions?.allowDeviceCredential == true
+  val authenticators = if (allowCredential)
+    BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+  else
+    BiometricManager.Authenticators.BIOMETRIC_STRONG
+
+  val can = manager.canAuthenticate(authenticators)
+  if (can != BiometricManager.BIOMETRIC_SUCCESS) {
+    // Skip prompting so the storage layer can apply its own fallback choice
+    return
+  }
+
+  // Set up synchronization and state
+  val latch = CountDownLatch(1)
+  var success = false
+  var error: Exception? = null
+
+  val executor = ContextCompat.getMainExecutor(activity)
+  activity.runOnUiThread {
+    val callback = object : BiometricPrompt.AuthenticationCallback() {
+      override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+        error = Exception(errString.toString())
+        latch.countDown()
+      }
+      override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+        success = true
+        latch.countDown()
+      }
+      override fun onAuthenticationFailed() {
+        // Ignored; prompt stays open until user cancels or succeeds
+      }
+    }
+
+    val prompt = BiometricPrompt(activity, executor, callback)
+    val builder = BiometricPrompt.PromptInfo.Builder()
+      .setTitle(options.biometricOptions?.promptTitle ?: "Authenticate")
+      .setSubtitle(options.biometricOptions?.promptSubtitle)
+      .setDescription(options.biometricOptions?.promptDescription)
+
+    if (allowCredential) {
+      builder.setAllowedAuthenticators(authenticators)
+    } else {
+      builder.setNegativeButtonText(options.biometricOptions?.cancelButtonText ?: "Cancel")
+    }
+
+    prompt.authenticate(builder.build())
+  }
+
+  // Wait for result (with a generous timeout to avoid deadlocks)
+  latch.await(2, TimeUnit.MINUTES)
+  if (!success) {
+    throw (error ?: Exception("Authentication failed"))
   }
 }

@@ -33,6 +33,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app uses Face ID to authenticate access to sensitive data.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
