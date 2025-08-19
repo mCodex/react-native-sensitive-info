@@ -9,7 +9,7 @@
   },
   "autolinking": {
     "SensitiveInfo": {
-      "swift": "SensitiveInfo",
+      "swift": "RNSensitiveInfo",
       "kotlin": "SensitiveInfo"
     }
   },

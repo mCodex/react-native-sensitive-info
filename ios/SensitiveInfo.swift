@@ -121,15 +121,19 @@ class KeychainManager {
         return level != .standard // Always allow fallback unless already at standard
     }
     
-    /// Build keychain query for the specified security level
-    static func buildQuery(for key: String, securityLevel: SecurityLevel, options: StorageOptions?) -> [String: Any] {
+    /// Build keychain query without specifying an account (for all items)
+    static func buildQuery(securityLevel: SecurityLevel, options: StorageOptions?) -> [String: Any] {
+        return buildQuery(for: nil, securityLevel: securityLevel, options: options)
+    }
+    /// Build keychain query for the specified security level and account key
+    static func buildQuery(for key: String?, securityLevel: SecurityLevel, options: StorageOptions?) -> [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "ReactNativeSensitiveInfo",
         ]
         
-        // Only add account if key is not empty (for specific item operations)
-        if !key.isEmpty {
+        // Only add account if key is provided and not empty (for specific item operations)
+        if let key = key, !key.isEmpty {
             query[kSecAttrAccount as String] = key
         }
         
@@ -182,10 +186,10 @@ class KeychainManager {
 
 // MARK: - Main Implementation
 
-@available(iOS 11.0, macOS 10.13, *)
-public class SensitiveInfoCore {
+fileprivate class SensitiveInfoCore {
     
-    public init() {}
+    /// Core implementation initializer
+    init() {}
     
     // MARK: - Core Operations
     
@@ -234,7 +238,8 @@ public class SensitiveInfoCore {
             if status == errSecSuccess {
                 if let data = result as? Data,
                    let string = String(data: data, encoding: .utf8) {
-                    return .success(string)
+                    // Wrap in String? to unify generic as String?
+                    return .success(string as String?)
                 } else {
                     return .failure(SensitiveInfoError.operationFailed("Invalid data format"))
                 }
@@ -280,9 +285,8 @@ public class SensitiveInfoCore {
         let levels: [SecurityLevel] = [.standard, .biometric, .strongbox]
         
         for level in levels {
-            let query = KeychainManager.buildQuery(for: "", securityLevel: level, options: nil)
+            let query = KeychainManager.buildQuery(securityLevel: level, options: nil)
             var mutableQuery = query
-            mutableQuery.removeValue(forKey: kSecAttrAccount as String) // Remove specific account to get all
             mutableQuery[kSecReturnData as String] = true
             mutableQuery[kSecReturnAttributes as String] = true
             mutableQuery[kSecMatchLimit as String] = kSecMatchLimitAll
@@ -311,9 +315,8 @@ public class SensitiveInfoCore {
         let levels: [SecurityLevel] = [.standard, .biometric, .strongbox]
         
         for level in levels {
-            let query = KeychainManager.buildQuery(for: "", securityLevel: level, options: nil)
+            let query = KeychainManager.buildQuery(securityLevel: level, options: nil)
             var mutableQuery = query
-            mutableQuery.removeValue(forKey: kSecAttrAccount as String) // Remove specific account to clear all
             
             SecItemDelete(mutableQuery as CFDictionary) // Ignore errors, some levels might not have items
         }
@@ -345,59 +348,65 @@ public class SensitiveInfoCore {
     }
 }
 
+
 // MARK: - Nitro Interface
 
-@available(iOS 11.0, macOS 10.13, *)
-public class SensitiveInfoImpl: HybridSensitiveInfoSpec {
+public final class RNSensitiveInfo: HybridSensitiveInfoSpec_base, HybridSensitiveInfoSpec_protocol {
     private let implementation = SensitiveInfoCore()
     
+    /// Module initializer
+    public override init() {
+        super.init()
+    }
+
+    /// Initialize module
     public var memorySize: Int {
-        return MemoryLayout<SensitiveInfoImpl>.size
+        return MemoryLayout<RNSensitiveInfo>.size
     }
     
     // MARK: - Core Operations
     
     public func getItem(key: String, options: StorageOptions?) throws -> Promise<String?> {
-        return Promise.async { [weak self] in
-            try self?.implementation.getItem(key: key, options: options)
+        return Promise.async { [unowned self] in
+            try self.implementation.getItem(key: key, options: options)
         }
     }
     
     public func setItem(key: String, value: String, options: StorageOptions?) throws -> Promise<Void> {
-        return Promise.async { [weak self] in
-            try self?.implementation.setItem(key: key, value: value, options: options)
+        return Promise.async { [unowned self] in
+            try self.implementation.setItem(key: key, value: value, options: options)
         }
     }
     
     public func removeItem(key: String, options: StorageOptions?) throws -> Promise<Void> {
-        return Promise.async { [weak self] in
-            try self?.implementation.removeItem(key: key, options: options)
+        return Promise.async { [unowned self] in
+            try self.implementation.removeItem(key: key, options: options)
         }
     }
     
     public func getAllItems(options: StorageOptions?) throws -> Promise<Dictionary<String, String>> {
-        return Promise.async { [weak self] in
-            try self?.implementation.getAllItems(options: options) ?? [:]
+        return Promise.async { [unowned self] in
+            try self.implementation.getAllItems(options: options)
         }
     }
     
     public func clear(options: StorageOptions?) throws -> Promise<Void> {
-        return Promise.async { [weak self] in
-            try self?.implementation.clear(options: options)
+        return Promise.async { [unowned self] in
+            try self.implementation.clear(options: options)
         }
     }
     
     // MARK: - Capability Detection
     
     public func isBiometricAvailable() throws -> Promise<Bool> {
-        return Promise.async { [weak self] in
-            self?.implementation.isBiometricAvailable() ?? false
+        return Promise.async { [unowned self] in
+            self.implementation.isBiometricAvailable()
         }
     }
     
     public func isStrongBoxAvailable() throws -> Promise<Bool> {
-        return Promise.async { [weak self] in
-            self?.implementation.isStrongBoxAvailable() ?? false
+        return Promise.async { [unowned self] in
+            self.implementation.isStrongBoxAvailable()
         }
     }
 }
