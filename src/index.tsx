@@ -1,9 +1,5 @@
 import { NitroModules } from 'react-native-nitro-modules';
-import { getHostComponent, type ViewConfig } from 'react-native-nitro-modules';
-import type {
-  BiometricPromptMethods,
-  BiometricPromptProps,
-} from './BiometricPromptView.nitro';
+// (Hybrid View host component intentionally omitted for stability)
 import type {
   SensitiveInfo,
   StorageOptions,
@@ -13,8 +9,38 @@ import type {
 } from './SensitiveInfo.nitro';
 import { withBiometrics, withStrongBox } from './SensitiveInfo.nitro';
 
-const SensitiveInfoHybridObject =
-  NitroModules.createHybridObject<SensitiveInfo>('SensitiveInfo');
+let _SensitiveInfoHybridObject: SensitiveInfo | null = null;
+let _initAttempted = false;
+
+async function waitForHybrid<T>(create: () => T): Promise<T> {
+  // If we already tried, just create (it should be ready by now or throw clearly)
+  if (_initAttempted) return create();
+  _initAttempted = true;
+
+  // Small retry loop: give Nitro a moment to register on app start
+  const maxTries = 8;
+  const backoffMs = [0, 10, 20, 40, 80, 120, 180, 250];
+
+  // Native init now happens in the Package static init (Android) and ObjC/Swift load (iOS)
+  for (let i = 0; i < maxTries; i++) {
+    try {
+      return create();
+    } catch (e) {
+      await new Promise((r) => setTimeout(r, backoffMs[i] ?? 200));
+    }
+  }
+  // Final attempt (will throw with the helpful Nitro error message if still not registered)
+  return create();
+}
+
+async function getSensitiveInfoAsync(): Promise<SensitiveInfo> {
+  if (_SensitiveInfoHybridObject) return _SensitiveInfoHybridObject;
+  const instance = await waitForHybrid(() =>
+    NitroModules.createHybridObject<SensitiveInfo>('SensitiveInfo')
+  );
+  _SensitiveInfoHybridObject = instance;
+  return instance;
+}
 
 /**
  * Get a stored value by key.
@@ -36,7 +62,7 @@ export function getItem(
   key: string,
   options?: StorageOptions
 ): Promise<string | null> {
-  return SensitiveInfoHybridObject.getItem(key, options);
+  return getSensitiveInfoAsync().then((m) => m.getItem(key, options));
 }
 
 /**
@@ -63,7 +89,7 @@ export function setItem(
   value: string,
   options?: StorageOptions
 ): Promise<void> {
-  return SensitiveInfoHybridObject.setItem(key, value, options);
+  return getSensitiveInfoAsync().then((m) => m.setItem(key, value, options));
 }
 
 /**
@@ -86,7 +112,7 @@ export function removeItem(
   key: string,
   options?: StorageOptions
 ): Promise<void> {
-  return SensitiveInfoHybridObject.removeItem(key, options);
+  return getSensitiveInfoAsync().then((m) => m.removeItem(key, options));
 }
 
 /**
@@ -105,7 +131,7 @@ export function getAllItems(
 export function getAllItems(
   options?: StorageOptions
 ): Promise<Record<string, string>> {
-  return SensitiveInfoHybridObject.getAllItems(options);
+  return getSensitiveInfoAsync().then((m) => m.getAllItems(options));
 }
 
 /**
@@ -116,21 +142,21 @@ export function clear(options: StandardOrStrongBoxOptions): Promise<void>;
 export function clear(options: BiometricStorageOptions): Promise<void>;
 export function clear(options?: StorageOptions): Promise<void>;
 export function clear(options?: StorageOptions): Promise<void> {
-  return SensitiveInfoHybridObject.clear(options);
+  return getSensitiveInfoAsync().then((m) => m.clear(options));
 }
 
 /**
  * Check if biometric authentication is available on the device.
  */
 export function isBiometricAvailable(): Promise<boolean> {
-  return SensitiveInfoHybridObject.isBiometricAvailable();
+  return getSensitiveInfoAsync().then((m) => m.isBiometricAvailable());
 }
 
 /**
  * Check if StrongBox is available on the device.
  */
 export function isStrongBoxAvailable(): Promise<boolean> {
-  return SensitiveInfoHybridObject.isStrongBoxAvailable();
+  return getSensitiveInfoAsync().then((m) => m.isStrongBoxAvailable());
 }
 
 /**
@@ -173,32 +199,10 @@ export type {
 } from './hooks/useSensitiveInfo';
 export { BiometricAuthenticator } from './utils/BiometricAuthenticator';
 
-// Hybrid View: BiometricPromptView
-let _BiometricPromptNativeView: any;
-try {
-  // Provide a minimal ViewConfig. Nitro uses uiViewClassName for lookup,
-  // and validAttributes to pass props to the native Hybrid View.
-  const viewConfig: ViewConfig<BiometricPromptProps> = {
-    uiViewClassName: 'BiometricPromptView',
-    bubblingEventTypes: {},
-    directEventTypes: {},
-    validAttributes: {
-      promptTitle: true,
-      promptSubtitle: true,
-      promptDescription: true,
-      cancelButtonText: true,
-      allowDeviceCredential: true,
-    },
-  } as const;
-  _BiometricPromptNativeView = getHostComponent<
-    BiometricPromptProps,
-    BiometricPromptMethods
-  >('BiometricPromptView', () => viewConfig);
-} catch {
-  // During tests or when nitrogen hasn't run yet.
-}
-
-export const BiometricPromptView = _BiometricPromptNativeView as any;
+// Note: We avoid eagerly registering the HybridView host component to prevent
+// Fabric crashes on some setups. If needed in the future, we can expose a
+// helper that lazily calls getHostComponent.
+export const BiometricPromptView = undefined as unknown as any;
 
 // Export types
 export type {
