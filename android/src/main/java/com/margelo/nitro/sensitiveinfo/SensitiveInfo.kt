@@ -15,8 +15,13 @@ import javax.crypto.KeyGenerator
 
 /**
  * Secure storage implementation with multiple security levels.
- * Uses AndroidX EncryptedSharedPreferences with StrongBox when available.
- * Note: Biometric authentication must be handled at the JavaScript layer.
+ *
+ * - Standard: AES-256-GCM via EncryptedSharedPreferences
+ * - Biometric: Same storage, but guarded by a JS-level biometric check
+ * - StrongBox: Hardware-backed keys on supported devices (API 28+)
+ *
+ * Note: Biometric authentication is handled at the JS layer to allow
+ * unified prompts and fallback behavior across platforms.
  */
 @DoNotStrip
 class SensitiveInfo : HybridSensitiveInfoSpec() {
@@ -29,7 +34,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     private const val STRONGBOX_KEYSTORE_ALIAS = "SensitiveInfoStrongBoxKey"
   }
 
-  // Standard EncryptedSharedPreferences
+  // --- Standard EncryptedSharedPreferences ---
   private val standardPrefs by lazy {
     val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
@@ -42,7 +47,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     )
   }
 
-  // StrongBox EncryptedSharedPreferences (API 28+)
+  // --- StrongBox EncryptedSharedPreferences (API 28+) ---
   private val strongBoxPrefs by lazy {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && isStrongBoxAvailableInternal()) {
       try {
@@ -74,7 +79,8 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     }
   }
 
-  // Biometric storage uses standard encryption but requires JS-level authentication
+  // --- Biometric ---
+  // Uses standard encryption but requires JS-level biometric authentication
   private val biometricPrefs by lazy {
     val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
@@ -87,6 +93,10 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     )
   }
 
+  /**
+   * Map a requested security level to the appropriate SharedPreferences.
+   * Applies graceful fallbacks (biometric -> strongbox -> standard).
+   */
   private fun getPreferencesForSecurityLevel(securityLevel: SecurityLevel?): android.content.SharedPreferences {
     return when (securityLevel) {
       SecurityLevel.BIOMETRIC -> {
@@ -115,6 +125,9 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     }
   }
 
+  /**
+   * Get an item by key at the requested security level.
+   */
   @DoNotStrip
   override fun getItem(key: String, options: StorageOptions?): Promise<String?> = Promise.async {
     val securityLevel = options?.securityLevel
@@ -122,6 +135,9 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     prefs.getString(key, null)
   }
 
+  /**
+   * Store a key/value pair at the requested security level.
+   */
   @DoNotStrip
   override fun setItem(key: String, value: String, options: StorageOptions?): Promise<Unit> = Promise.async {
     val securityLevel = options?.securityLevel
@@ -129,6 +145,9 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     prefs.edit().putString(key, value).apply()
   }
 
+  /**
+   * Remove a single item.
+   */
   @DoNotStrip
   override fun removeItem(key: String, options: StorageOptions?): Promise<Unit> = Promise.async {
     val securityLevel = options?.securityLevel
@@ -136,6 +155,9 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     prefs.edit().remove(key).apply()
   }
 
+  /**
+   * Return all items for the selected backing store.
+   */
   @DoNotStrip
   override fun getAllItems(options: StorageOptions?): Promise<Map<String, String>> = Promise.async {
     val securityLevel = options?.securityLevel
@@ -143,6 +165,9 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     prefs.all.mapValues { it.value as? String ?: "" }
   }
 
+  /**
+   * Clear all items for the selected backing store.
+   */
   @DoNotStrip
   override fun clear(options: StorageOptions?): Promise<Unit> = Promise.async {
     val securityLevel = options?.securityLevel
@@ -150,16 +175,19 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     prefs.edit().clear().apply()
   }
 
+  /** Check if biometric authentication is available on this device. */
   @DoNotStrip
   override fun isBiometricAvailable(): Promise<Boolean> = Promise.async {
     isBiometricAvailableInternal()
   }
 
+  /** Check if StrongBox hardware security is available. */
   @DoNotStrip
   override fun isStrongBoxAvailable(): Promise<Boolean> = Promise.async {
     isStrongBoxAvailableInternal()
   }
 
+  /** Internal: Detect biometric availability via BiometricManager. */
   private fun isBiometricAvailableInternal(): Boolean {
     val biometricManager = BiometricManager.from(context)
     return when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
@@ -168,6 +196,7 @@ class SensitiveInfo : HybridSensitiveInfoSpec() {
     }
   }
 
+  /** Internal: Probe StrongBox by generating a temporary key. */
   private fun isStrongBoxAvailableInternal(): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       try {

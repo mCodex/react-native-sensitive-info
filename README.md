@@ -622,7 +622,7 @@ struct SecurityStatusScreen: View {
                 // Your custom UI
                 Button("Test Secure Storage") {
                     Task {
-                        let sensitiveInfo = SensitiveInfo()
+                        let sensitiveInfo = RNSensitiveInfo()
                         try await sensitiveInfo.setItem(
                             key: "test", 
                             value: "secure-data",
@@ -642,13 +642,12 @@ struct SecurityStatusScreen: View {
 
 ### Custom Integration
 
-Use the SensitiveInfo Swift class directly in your SwiftUI views:
-
+Use the RNSensitiveInfo Swift class directly in your SwiftUI views:
 ```swift
 struct CustomSecureView: View {
-    @State private var sensitiveInfo = SensitiveInfo()
+  @State private var sensitiveInfo = RNSensitiveInfo()
     @State private var secureData: String = ""
-    @State private var isLoading = false
+            let sensitiveInfo = RNSensitiveInfo()
     
     var body: some View {
         VStack {

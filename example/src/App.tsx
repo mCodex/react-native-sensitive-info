@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -10,31 +10,11 @@ import {
   StatusBar,
 } from 'react-native';
 import { clear } from 'react-native-sensitive-info';
-import {
-  AppHeader,
-  StoreItemForm,
-  SearchItemForm,
-  StoredItemsList,
-  BiometricSecurityDemo,
-} from './components';
-import { useSensitiveInfo } from './hooks';
+import { AppHeader, SecurityDemo } from './components';
 import { darkTheme } from './styles/darkTheme';
 
 export default function App() {
-  const {
-    storedItems,
-    isLoading,
-    loadAllItems,
-    storeItem,
-    searchItem,
-    removeItemById,
-  } = useSensitiveInfo();
-
-  useEffect(() => {
-    loadAllItems();
-  }, [loadAllItems]);
-
-  const handleClearAll = async () => {
+  const handleClearAll = useCallback(async () => {
     Alert.alert(
       'Clear All Data',
       'This will permanently delete all stored items. Are you sure?',
@@ -46,7 +26,6 @@ export default function App() {
           onPress: async () => {
             try {
               await clear();
-              await loadAllItems();
               Alert.alert('Success', 'All data cleared!');
             } catch (error) {
               console.error('Error clearing data:', error);
@@ -56,7 +35,7 @@ export default function App() {
         },
       ]
     );
-  };
+  }, []);
 
   return (
     <>
@@ -82,26 +61,11 @@ export default function App() {
             </Text>
           </View>
 
-          <BiometricSecurityDemo />
+          <SecurityDemo />
 
-          <TouchableOpacity
-            style={[styles.clearButton, isLoading && styles.disabledButton]}
-            onPress={handleClearAll}
-            disabled={isLoading}
-          >
+          <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
             <Text style={styles.clearButtonText}>🗑️ Clear All Data</Text>
           </TouchableOpacity>
-
-          <StoreItemForm isLoading={isLoading} onStoreItem={storeItem} />
-
-          <SearchItemForm isLoading={isLoading} onSearchItem={searchItem} />
-
-          <StoredItemsList
-            items={storedItems}
-            isLoading={isLoading}
-            onRefresh={loadAllItems}
-            onRemoveItem={removeItemById}
-          />
         </ScrollView>
       </SafeAreaView>
     </>
@@ -151,7 +115,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  disabledButton: {
-    opacity: 0.5,
-  },
+  disabledButton: { opacity: 0.5 },
 });

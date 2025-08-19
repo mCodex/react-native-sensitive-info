@@ -13,6 +13,7 @@ import AppKit
 // MARK: - Extensions for SecurityLevel
 
 public extension SecurityLevel {
+    /// Human-readable label for UI/debugging.
     var displayName: String {
         switch self {
         case .standard:
@@ -25,6 +26,7 @@ public extension SecurityLevel {
     }
     
     @available(iOS 13.0, macOS 10.15, *)
+    /// Suggested UI color for this level (SwiftUI only).
     var color: Color {
         switch self {
         case .standard:
@@ -37,6 +39,7 @@ public extension SecurityLevel {
     }
     
     /// Get the next fallback level
+    /// The next security level to try when the current one fails or is unavailable.
     var fallbackLevel: SecurityLevel? {
         switch self {
         case .strongbox:
@@ -52,6 +55,7 @@ public extension SecurityLevel {
 // MARK: - Error Handling
 
 /// Simplified error types
+/// Errors thrown by SensitiveInfo
 public enum SensitiveInfoError: Error, LocalizedError {
     case keychainError(OSStatus, String)
     case biometricNotAvailable
@@ -77,9 +81,11 @@ public enum SensitiveInfoError: Error, LocalizedError {
 // MARK: - Core Keychain Manager
 
 /// Simplified keychain manager with automatic fallback
+/// Utility for building queries and executing operations with fallbacks.
 class KeychainManager {
     
     /// Execute keychain operation with automatic fallback
+    /// Execute a keychain operation at a requested level with automatic fallback to lower levels.
     static func executeWithFallback<T>(
         key: String,
         options: StorageOptions?,
@@ -108,6 +114,7 @@ class KeychainManager {
     }
     
     /// Determine if we should fallback based on the error
+    /// Decide when to fall back to a lower security level based on common OSStatus codes.
     private static func shouldFallback(from level: SecurityLevel, error: Error) -> Bool {
         if let nsError = error as NSError? {
             let code = nsError.code
@@ -126,6 +133,7 @@ class KeychainManager {
         return buildQuery(for: nil, securityLevel: securityLevel, options: options)
     }
     /// Build keychain query for the specified security level and account key
+    /// Build a keychain query for an optional account key at a given level.
     static func buildQuery(for key: String?, securityLevel: SecurityLevel, options: StorageOptions?) -> [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -186,6 +194,7 @@ class KeychainManager {
 
 // MARK: - Main Implementation
 
+/// Internal implementation that directly talks to Keychain APIs.
 fileprivate class SensitiveInfoCore {
     
     /// Core implementation initializer
@@ -365,31 +374,50 @@ public final class RNSensitiveInfo: HybridSensitiveInfoSpec_base, HybridSensitiv
     }
     
     // MARK: - Core Operations
-    
+
+    /// Retrieve a single item.
+    /// - Parameters:
+    ///   - key: The storage key.
+    ///   - options: Optional storage/security options.
+    /// - Returns: A Promise resolving to the stored string (or nil).
     public func getItem(key: String, options: StorageOptions?) throws -> Promise<String?> {
         return Promise.async { [unowned self] in
             try self.implementation.getItem(key: key, options: options)
         }
     }
     
+    /// Store a single item.
+    /// - Parameters:
+    ///   - key: The storage key.
+    ///   - value: The value to store.
+    ///   - options: Optional storage/security options.
     public func setItem(key: String, value: String, options: StorageOptions?) throws -> Promise<Void> {
         return Promise.async { [unowned self] in
             try self.implementation.setItem(key: key, value: value, options: options)
         }
     }
     
+    /// Remove a single item.
+    /// - Parameters:
+    ///   - key: The storage key.
+    ///   - options: Optional storage/security options.
     public func removeItem(key: String, options: StorageOptions?) throws -> Promise<Void> {
         return Promise.async { [unowned self] in
             try self.implementation.removeItem(key: key, options: options)
         }
     }
     
+    /// Retrieve all stored items as a dictionary.
+    /// - Parameter options: Optional storage/security options.
+    /// - Returns: A Promise resolving to a dictionary of key/value pairs.
     public func getAllItems(options: StorageOptions?) throws -> Promise<Dictionary<String, String>> {
         return Promise.async { [unowned self] in
             try self.implementation.getAllItems(options: options)
         }
     }
     
+    /// Clear all items across all security levels.
+    /// - Parameter options: Optional storage/security options.
     public func clear(options: StorageOptions?) throws -> Promise<Void> {
         return Promise.async { [unowned self] in
             try self.implementation.clear(options: options)
@@ -397,13 +425,15 @@ public final class RNSensitiveInfo: HybridSensitiveInfoSpec_base, HybridSensitiv
     }
     
     // MARK: - Capability Detection
-    
+
+    /// Check whether biometric authentication is available on this device.
     public func isBiometricAvailable() throws -> Promise<Bool> {
         return Promise.async { [unowned self] in
             self.implementation.isBiometricAvailable()
         }
     }
     
+    /// Check whether Secure Enclave (StrongBox equivalent) is available on this device.
     public func isStrongBoxAvailable() throws -> Promise<Bool> {
         return Promise.async { [unowned self] in
             self.implementation.isStrongBoxAvailable()
