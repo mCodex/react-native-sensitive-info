@@ -1,1 +1,30 @@
+# Development files
 example/
+node_modules/
+.git/
+.github/
+*.log
+
+# Build artifacts
+lib/
+*.tgz
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+__tests__/
+*.test.js
+*.test.ts
+
+# Config files
+.eslintrc*
+.prettierrc*
+tsconfig.json

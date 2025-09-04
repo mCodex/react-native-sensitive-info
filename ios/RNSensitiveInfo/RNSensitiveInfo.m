@@ -2,9 +2,9 @@
 
 #import <Security/Security.h>
 #import "RNSensitiveInfo.h"
-#import "React/RCTConvert.h"
-#import "React/RCTBridge.h"
-#import "React/RCTUtils.h"
+
+#import "RNSensitiveInfoSpec.h"
+#import <React/RCTConvert.h>
 
 #if !TARGET_OS_TV
 #import <LocalAuthentication/LocalAuthentication.h>
@@ -12,7 +12,6 @@
 
 @implementation RNSensitiveInfo
 
-@synthesize bridge = _bridge;
 RCT_EXPORT_MODULE();
 
 CFStringRef convertkSecAttrAccessible(NSString* key){
@@ -353,4 +352,17 @@ RCT_EXPORT_METHOD(isSensorAvailable:(RCTPromiseResolveBlock)resolve rejecter:(RC
   resolve(@(NO));
 #endif
 }
+
+RCT_EXPORT_METHOD(setInvalidatedByBiometricEnrollment)
+{
+    // iOS doesn't need this method as it's handled automatically
+    // This is just for API compatibility with Android
+}
+
+RCT_EXPORT_METHOD(cancelFingerprintAuth)
+{
+    // iOS doesn't need this method as it's handled automatically
+    // This is just for API compatibility with Android
+}
+
 @end

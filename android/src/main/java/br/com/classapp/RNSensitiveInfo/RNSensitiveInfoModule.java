@@ -19,7 +19,6 @@ import androidx.annotation.NonNull;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
@@ -27,6 +26,9 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.turbomodule.core.interfaces.TurboModule;
+
+import br.com.classapp.RNSensitiveInfo.NativeSensitiveInfoSpec;
 
 import java.security.KeyStore;
 import java.util.HashMap;
@@ -42,7 +44,9 @@ import br.com.classapp.RNSensitiveInfo.utils.AppConstants;
 import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintAuthenticationDialogFragment;
 import br.com.classapp.RNSensitiveInfo.view.Fragments.FingerprintUiHelper;
 
-public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
+public class RNSensitiveInfoModule extends NativeSensitiveInfoSpec {
+
+    public static final String NAME = "RNSensitiveInfo";
 
     // This must have 'AndroidKeyStore' as value. Unfortunately there is no predefined constant.
     private static final String ANDROID_KEYSTORE_PROVIDER = "AndroidKeyStore";
@@ -77,7 +81,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-        return "RNSensitiveInfo";
+        return NAME;
     }
 
     /**
