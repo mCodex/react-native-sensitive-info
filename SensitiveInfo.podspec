@@ -28,8 +28,14 @@ Pod::Spec.new do |s|
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
 
-  load 'nitrogen/generated/ios/SensitiveInfo+autolinking.rb'
-  add_nitrogen_files(s)
+  # Guard: during initial clone the generated Nitrogen files may not exist yet.
+  autolinking_rb = File.join(__dir__, 'nitrogen/generated/ios/SensitiveInfo+autolinking.rb')
+  if File.exist?(autolinking_rb)
+    load autolinking_rb
+    add_nitrogen_files(s) if defined?(add_nitrogen_files)
+  else
+    Pod::UI.puts "[SensitiveInfo] Nitrogen generated files missing. Run `yarn nitrogen` (or `yarn bob build`) in the package root before `pod install`.".yellow if defined?(Pod::UI)
+  end
 
   install_modules_dependencies(s)
 end

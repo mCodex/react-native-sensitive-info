@@ -22,7 +22,13 @@ def reactNativeArchitectures() {
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
-apply from: '../nitrogen/generated/android/sensitiveinfo+autolinking.gradle'
+// Wrapped autolinking apply in existence check to avoid MissingResourceException during development before running `yarn nitrogen`.
+def _autolinkingGradle = file('../nitrogen/generated/android/sensitiveinfo+autolinking.gradle')
+if (_autolinkingGradle.exists()) {
+  apply from: _autolinkingGradle
+} else {
+  logger.lifecycle("[react-native-sensitive-info] Nitrogen autolinking script not found at ${_autolinkingGradle}. Run `yarn install && yarn nitrogen` (or `yarn prepare`) to generate it.")
+}
 
 apply plugin: "com.facebook.react"
 
@@ -128,9 +134,8 @@ dependencies {
 
   // Secure storage support
   implementation "androidx.security:security-crypto:1.0.0"
-  
+
   // Biometric authentication support
   implementation "androidx.biometric:biometric:1.1.0"
   implementation "androidx.fragment:fragment-ktx:1.6.2"
 }
-
