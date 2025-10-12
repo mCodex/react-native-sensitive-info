@@ -6,7 +6,7 @@ import {
   removeItem,
   getAllItems,
   clear,
-} from 'react-native-sensitive-info';
+} from '@velocitycareerlabs/react-native-sensitive-info';
 import type { StoredItem } from '../types';
 import { truncateValue } from '../utils/helpers';
 

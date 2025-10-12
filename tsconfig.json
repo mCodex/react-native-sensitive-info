@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-sensitive-info": ["./src/index"]
+      "@velocitycareerlabs/react-native-sensitive-info": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

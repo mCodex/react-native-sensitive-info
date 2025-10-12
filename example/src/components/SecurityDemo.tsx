@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { setItem, getItem, removeItem } from 'react-native-sensitive-info';
+import {
+  setItem,
+  getItem,
+  removeItem,
+} from '@velocitycareerlabs/react-native-sensitive-info';
 
 export const SecurityDemo: React.FC = () => {
   const [status, setStatus] = useState<string>('Idle');

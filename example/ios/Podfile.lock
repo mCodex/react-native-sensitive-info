@@ -2287,7 +2287,7 @@ PODS:
   - SDWebImage/Core (5.21.3)
   - SDWebImageSVGCoder (1.8.0):
     - SDWebImage/Core (~> 5.6)
-  - SensitiveInfo (6.0.0):
+  - SensitiveInfo (6.0.0-vcl-1.0.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2628,7 +2628,7 @@ SPEC CHECKSUMS:
   ReactCommon: 394c6b92765cf6d211c2c3f7f6bc601dffb316a6
   SDWebImage: 16309af6d214ba3f77a7c6f6fdda888cb313a50a
   SDWebImageSVGCoder: 8e10c8f6cc879c7dfb317b284e13dd589379f01c
-  SensitiveInfo: 785bab176c71eb9c94aaf934550cd18eccb9767a
+  SensitiveInfo: 1c7c64f5c8a52b6ad1dcbe7a0b9ac3488004f7b9
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: a3ed390a19db0459bd6839823a6ac6d9c6db198d
 

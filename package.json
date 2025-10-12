@@ -1,6 +1,6 @@
 {
-  "name": "react-native-sensitive-info",
-  "version": "6.0.0",
+  "name": "@velocitycareerlabs/react-native-sensitive-info",
+  "version": "6.0.0-vcl-1.0.0",
   "description": "..",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

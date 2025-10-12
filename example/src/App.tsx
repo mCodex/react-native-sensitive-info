@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
-import { clear } from 'react-native-sensitive-info';
+import { clear } from '@velocitycareerlabs/react-native-sensitive-info';
 import { AppHeader, SecurityDemo } from './components';
 import { darkTheme } from './styles/darkTheme';
 
