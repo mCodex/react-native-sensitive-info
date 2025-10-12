@@ -3,6 +3,7 @@ import Security
 import LocalAuthentication
 import SwiftUI
 import NitroModules
+import CryptoKit
 
 #if os(iOS)
 import UIKit
