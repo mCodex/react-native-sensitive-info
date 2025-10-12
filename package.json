@@ -4,6 +4,10 @@
   "description": "..",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "source": "./src/index.tsx",
@@ -58,9 +62,6 @@
     "url": "https://github.com/mCodex/react-native-sensitive-info/issues"
   },
   "homepage": "https://github.com/mCodex/react-native-sensitive-info#readme",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
-  },
   "devDependencies": {
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/compat": "^1.3.2",
