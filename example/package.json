@@ -4,31 +4,34 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "start": "react-native start",
-    "build:android": "react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
-    "build:ios": "react-native build-ios --mode Debug"
+    "ios": "react-native run-ios --simulator='iPhone 16'",
+    "lint": "eslint .",
+    "start": "react-native start --reset-cache",
+    "test": "jest",
+    "pod": "bundle install && bundle exec pod install --project-directory=ios"
   },
   "dependencies": {
-    "react": "19.1.0",
-    "react-native": "0.81.x",
-    "react-native-nitro-modules": "^0.28.1"
+    "@react-native/new-app-screen": "0.82.0",
+    "react": "19.1.1",
+    "react-native": "0.82.0",
+    "react-native-nitro-modules": "0.30.0",
+    "react-native-safe-area-context": "^5.5.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.3",
-    "@babel/preset-env": "^7.28.3",
-    "@babel/runtime": "^7.28.3",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
     "@react-native-community/cli": "20.0.0",
     "@react-native-community/cli-platform-android": "20.0.0",
     "@react-native-community/cli-platform-ios": "20.0.0",
-    "@react-native/babel-preset": "0.81.x",
-    "@react-native/metro-config": "0.81.x",
-    "@react-native/typescript-config": "0.81.x",
-    "@types/react": "^19.1.10",
-    "react-native-builder-bob": "^0.40.13",
-    "react-native-monorepo-config": "^0.1.9"
+    "@react-native/babel-preset": "0.82.0",
+    "@react-native/eslint-config": "0.82.0",
+    "@react-native/metro-config": "0.82.0",
+    "@react-native/typescript-config": "0.82.0",
+    "@types/jest": "^29.5.13",
+    "babel-plugin-module-resolver": "^5.0.2"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   }
 }

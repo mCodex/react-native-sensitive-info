@@ -1,21 +1,24 @@
 {
-  "cxxNamespace": ["sensitiveinfo"],
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "sensitiveinfo"
+  ],
   "ios": {
     "iosModuleName": "SensitiveInfo"
   },
   "android": {
-    "androidNamespace": ["sensitiveinfo"],
-    "androidCxxLibName": "sensitiveinfo"
+    "androidNamespace": [
+      "sensitiveinfo"
+    ],
+    "androidCxxLibName": "SensitiveInfo"
   },
   "autolinking": {
     "SensitiveInfo": {
-      "swift": "RNSensitiveInfo",
-      "kotlin": "SensitiveInfo"
-    },
-    "BiometricPromptView": {
-      "swift": "HybridBiometricPromptView",
-      "kotlin": "HybridBiometricPromptView"
+      "swift": "HybridSensitiveInfo",
+      "kotlin": "HybridSensitiveInfo"
     }
   },
-  "ignorePaths": ["node_modules"]
+  "ignorePaths": [
+    "**/node_modules"
+  ]
 }
