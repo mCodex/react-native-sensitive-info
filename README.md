@@ -13,7 +13,7 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 > Version 6 drops Windows support. The module now targets iOS and Android only.
 
 > [!IMPORTANT]
-> This README tracks the in-progress v6 work on `main`. For the stable legacy release, switch to the `v5.x` branch.
+> This README tracks the in-progress v6 work on `master`. For the stable legacy release, switch to the `v5.x` branch.
 
 ## Table of contents
 
