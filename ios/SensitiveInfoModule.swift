@@ -37,18 +37,18 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
   // MARK: - Public API
 
   /// Stores or updates a secret. Duplicate keys are rewritten using the stronger defaults.
-  @objc
+  @objc(setItem:value:options:resolve:reject:)
   func setItem(_ key: String,
                value: String,
                options: NSDictionary,
-               resolver resolve: @escaping RCTPromiseResolveBlock,
-               rejecter reject: @escaping RCTPromiseRejectBlock) {
+               resolve resolve: @escaping RCTPromiseResolveBlock,
+               reject reject: @escaping RCTPromiseRejectBlock) {
     let parsed = KeychainOptions(dictionary: options, invalidateBiometricEnrollment: invalidateBiometricEnrollment)
 
     queue.async {
       var baseQuery = KeychainQueryBuilder.baseQuery(for: key, options: parsed)
       guard let valueData = value.data(using: .utf8) else {
-  self.rejectPromise("E_ENCODING", "Unable to encode value using UTF-8.", reject: reject)
+        self.rejectPromise("E_ENCODING", "Unable to encode value using UTF-8.", reject: reject)
         return
       }
 
@@ -87,12 +87,21 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
   }
 
+  @objc(setItemWithDictionary:value:options:resolve:reject:)
+  func setItemWithDictionary(_ key: String,
+                             value: String,
+                             options: NSDictionary,
+                             resolve resolve: @escaping RCTPromiseResolveBlock,
+                             reject reject: @escaping RCTPromiseRejectBlock) {
+    setItem(key, value: value, options: options, resolve: resolve, reject: reject)
+  }
+
   /// Reads a secret. When legacy accessibility flags are encountered we silently upgrade them.
-  @objc
+  @objc(getItem:options:resolve:reject:)
   func getItem(_ key: String,
                options: NSDictionary,
-               resolver resolve: @escaping RCTPromiseResolveBlock,
-               rejecter reject: @escaping RCTPromiseRejectBlock) {
+               resolve resolve: @escaping RCTPromiseResolveBlock,
+               reject reject: @escaping RCTPromiseRejectBlock) {
     let parsed = KeychainOptions(dictionary: options, invalidateBiometricEnrollment: invalidateBiometricEnrollment)
     let baseQuery = KeychainQueryBuilder.baseQuery(for: key, options: parsed)
     var lookupQuery = KeychainQueryBuilder.lookupQuery(from: baseQuery, options: parsed)
@@ -104,7 +113,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
       }
 
       #if os(tvOS)
-    self.rejectPromise("E_UNAVAILABLE", "Biometric authentication is not available on tvOS.", reject: reject)
+      self.rejectPromise("E_UNAVAILABLE", "Biometric authentication is not available on tvOS.", reject: reject)
       #else
       let context = LAContext()
       context.localizedFallbackTitle = parsed.localizedFallbackTitle ?? ""
@@ -136,11 +145,19 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
   }
 
-  @objc
+  @objc(getItemWithDictionary:options:resolve:reject:)
+  func getItemWithDictionary(_ key: String,
+                             options: NSDictionary,
+                             resolve resolve: @escaping RCTPromiseResolveBlock,
+                             reject reject: @escaping RCTPromiseRejectBlock) {
+    getItem(key, options: options, resolve: resolve, reject: reject)
+  }
+
+  @objc(hasItem:options:resolve:reject:)
   func hasItem(_ key: String,
                options: NSDictionary,
-               resolver resolve: @escaping RCTPromiseResolveBlock,
-               rejecter reject: @escaping RCTPromiseRejectBlock) {
+               resolve resolve: @escaping RCTPromiseResolveBlock,
+               reject reject: @escaping RCTPromiseRejectBlock) {
     let parsed = KeychainOptions(dictionary: options, invalidateBiometricEnrollment: invalidateBiometricEnrollment)
     queue.async {
       let query = KeychainQueryBuilder.existsQuery(for: key, options: parsed)
@@ -156,11 +173,19 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
   }
 
+  @objc(hasItemWithDictionary:options:resolve:reject:)
+  func hasItemWithDictionary(_ key: String,
+                             options: NSDictionary,
+                             resolve resolve: @escaping RCTPromiseResolveBlock,
+                             reject reject: @escaping RCTPromiseRejectBlock) {
+    hasItem(key, options: options, resolve: resolve, reject: reject)
+  }
+
   /// Returns all stored items for the requested service. Useful for migrations.
-  @objc
+  @objc(getAllItems:resolve:reject:)
   func getAllItems(_ options: NSDictionary,
-                   resolver resolve: @escaping RCTPromiseResolveBlock,
-                   rejecter reject: @escaping RCTPromiseRejectBlock) {
+                   resolve resolve: @escaping RCTPromiseResolveBlock,
+                   reject reject: @escaping RCTPromiseRejectBlock) {
     let parsed = KeychainOptions(dictionary: options, invalidateBiometricEnrollment: invalidateBiometricEnrollment)
     queue.async {
       var aggregated: [[String: String]] = []
@@ -190,11 +215,18 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
   }
 
-  @objc
+  @objc(getAllItemsWithDictionary:resolve:reject:)
+  func getAllItemsWithDictionary(_ options: NSDictionary,
+                                 resolve resolve: @escaping RCTPromiseResolveBlock,
+                                 reject reject: @escaping RCTPromiseRejectBlock) {
+    getAllItems(options, resolve: resolve, reject: reject)
+  }
+
+  @objc(deleteItem:options:resolve:reject:)
   func deleteItem(_ key: String,
                   options: NSDictionary,
-                  resolver resolve: @escaping RCTPromiseResolveBlock,
-                  rejecter reject: @escaping RCTPromiseRejectBlock) {
+                  resolve resolve: @escaping RCTPromiseResolveBlock,
+                  reject reject: @escaping RCTPromiseRejectBlock) {
     let parsed = KeychainOptions(dictionary: options, invalidateBiometricEnrollment: invalidateBiometricEnrollment)
     queue.async {
       let query = KeychainQueryBuilder.baseQuery(for: key, options: parsed)
@@ -207,9 +239,17 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
   }
 
-  @objc
+  @objc(deleteItemWithDictionary:options:resolve:reject:)
+  func deleteItemWithDictionary(_ key: String,
+                                options: NSDictionary,
+                                resolve resolve: @escaping RCTPromiseResolveBlock,
+                                reject reject: @escaping RCTPromiseRejectBlock) {
+    deleteItem(key, options: options, resolve: resolve, reject: reject)
+  }
+
+  @objc(isSensorAvailable:reject:)
   func isSensorAvailable(_ resolve: @escaping RCTPromiseResolveBlock,
-                         rejecter reject: @escaping RCTPromiseRejectBlock) {
+                         reject reject: @escaping RCTPromiseRejectBlock) {
     #if os(tvOS)
     resolve(false)
     #else
@@ -225,7 +265,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
 
     if let error = error, error.code == LAError.biometryLockout.rawValue {
-  self.rejectPromise("E_BIOMETRY_LOCKED", "Biometry is locked", error: error, reject: reject)
+      self.rejectPromise("E_BIOMETRY_LOCKED", "Biometry is locked", error: error, reject: reject)
       return
     }
 
@@ -233,9 +273,15 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     #endif
   }
 
-  @objc
+  @objc(isSensorAvailableBridge:reject:)
+  func isSensorAvailableBridge(_ resolve: @escaping RCTPromiseResolveBlock,
+                               reject reject: @escaping RCTPromiseRejectBlock) {
+    isSensorAvailable(resolve, reject: reject)
+  }
+
+  @objc(hasEnrolledFingerprints:reject:)
   func hasEnrolledFingerprints(_ resolve: @escaping RCTPromiseResolveBlock,
-                               rejecter reject: @escaping RCTPromiseRejectBlock) {
+                               reject reject: @escaping RCTPromiseRejectBlock) {
     #if os(tvOS)
     resolve(false)
     #else
@@ -256,14 +302,20 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     case .biometryNotEnrolled, .biometryNotAvailable:
       resolve(false)
     case .biometryLockout:
-  self.rejectPromise("E_BIOMETRY_LOCKED", "Biometry is locked", error: error, reject: reject)
+      self.rejectPromise("E_BIOMETRY_LOCKED", "Biometry is locked", error: error, reject: reject)
     default:
       resolve(false)
     }
     #endif
   }
 
-  @objc
+  @objc(hasEnrolledFingerprintsBridge:reject:)
+  func hasEnrolledFingerprintsBridge(_ resolve: @escaping RCTPromiseResolveBlock,
+                                     reject reject: @escaping RCTPromiseRejectBlock) {
+    hasEnrolledFingerprints(resolve, reject: reject)
+  }
+
+  @objc(cancelFingerprintAuth)
   func cancelFingerprintAuth() {
     #if !os(tvOS)
     queue.async {
@@ -273,7 +325,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     #endif
   }
 
-  @objc
+  @objc(setInvalidatedByBiometricEnrollment:)
   func setInvalidatedByBiometricEnrollment(_ value: Bool) {
     invalidateBiometricEnrollment = value
   }
@@ -305,7 +357,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
 
     guard let value = String(data: data, encoding: .utf8) else {
-  self.rejectPromise("E_DECODING", "Unable to decode stored value using UTF-8.", reject: reject)
+      self.rejectPromise("E_DECODING", "Unable to decode stored value using UTF-8.", reject: reject)
       return
     }
 
