@@ -1,0 +1,216 @@
+package com.sensitiveinfo
+
+import android.content.SharedPreferences
+import android.util.Log
+import androidx.annotation.VisibleForTesting
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableNativeArray
+import com.facebook.react.bridge.WritableNativeMap
+import com.facebook.react.module.annotations.ReactModule
+
+@ReactModule(name = SensitiveInfoModule.NAME)
+class SensitiveInfoModule internal constructor(reactContext: ReactApplicationContext) :
+  ReactContextBaseJavaModule(reactContext) {
+
+  private val keyStoreManager = KeyStoreManager(reactContext)
+  private val cryptoManager = CryptoManager(keyStoreManager.keyStore)
+  private val biometricHandler = BiometricHandler(reactContext, keyStoreManager, cryptoManager)
+
+  init {
+    runCatching { keyStoreManager.ensureGeneralKey() }
+      .onFailure { Log.e(NAME, "Failed to initialize keystore", it) }
+  }
+
+  override fun getName(): String = NAME
+
+  @ReactMethod
+  fun setItem(key: String, value: String, options: ReadableMap, promise: Promise) {
+    val parsed = AndroidOptions.from(options)
+    val prefs = prefs(parsed.sharedPreferencesName)
+
+    if (parsed.touchId) {
+      biometricHandler.encryptWithBiometrics(
+        plainText = value,
+        prompt = parsed.promptOptions(),
+        promise = promise,
+        emitEvents = !parsed.showModal,
+      ) { payload ->
+        if (prefs.edit().putString(key, payload).commit()) {
+          promise.resolve(null)
+        } else {
+          promise.reject("E_WRITE_FAILURE", "Failed to persist value for key $key")
+        }
+      }
+      return
+    }
+
+    try {
+      val encrypted = cryptoManager.encrypt(value)
+      if (!prefs.edit().putString(key, encrypted).commit()) {
+        promise.reject("E_WRITE_FAILURE", "Failed to persist value for key $key")
+        return
+      }
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject(error)
+    }
+  }
+
+  @ReactMethod
+  fun getItem(key: String, options: ReadableMap, promise: Promise) {
+    val parsed = AndroidOptions.from(options)
+    val prefs = prefs(parsed.sharedPreferencesName)
+    val stored = prefs.getString(key, null)
+
+    if (stored == null) {
+      promise.resolve(null)
+      return
+    }
+
+    if (parsed.touchId) {
+      biometricHandler.decryptWithBiometrics(
+        payload = stored,
+        prompt = parsed.promptOptions(),
+        promise = promise,
+        emitEvents = !parsed.showModal,
+      ) { decrypted ->
+        promise.resolve(decrypted)
+      }
+      return
+    }
+
+    try {
+      val result = cryptoManager.decrypt(stored)
+      promise.resolve(result.value)
+      if (result.usedLegacyFormat) {
+        migrateValue(key, result.value, prefs)
+      }
+    } catch (error: Exception) {
+      promise.reject(error)
+    }
+  }
+
+  @ReactMethod
+  fun hasItem(key: String, options: ReadableMap, promise: Promise) {
+    val parsed = AndroidOptions.from(options)
+    val prefs = prefs(parsed.sharedPreferencesName)
+    promise.resolve(prefs.contains(key))
+  }
+
+  @ReactMethod
+  fun getAllItems(options: ReadableMap, promise: Promise) {
+    val parsed = AndroidOptions.from(options)
+    val prefs = prefs(parsed.sharedPreferencesName)
+    val map = prefs.all
+    val entries = mutableListOf<SensitiveInfoEntry>()
+    map.forEach { (entryKey, rawValue) ->
+      val stored = rawValue as? String ?: return@forEach
+      val decrypted = runCatching { cryptoManager.decrypt(stored) }
+        .onSuccess { if (it.usedLegacyFormat) migrateValue(entryKey, it.value, prefs) }
+        .map { it.value }
+        .getOrElse {
+          Log.w(NAME, "Failed to decrypt value for key $entryKey", it)
+          stored
+        }
+      entries += SensitiveInfoEntry(entryKey, decrypted, parsed.sharedPreferencesName)
+    }
+
+    promise.resolve(SensitiveInfoEntry.toWritableArray(entries))
+  }
+
+  @ReactMethod
+  fun deleteItem(key: String, options: ReadableMap, promise: Promise) {
+    val parsed = AndroidOptions.from(options)
+    val prefs = prefs(parsed.sharedPreferencesName)
+    if (!prefs.edit().remove(key).commit()) {
+      promise.reject("E_REMOVE_FAILURE", "Failed to remove key $key")
+      return
+    }
+    promise.resolve(null)
+  }
+
+  @ReactMethod
+  fun isSensorAvailable(promise: Promise) {
+    promise.resolve(biometricHandler.isBiometricAvailable())
+  }
+
+  @ReactMethod
+  fun hasEnrolledFingerprints(promise: Promise) {
+    promise.resolve(biometricHandler.hasEnrolledBiometrics())
+  }
+
+  @ReactMethod
+  fun cancelFingerprintAuth() {
+    biometricHandler.cancelOngoing()
+  }
+
+  @ReactMethod
+  fun setInvalidatedByBiometricEnrollment(value: Boolean) {
+    keyStoreManager.invalidateOnEnrollment = value
+  }
+
+  private fun migrateValue(key: String, plainText: String, prefs: SharedPreferences) {
+    runCatching {
+      val reEncrypted = cryptoManager.encrypt(plainText)
+      prefs.edit().putString(key, reEncrypted).apply()
+    }
+  }
+
+  private fun prefs(name: String): SharedPreferences =
+    reactApplicationContext.getSharedPreferences(name, ReactApplicationContext.MODE_PRIVATE)
+
+  data class SensitiveInfoEntry(val key: String, val value: String, val service: String) {
+    companion object {
+      fun toWritableArray(arguments: List<SensitiveInfoEntry>): com.facebook.react.bridge.WritableArray {
+        val array = WritableNativeArray()
+        arguments.forEach { entry ->
+          val map = WritableNativeMap()
+          map.putString("key", entry.key)
+          map.putString("value", entry.value)
+          map.putString("service", entry.service)
+          array.pushMap(map)
+        }
+        return array
+      }
+    }
+  }
+
+  data class AndroidOptions(
+    val sharedPreferencesName: String,
+    val touchId: Boolean,
+    val showModal: Boolean,
+    val strings: Map<String, String>
+  ) {
+    fun promptOptions(): BiometricHandler.PromptOptions = BiometricHandler.PromptOptions(
+      header = strings["header"],
+      description = strings["description"],
+      hint = strings["hint"],
+      cancel = strings["cancel"]
+    )
+
+    companion object {
+      fun from(options: ReadableMap): AndroidOptions {
+        val name = options.getStringOrNull("sharedPreferencesName") ?: "shared_preferences"
+        val touchId = options.getBooleanOrDefault("touchID", false)
+        val showModal = options.getBooleanOrDefault("showModal", true)
+        val strings = options.getMapOrNull("strings")?.toHashMap()?.mapNotNull {
+          val value = it.value as? String ?: return@mapNotNull null
+          it.key to value
+        }?.toMap() ?: emptyMap()
+        return AndroidOptions(name, touchId, showModal, strings)
+      }
+    }
+  }
+
+  companion object {
+    const val NAME = "SensitiveInfo"
+  }
+}
+
+private fun ReadableMap.getStringOrNull(key: String): String? = if (hasKey(key) && !isNull(key)) getString(key) else null
+private fun ReadableMap.getBooleanOrDefault(key: String, defaultValue: Boolean): Boolean = if (hasKey(key) && !isNull(key)) getBoolean(key) else defaultValue
+private fun ReadableMap.getMapOrNull(key: String): ReadableMap? = if (hasKey(key) && !isNull(key)) getMap(key) else null

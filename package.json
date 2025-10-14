@@ -1,67 +1,169 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "6.0.0-alpha.9",
-  "main": "build/index.js",
-  "module": "build/index.es.js",
-  "jsnext:main": "build/index.es.js",
-  "types": "index.d.ts",
-  "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
-  "scripts": {
-    "build": "rimraf -rf build && rollup -c",
-    "prepublishOnly": "yarn build",
-    "localPublish": "yalc publish && cd example && yalc add react-native-sensitive-info --yarn && cd .."
+  "version": "5.5.0",
+  "description": "...",
+  "main": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.tsx",
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js"
+    },
+    "./package.json": "./package.json"
   },
-  "author": {
-    "name": "mCodex & ClassApp",
-    "email": "mtw.andrade@gmail.com"
-  },
-  "contributors": [
-    "Mateus Andrade mtw.andrade@gmail.com",
-    "Samin Shams <samin@classapp.co>"
-  ],
-  "homepage": "https://mcodex.dev/react-native-sensitive-info/",
-  "bugs": {
-    "url": "https://github.com/mcodex/react-native-sensitive-info/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/mcodex/react-native-sensitive-info.git"
-  },
-  "keywords": [
+  "files": [
+    "src",
+    "lib",
     "android",
     "ios",
-    "keychain",
-    "shared-preferences",
-    "react-native",
-    "windows"
+    "cpp",
+    "*.podspec",
+    "react-native.config.js",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
   ],
+  "scripts": {
+    "example": "yarn workspace react-native-sensitive-info-example",
+    "test": "jest",
+    "typecheck": "tsc",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "prepare": "bob build",
+    "release": "release-it --only-version"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mCodex/react-native-sensitive-info.git"
+  },
+  "author": "Mateus Andrade <mat.andrade@live.com> (https://github.com/mCodex)",
   "license": "MIT",
-  "peerDependencies": {
-    "react-native": "*"
+  "bugs": {
+    "url": "https://github.com/mCodex/react-native-sensitive-info/issues"
+  },
+  "homepage": "https://github.com/mCodex/react-native-sensitive-info#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^16.0.0",
-    "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^4.6.1",
-    "@typescript-eslint/parser": "^4.6.1",
-    "eslint": "^7.12.1",
-    "eslint-config-airbnb": "^18.2.0",
-    "eslint-config-prettier": "^6.15.0",
-    "eslint-import-resolver-typescript": "^2.3.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-jsx-a11y": "^6.4.1",
-    "eslint-plugin-prettier": "^3.1.4",
-    "eslint-plugin-react": "^7.21.5",
-    "eslint-plugin-react-hooks": "^4.2.0",
-    "prettier": "^2.1.2",
-    "react": "^17.0.1",
-    "react-native": "^0.62.2",
-    "react-native-windows": "0.63.6",
-    "rollup": "^2.33.1",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-typescript2": "^0.29.0",
-    "typescript": "^4.0.5",
-    "yalc": "^1.0.0-pre.45"
+    "@commitlint/config-conventional": "^20.0.0",
+    "@eslint/compat": "^1.4.0",
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.37.0",
+    "@evilmartians/lefthook": "^1.13.6",
+    "@react-native-community/cli": "20.0.2",
+    "@react-native/babel-preset": "0.82.0",
+    "@react-native/eslint-config": "^0.82.0",
+    "@release-it/conventional-changelog": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.2",
+    "commitlint": "^20.1.0",
+    "del-cli": "^7.0.0",
+    "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^30.2.0",
+    "prettier": "^3.6.2",
+    "react": "19.2.0",
+    "react-native": "0.82.0",
+    "react-native-builder-bob": "^0.40.13",
+    "release-it": "^19.0.5",
+    "turbo": "^2.5.8",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "workspaces": [
+    "example"
+  ],
+  "packageManager": "yarn@3.6.1",
+  "jest": {
+    "preset": "react-native",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/example/node_modules",
+      "<rootDir>/lib/"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release ${version}",
+      "tagName": "v${version}"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": true
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": {
+          "name": "angular"
+        }
+      }
+    }
+  },
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "codegenConfig": {
+    "name": "SensitiveInfoSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.sensitiveinfo"
+    },
+    "ios": {
+      "modules": {
+        "SensitiveInfo": "SensitiveInfo"
+      }
+    }
+  },
+  "create-react-native-library": {
+    "languages": "kotlin-swift",
+    "type": "module",
+    "version": "0.54.5"
   }
 }
