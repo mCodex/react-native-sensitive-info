@@ -149,7 +149,7 @@
     ]
   },
   "codegenConfig": {
-    "name": "SensitiveInfoSpec",
+    "name": "NativeSensitiveInfoSpec",
     "type": "modules",
     "jsSrcsDir": "src",
     "android": {

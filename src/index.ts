@@ -1,5 +1,5 @@
 import NativeSensitiveInfo from './NativeSensitiveInfo';
-import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
+import type { SensitiveInfoOptions } from './NativeSensitiveInfoSpec';
 import type {
   RNSensitiveInfoOptions,
   RNSensitiveInfoBiometryType,
@@ -13,8 +13,41 @@ function withDefaultOptions(
   return options ?? {};
 }
 
-function toNativeOptions(options?: RNSensitiveInfoOptions): UnsafeObject {
-  return withDefaultOptions(options) as unknown as UnsafeObject;
+function toNativeOptions(
+  options?: RNSensitiveInfoOptions
+): SensitiveInfoOptions {
+  const normalized = withDefaultOptions(options);
+  const { kSecAttrSynchronizable, ...rest } = normalized;
+  const prepared: Record<string, unknown> = { ...rest };
+
+  const mapped = mapSynchronizableValue(kSecAttrSynchronizable);
+  if (mapped !== undefined) {
+    prepared.kSecAttrSynchronizable = mapped;
+  }
+
+  return prepared as SensitiveInfoOptions;
+}
+
+function mapSynchronizableValue(
+  value: RNSensitiveInfoOptions['kSecAttrSynchronizable']
+): SensitiveInfoOptions['kSecAttrSynchronizable'] | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (value === true || value === 'enabled') {
+    return 'enabled';
+  }
+
+  if (value === false || value === 'disabled') {
+    return 'disabled';
+  }
+
+  if (value === 'kSecAttrSynchronizableAny' || value === 'any') {
+    return 'any';
+  }
+
+  return undefined;
 }
 
 export function setItem(

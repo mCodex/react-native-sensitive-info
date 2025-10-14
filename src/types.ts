@@ -45,7 +45,12 @@ export type RNSensitiveInfoOptions = Readonly<{
   /** iOS: Custom accessibility level, defaults to `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. */
   readonly kSecAttrAccessible?: RNSensitiveInfoAttrAccessibleOptions;
   /** iOS: Whether the keychain item should sync via iCloud keychain. */
-  readonly kSecAttrSynchronizable?: boolean;
+  readonly kSecAttrSynchronizable?:
+    | boolean
+    | 'kSecAttrSynchronizableAny'
+    | 'any'
+    | 'enabled'
+    | 'disabled';
   /** iOS: Namespaced keychain service. Defaults to `app`. */
   readonly keychainService?: string;
   /** Android: Name for the backing SharedPreferences file. Defaults to `shared_preferences`. */

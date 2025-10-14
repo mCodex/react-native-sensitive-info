@@ -3,7 +3,10 @@
 Modern, secure storage for React Native built on Keychain (iOS) and Android Keystore. This release focuses on security hardening, TurboModule support, and zero-touch migration from legacy data.
 
 > [!TIP]
-> Upgrading from `v5.x`? Install the new version and keep using the same API. Existing secrets are upgraded in-place the next time they are read—no manual migration required.
+> Upgrading from `v5.5.0`? Install the new version and keep using the same API. Existing secrets are upgraded in-place the next time they are read—no manual migration required.
+
+> [!WARNING]
+> Looking for the Nitro module build? The actively developed release now lives on the `master` branch and ships Nitro by default. The `v5.x` line (this branch) stays on the legacy architecture and only receives critical bug fixes.
 
 ## ✨ Highlights
 
@@ -68,6 +71,30 @@ console.log('Biometry', sensor);
 > [!IMPORTANT]
 > Returning `false` from `isSensorAvailable` means the device *cannot* use biometrics right now (locked out or not enrolled). Handle this gracefully by falling back to device PIN/password flows.
 
+> [!CAUTION]
+> Simulators and emulators only emulate biometric sensors. In the iOS simulator open **Hardware → Face ID** (or Touch ID) to enrol and trigger prompts. Android emulators must have a fingerprint/biometric enrolled in Settings and you can emulate a scan with `adb emu finger touch 1`. Always verify flows on a physical device before shipping.
+
+## 🎯 Example app
+
+- A complete playground showcasing every API ships in `example`. Run it with `yarn example ios` or `yarn example android` and use the on-screen controls to create, read, list, and delete secrets while toggling biometric protection.
+- The UI also displays hardware requirements and explains how to trigger Face ID / Biometric Prompt inside simulators and emulators.
+
+## 📱 Platform permissions
+
+- **Android**: Add the biometric permissions to your manifest so Android 9 and below expose fingerprint support.
+
+	```xml
+	<uses-permission android:name="android.permission.USE_BIOMETRIC" />
+	<uses-permission android:name="android.permission.USE_FINGERPRINT" />
+	```
+
+- **iOS**: Declare why you access biometrics in your `Info.plist`.
+
+	```xml
+	<key>NSFaceIDUsageDescription</key>
+	<string>Authenticate the user before revealing sensitive information.</string>
+	```
+
 ## 🔍 API overview
 
 | Function | Description |
@@ -96,14 +123,6 @@ console.log('Biometry', sensor);
 | `kSecAttrSynchronizable` | iOS | `kSecAttrSynchronizableAny` | Set to `false` to disable iCloud Keychain sync. |
 | `showModal` | Android | `true` | When `true`, the Android BiometricPrompt UI is shown. When `false` the module emits events for custom UIs. |
 | `strings` | Android | — | Localised copy for the Android prompt (header, hint, etc.). |
-
-## 🧪 Testing tips
-
-> [!TIP]
-> Use the example app (`yarn example ios` / `yarn example android`) to exercise biometric flows. The Android mock prompt accepts any fingerprint in the emulator.
-
-- For Jest tests, mock `react-native-sensitive-info` and assert against your business logic.
-- Detox/E2E: prefer injecting test doubles instead of attempting to spoof biometrics.
 
 ## 🔐 Security & Migration notes
 
