@@ -1,5 +1,6 @@
 package com.sensitiveinfo
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.facebook.react.bridge.Promise
@@ -12,7 +13,7 @@ import com.facebook.react.module.annotations.ReactModule
 
 // React Native TurboModule exposing encrypted SharedPreferences storage backed by Android Keystore.
 // The module keeps the historic JS API intact while silently re-encrypting legacy values when they are read.
-@ReactModule(name = SensitiveInfoModule.NAME, isTurboModule = true)
+@ReactModule(name = SensitiveInfoModule.NAME)
 class SensitiveInfoModule internal constructor(reactContext: ReactApplicationContext) :
   NativeSensitiveInfoSpec(reactContext) {
 
@@ -42,7 +43,7 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
         if (prefs.edit().putString(key, payload).commit()) {
           promise.resolve(null)
         } else {
-          promise.reject("E_WRITE_FAILURE", "Failed to persist value for key $key")
+          promise.rejectSafely("E_WRITE_FAILURE", "Failed to persist value for key $key")
         }
       }
       return
@@ -51,13 +52,17 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
     try {
       val encrypted = cryptoManager.encrypt(value)
       if (!prefs.edit().putString(key, encrypted).commit()) {
-        promise.reject("E_WRITE_FAILURE", "Failed to persist value for key $key")
+        promise.rejectSafely("E_WRITE_FAILURE", "Failed to persist value for key $key")
         return
       }
       // Stored value is now in the v2 format, so future reads can skip the migration branch.
       promise.resolve(null)
     } catch (error: Exception) {
-      promise.reject(error)
+      promise.rejectSafely(
+        code = "E_CRYPTO_FAILURE",
+        message = "Failed to encrypt value for key $key",
+        throwable = error
+      )
     }
   }
 
@@ -91,7 +96,11 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
         migrateValue(key, result.value, prefs)
       }
     } catch (error: Exception) {
-      promise.reject(error)
+      promise.rejectSafely(
+        code = "E_CRYPTO_FAILURE",
+        message = "Failed to decrypt value for key $key",
+        throwable = error
+      )
     }
   }
 
@@ -128,7 +137,7 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
     val parsed = AndroidOptions.from(options)
     val prefs = prefs(parsed.sharedPreferencesName)
     if (!prefs.edit().remove(key).commit()) {
-      promise.reject("E_REMOVE_FAILURE", "Failed to remove key $key")
+      promise.rejectSafely("E_REMOVE_FAILURE", "Failed to remove key $key")
       return
     }
     promise.resolve(null)
@@ -160,13 +169,17 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
     runCatching {
       val reEncrypted = cryptoManager.encrypt(plainText)
       prefs.edit().putString(key, reEncrypted).apply()
+    }.onFailure {
+      Log.w(NAME, "Failed to rewrite migrated value for key $key", it)
     }
   }
 
+  /** Lazily resolves the SharedPreferences instance backing the secure store. */
   private fun prefs(name: String): SharedPreferences =
-    reactApplicationContext.getSharedPreferences(name, ReactApplicationContext.MODE_PRIVATE)
+    reactApplicationContext.getSharedPreferences(name, Context.MODE_PRIVATE)
 
-  data class SensitiveInfoEntry(val key: String, val value: String, val service: String) {
+  /** Represents a secure entry emitted by `getAllItems`. */
+  private data class SensitiveInfoEntry(val key: String, val value: String, val service: String) {
     companion object {
       fun toWritableArray(arguments: List<SensitiveInfoEntry>): com.facebook.react.bridge.WritableArray {
         val array = WritableNativeArray()
@@ -182,12 +195,13 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
     }
   }
 
-  data class AndroidOptions(
+  internal data class AndroidOptions(
     val sharedPreferencesName: String,
     val touchId: Boolean,
     val showModal: Boolean,
     val strings: Map<String, String>
   ) {
+    /** Builds the localized prompts used by Android's BiometricPrompt API. */
     fun promptOptions(): BiometricHandler.PromptOptions = BiometricHandler.PromptOptions(
       header = strings["header"],
       description = strings["description"],
@@ -217,3 +231,13 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
 private fun ReadableMap.getStringOrNull(key: String): String? = if (hasKey(key) && !isNull(key)) getString(key) else null
 private fun ReadableMap.getBooleanOrDefault(key: String, defaultValue: Boolean): Boolean = if (hasKey(key) && !isNull(key)) getBoolean(key) else defaultValue
 private fun ReadableMap.getMapOrNull(key: String): ReadableMap? = if (hasKey(key) && !isNull(key)) getMap(key) else null
+
+/** Logs the failure and forwards it to the JS promise interface. */
+private fun Promise.rejectSafely(code: String, message: String, throwable: Throwable? = null) {
+  if (throwable != null) {
+    Log.e(SensitiveInfoModule.NAME, "$message ($code)", throwable)
+  } else {
+    Log.e(SensitiveInfoModule.NAME, "$message ($code)")
+  }
+  reject(code, message, throwable)
+}

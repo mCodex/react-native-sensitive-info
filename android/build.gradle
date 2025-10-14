@@ -22,7 +22,7 @@ apply plugin: "kotlin-android"
 apply plugin: "com.facebook.react"
 
 react {
-  libraryName = "SensitiveInfo"
+  libraryName = "NativeSensitiveInfoSpec"
   codegenJavaPackageName = "com.sensitiveinfo"
 }
 

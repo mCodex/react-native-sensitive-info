@@ -57,6 +57,7 @@ export default function App(): ReactElement {
   const refreshBiometrics = useCallback(async () => {
     try {
       const sensor = await isSensorAvailable();
+
       if (typeof sensor === 'string') {
         setSensorInfo(sensor);
       } else {
@@ -64,14 +65,17 @@ export default function App(): ReactElement {
       }
     } catch (error) {
       const message = (error as Error).message ?? 'Unknown error';
+
       setSensorInfo(`Error: ${message}`);
     }
 
     try {
       const enrolled = await hasEnrolledFingerprints();
+
       setEnrollmentInfo(enrolled ? 'Yes' : 'No');
     } catch (error) {
       const message = (error as Error).message ?? 'Unknown error';
+
       setEnrollmentInfo(`Error: ${message}`);
     }
   }, []);
@@ -79,6 +83,7 @@ export default function App(): ReactElement {
   const refreshList = useCallback(async () => {
     try {
       const list = await getAllItems(options);
+
       setItems([...list]);
     } catch (error) {
       const message = (error as Error).message ?? 'Unknown error';
@@ -89,6 +94,7 @@ export default function App(): ReactElement {
   useEffect(() => {
     refreshBiometrics().catch(() => {
       setSensorInfo('Unable to determine sensor availability');
+
       setEnrollmentInfo('Unknown');
     });
     refreshList().catch(() => {
@@ -108,7 +114,9 @@ export default function App(): ReactElement {
     buildStatus('Saving secret...');
     try {
       await setItem(keyInput, valueInput, options);
+
       buildStatus('Secret stored');
+
       await refreshList();
     } catch (error) {
       const message = (error as Error).message ?? 'Unknown error';
@@ -118,14 +126,18 @@ export default function App(): ReactElement {
 
   const handleGet = useCallback(async () => {
     buildStatus('Reading secret...');
+
     try {
       const result = await getItem(keyInput, options);
+
       setLatestValue(result ?? null);
+
       buildStatus(
         result != null ? 'Secret fetched' : 'No value stored for this key'
       );
     } catch (error) {
       const message = (error as Error).message ?? 'Unknown error';
+
       buildStatus(`Failed to fetch secret: ${message}`);
     }
   }, [keyInput, options]);
@@ -134,6 +146,7 @@ export default function App(): ReactElement {
     buildStatus('Checking key...');
     try {
       const exists = await hasItem(keyInput, options);
+
       buildStatus(exists ? 'Key exists' : 'Key not found');
     } catch (error) {
       const message = (error as Error).message ?? 'Unknown error';
@@ -161,6 +174,7 @@ export default function App(): ReactElement {
   const handleRefreshBiometrics = useCallback(() => {
     refreshBiometrics().catch((error) => {
       const message = (error as Error).message ?? 'Unknown error';
+
       Alert.alert(
         'Biometrics',
         `Unable to refresh biometric state: ${message}`

@@ -16,6 +16,14 @@ Modern, secure storage for React Native built on Keychain (iOS) and Android Keys
 - ♻️ **Invisible migration**: older entries are transparently re-encrypted the first time they are accessed.
 - 📚 **OSS-friendly docs** with copy-paste examples and troubleshooting tips.
 
+> [!INFO]
+> **What changed from the legacy releases?**
+> - Hardened security defaults: AES-GCM with per-item IVs on Android and stricter Keychain accessibility, closing the fixed-IV weakness from pre-5.x.
+> - Better runtime characteristics: biometric helpers use the platform APIs correctly and the module is TurboModule-ready, cutting bridge overhead on the new architecture.
+> - Stronger TypeScript surface: every option is typed, including biometric prompt strings and synchronizable flags, preventing silent misconfiguration.
+> - Zero-touch migration: existing secrets are upgraded in place as they are read—no manual scripts or downtime windows needed.
+> - Expanded platform support: macOS/tvOS targets ship in the podspec and the example app demonstrates every feature with the correct permissions in place.
+
 ## 📦 Installation
 
 ```bash
@@ -25,7 +33,7 @@ npm install react-native-sensitive-info
 ```
 
 > [!NOTE]
-> React Native 0.71+ is recommended. For older versions ensure you follow the manual installation steps in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+> React Native 0.71+ is recommended.
 
 ### iOS
 

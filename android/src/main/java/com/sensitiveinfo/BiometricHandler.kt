@@ -62,7 +62,7 @@ internal class BiometricHandler(
 
     try {
       keyStoreManager.ensureBiometricKey()
-  val cipher = createBiometricCipher(Cipher.ENCRYPT_MODE)
+      val cipher = createBiometricCipher(Cipher.ENCRYPT_MODE)
       authenticate(cipher, prompt, promise, emitEvents) { resultCipher ->
         val payload = cryptoManager.encryptBiometricPayload(plainText, resultCipher)
         onSuccess(payload)
@@ -211,8 +211,7 @@ internal class BiometricHandler(
     val header: String?,
     val description: String?,
     val hint: String?,
-    val cancel: String?,
-    val emitFingerprintEvents: Boolean
+    val cancel: String?
   )
 
   companion object {

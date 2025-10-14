@@ -32,6 +32,17 @@ struct KeychainOptions {
     if let syncValue = raw["kSecAttrSynchronizable"] {
       if let boolValue = syncValue as? Bool {
         synchronizable = boolValue ? kCFBooleanTrue! : kCFBooleanFalse!
+      } else if let stringValue = (syncValue as? String)?.lowercased() {
+        switch stringValue {
+        case "enabled", "true":
+          synchronizable = kCFBooleanTrue!
+        case "disabled", "false":
+          synchronizable = kCFBooleanFalse!
+        case "any", "ksecattrsynchronizableany":
+          synchronizable = kSecAttrSynchronizableAny
+        default:
+          synchronizable = syncValue
+        }
       } else {
         synchronizable = syncValue
       }
@@ -78,16 +89,30 @@ enum AccessControlFlag: String {
   case biometryCurrentSet = "kSecAccessControlBiometryCurrentSet"
   case userPresence = "kSecAccessControlUserPresence"
 
-  var cfValue: CFOptionFlags {
+  var flag: SecAccessControlCreateFlags {
     switch self {
-    case .applicationPassword: return kSecAccessControlApplicationPassword
-    case .privateKeyUsage: return kSecAccessControlPrivateKeyUsage
-    case .devicePasscode: return kSecAccessControlDevicePasscode
-    case .touchIDAny: return kSecAccessControlTouchIDAny
-    case .touchIDCurrentSet: return kSecAccessControlTouchIDCurrentSet
-    case .biometryAny: return kSecAccessControlBiometryAny
-    case .biometryCurrentSet: return kSecAccessControlBiometryCurrentSet
-    case .userPresence: return kSecAccessControlUserPresence
+    case .applicationPassword:
+      return .applicationPassword
+    case .privateKeyUsage:
+      return .privateKeyUsage
+    case .devicePasscode:
+      return .devicePasscode
+    case .touchIDAny:
+      return .touchIDAny
+    case .touchIDCurrentSet:
+      return .touchIDCurrentSet
+    case .biometryAny:
+      if #available(iOS 11.3, macOS 10.13.4, *) {
+        return .biometryAny
+      }
+      return .touchIDAny
+    case .biometryCurrentSet:
+      if #available(iOS 11.3, macOS 10.13.4, *) {
+        return .biometryCurrentSet
+      }
+      return .touchIDCurrentSet
+    case .userPresence:
+      return .userPresence
     }
   }
 }

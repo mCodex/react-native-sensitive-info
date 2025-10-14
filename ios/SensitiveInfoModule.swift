@@ -1,6 +1,7 @@
 import Foundation
 import Security
 import React
+import os.log
 #if canImport(LocalAuthentication)
 import LocalAuthentication
 #endif
@@ -17,6 +18,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
   private let queue = DispatchQueue(label: keychainQueueLabel, qos: .userInitiated)
   private let migrator = KeychainMigrator()
   private var invalidateBiometricEnrollment = true
+  private let log = OSLog(subsystem: "react-native-sensitive-info", category: "SensitiveInfo")
 
   #if !os(tvOS)
   private var activeContext: LAContext?
@@ -46,7 +48,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     queue.async {
       var baseQuery = KeychainQueryBuilder.baseQuery(for: key, options: parsed)
       guard let valueData = value.data(using: .utf8) else {
-        reject("E_ENCODING", "Unable to encode value using UTF-8.", nil)
+  self.rejectPromise("E_ENCODING", "Unable to encode value using UTF-8.", reject: reject)
         return
       }
 
@@ -71,14 +73,16 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
             }
             self.rejectKeychainStatus(updateStatus, reject: reject)
           } catch {
-            reject("E_SEC_ACCESS", error.localizedDescription, error)
+            let nsError = error as NSError
+            self.rejectPromise("E_SEC_ACCESS", nsError.localizedDescription, error: nsError, reject: reject)
           }
           return
         }
 
         self.rejectKeychainStatus(status, reject: reject)
       } catch {
-        reject("E_SEC_ACCESS", error.localizedDescription, error)
+        let nsError = error as NSError
+        self.rejectPromise("E_SEC_ACCESS", nsError.localizedDescription, error: nsError, reject: reject)
       }
     }
   }
@@ -100,7 +104,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
       }
 
       #if os(tvOS)
-      reject("E_UNAVAILABLE", "Biometric authentication is not available on tvOS.", nil)
+    self.rejectPromise("E_UNAVAILABLE", "Biometric authentication is not available on tvOS.", reject: reject)
       #else
       let context = LAContext()
       context.localizedFallbackTitle = parsed.localizedFallbackTitle ?? ""
@@ -115,10 +119,10 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
         context.evaluatePolicy(policy, localizedReason: prompt) { success, error in
           self.activeContext = nil
           if !success {
-            if let error = error {
-              reject("\(error.code)", error.localizedDescription, error)
+            if let error = error as NSError? {
+              self.rejectPromise("\(error.code)", error.localizedDescription, error: error, reject: reject)
             } else {
-              reject("E_AUTH_FAILED", "Biometric authentication failed.", nil)
+              self.rejectPromise("E_AUTH_FAILED", "Biometric authentication failed.", reject: reject)
             }
             return
           }
@@ -221,7 +225,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
 
     if let error = error, error.code == LAError.biometryLockout.rawValue {
-      reject("E_BIOMETRY_LOCKED", "Biometry is locked", error)
+  self.rejectPromise("E_BIOMETRY_LOCKED", "Biometry is locked", error: error, reject: reject)
       return
     }
 
@@ -252,7 +256,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     case .biometryNotEnrolled, .biometryNotAvailable:
       resolve(false)
     case .biometryLockout:
-      reject("E_BIOMETRY_LOCKED", "Biometry is locked", error)
+  self.rejectPromise("E_BIOMETRY_LOCKED", "Biometry is locked", error: error, reject: reject)
     default:
       resolve(false)
     }
@@ -276,6 +280,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
 
   // MARK: - Helpers
 
+  /// Reads from the Keychain and performs opportunistic migrations when legacy attributes are detected.
   private func fetchItem(query: [String: Any],
                          baseQuery: [String: Any],
                          options: KeychainOptions,
@@ -300,7 +305,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     }
 
     guard let value = String(data: data, encoding: .utf8) else {
-      reject("E_DECODING", "Unable to decode stored value using UTF-8.", nil)
+  self.rejectPromise("E_DECODING", "Unable to decode stored value using UTF-8.", reject: reject)
       return
     }
 
@@ -311,6 +316,7 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
     resolve(value)
   }
 
+  /// Builds the attribute dictionary used when rewriting an existing Keychain entry.
   private func attributesForUpdate(valueData: Data, options: KeychainOptions) throws -> [String: Any] {
     var attributes: [String: Any] = [kSecValueData as String: valueData]
     #if !os(tvOS)
@@ -327,6 +333,21 @@ final class SensitiveInfo: NSObject, RCTBridgeModule {
 
   private func rejectKeychainStatus(_ status: OSStatus, reject: @escaping RCTPromiseRejectBlock) {
     let error = NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: nil)
-    reject("\(status)", KeychainMessages.message(for: error), error)
+    self.rejectPromise("\(status)", KeychainMessages.message(for: error), error: error, reject: reject)
+  }
+
+  /// Logs the failure before propagating it to JavaScript.
+  private func rejectPromise(
+    _ code: String,
+    _ message: String,
+    error: NSError? = nil,
+    reject: RCTPromiseRejectBlock
+  ) {
+    if let error = error {
+      os_log("[react-native-sensitive-info] %@ (%@): %@", log: log, type: .error, message, code, error.localizedDescription)
+    } else {
+      os_log("[react-native-sensitive-info] %@ (%@)", log: log, type: .error, message, code)
+    }
+    reject(code, message, error)
   }
 }

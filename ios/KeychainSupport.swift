@@ -1,6 +1,9 @@
 import Foundation
 import Security
 import React
+import os.log
+
+private let sensitiveInfoLog = OSLog(subsystem: "react-native-sensitive-info", category: "SensitiveInfo")
 #if canImport(LocalAuthentication)
 import LocalAuthentication
 #endif
@@ -77,10 +80,10 @@ enum KeychainProtection {
   #if !os(tvOS)
   static func makeAccessControl(options: KeychainOptions) throws -> SecAccessControl {
     let accessible = options.accessibleOption ?? .whenPasscodeSetThisDeviceOnly
-    let flags = options.accessControlOption ?? options.defaultBiometricFlags
+    let flags = options.accessControlOption?.flag ?? options.defaultBiometricFlags.flag
 
     var error: Unmanaged<CFError>?
-    guard let accessControl = SecAccessControlCreateWithFlags(nil, accessible.cfValue, flags.cfValue, &error) else {
+    guard let accessControl = SecAccessControlCreateWithFlags(nil, accessible.cfValue, flags, &error) else {
       let cfError = error?.takeRetainedValue()
       throw cfError ?? NSError(domain: "SensitiveInfo", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to configure access control"])
     }
@@ -104,7 +107,7 @@ final class KeychainMigrator {
     let attributes: [String: Any] = [kSecAttrAccessible as String: KeychainDefaults.recommendedAccessible.cfValue]
     let status = SecItemUpdate(updateQuery as CFDictionary, attributes as CFDictionary)
     if status != errSecSuccess {
-      RCTLogWarn("[react-native-sensitive-info] Failed to migrate keychain item. Status: \(status)")
+      os_log("[react-native-sensitive-info] Failed to migrate keychain item. Status: %d", log: sensitiveInfoLog, type: .fault, status)
     }
   }
 }
@@ -112,7 +115,7 @@ final class KeychainMigrator {
 /// Human-readable messages for the most common Keychain errors.
 enum KeychainMessages {
   static func message(for error: NSError) -> String {
-    switch error.code {
+    switch OSStatus(error.code) {
     case errSecUnimplemented: return "Function or operation not implemented."
     case errSecIO: return "I/O error."
     case errSecOpWr: return "File already open with write permission."

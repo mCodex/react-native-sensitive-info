@@ -12,6 +12,7 @@ import java.security.KeyStore
 import java.util.Calendar
 import javax.crypto.KeyGenerator
 
+@Suppress("DEPRECATION")
 internal class KeyStoreManager(private val context: Context) {
   private val applicationContext get() = context.applicationContext
 

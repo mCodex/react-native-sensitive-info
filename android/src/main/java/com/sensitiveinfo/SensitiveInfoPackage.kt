@@ -8,12 +8,13 @@ import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 
+@Suppress("DEPRECATION")
 class SensitiveInfoPackage : TurboReactPackage(), ReactPackage {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
-    if (name == SensitiveInfoModule.NAME) SensitiveInfoModule(reactContext) else null
+    if (name == SensitiveInfoModule.NAME) SensitiveInfoModule(reactContext) as NativeModule else null
 
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
-    listOf(SensitiveInfoModule(reactContext))
+    listOf<NativeModule>(SensitiveInfoModule(reactContext))
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
 
