@@ -15,23 +15,23 @@
     "react": "19.1.1",
     "react-native": "0.82.0",
     "react-native-nitro-modules": "0.30.0",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-safe-area-context": "^5.6.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@babel/preset-env": "^7.25.3",
-    "@babel/runtime": "^7.25.0",
-    "@react-native-community/cli": "20.0.0",
-    "@react-native-community/cli-platform-android": "20.0.0",
-    "@react-native-community/cli-platform-ios": "20.0.0",
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/runtime": "^7.28.4",
+    "@react-native-community/cli": "20.0.2",
+    "@react-native-community/cli-platform-android": "20.0.2",
+    "@react-native-community/cli-platform-ios": "20.0.2",
     "@react-native/babel-preset": "0.82.0",
     "@react-native/eslint-config": "0.82.0",
     "@react-native/metro-config": "0.82.0",
     "@react-native/typescript-config": "0.82.0",
-    "@types/jest": "^29.5.13",
+    "@types/jest": "^30.0.0",
     "babel-plugin-module-resolver": "^5.0.2"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

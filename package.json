@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "0.1.0",
+  "version": "6.0.0",
   "description": "react-native-sensitive-info is a react native package built with Nitro",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -55,16 +55,16 @@
     "@jamesacarr/eslint-formatter-github-actions": "^0.2.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@types/jest": "^29.5.12",
-    "@types/react": "19.1.1",
+    "@types/jest": "^30.0.0",
+    "@types/react": "19.1.x",
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "nitrogen": "0.30.0",
     "react": "19.1.1",
     "react-native": "0.82",
-    "react-native-builder-bob": "^0.37.0",
+    "react-native-builder-bob": "^0.40.13",
     "react-native-nitro-modules": "0.30.0",
     "semantic-release": "^24.2.9",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "react": "*",

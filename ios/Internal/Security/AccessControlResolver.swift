@@ -76,7 +76,7 @@ final class AccessControlResolver {
   ) throws -> AccessControlContext? {
     switch candidate {
     case .secureEnclaveBiometry:
-      guard availability.secureEnclave else { return nil }
+      guard availability.secureEnclave, availability.deviceCredential else { return nil }
       let accessControl = try makeAccessControl(flags: [.biometryCurrentSet])
       return AccessControlContext(
         policy: .secureEnclaveBiometry,
@@ -85,7 +85,7 @@ final class AccessControlResolver {
         accessControlRef: accessControl
       )
     case .biometryCurrentSet:
-      guard availability.biometry else { return nil }
+      guard availability.biometry, availability.deviceCredential else { return nil }
       let accessControl = try makeAccessControl(flags: [.biometryCurrentSet])
       let security: SecurityTier = availability.secureEnclave ? .secureEnclave : .biometry
       return AccessControlContext(
@@ -95,7 +95,7 @@ final class AccessControlResolver {
         accessControlRef: accessControl
       )
     case .biometryAny:
-      guard availability.biometry else { return nil }
+      guard availability.biometry, availability.deviceCredential else { return nil }
       let accessControl = try makeAccessControl(flags: [.biometryAny])
       let security: SecurityTier = availability.secureEnclave ? .secureEnclave : .biometry
       return AccessControlContext(

@@ -3,31 +3,6 @@ import LocalAuthentication
 import NitroModules
 import Security
 
-private struct PersistedMetadata: Codable {
-  let securityLevel: String
-  let backend: String
-  let accessControl: String
-  let timestamp: Double
-
-  init(metadata: StorageMetadata) {
-    securityLevel = metadata.securityLevel.stringValue
-    backend = metadata.backend.stringValue
-    accessControl = metadata.accessControl.stringValue
-    timestamp = metadata.timestamp
-  }
-
-  func toStorageMetadata() -> StorageMetadata? {
-    guard
-      let level = SecurityLevel(fromString: securityLevel),
-      let backend = StorageBackend(fromString: backend),
-      let access = AccessControl(fromString: accessControl)
-    else {
-      return nil
-    }
-    return StorageMetadata(securityLevel: level, backend: backend, accessControl: access, timestamp: timestamp)
-  }
-}
-
 private struct ResolvedAccessControl {
   let accessControl: AccessControl
   let securityLevel: SecurityLevel
@@ -58,8 +33,8 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     )
   }
 
-  override func setItem(request: SensitiveInfoSetRequest) throws -> Promise<MutationResult> {
-    Promise.parallel { [self] in
+  func setItem(request: SensitiveInfoSetRequest) throws -> Promise<MutationResult> {
+    Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let resolved = try resolveAccessControl(preferred: request.accessControl)
 
@@ -86,14 +61,36 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       attributes[kSecAttrGeneric as String] = try encoder.encode(PersistedMetadata(metadata: metadata))
 
       deleteExisting(query: query)
-      try addItem(attributes: attributes)
+      var status = SecItemAdd(attributes as CFDictionary, nil)
+      if status == errSecSuccess {
+        return MutationResult(metadata: metadata)
+      }
 
-      return MutationResult(metadata: metadata)
+      if status == errSecParam, resolved.accessControlRef != nil {
+        let fallbackMetadata = StorageMetadata(
+          securityLevel: .software,
+          backend: .keychain,
+          accessControl: .none,
+          timestamp: Date().timeIntervalSince1970
+        )
+
+        var fallbackAttributes = query
+        fallbackAttributes[kSecValueData as String] = Data(request.value.utf8)
+        fallbackAttributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        fallbackAttributes[kSecAttrGeneric as String] = try encoder.encode(PersistedMetadata(metadata: fallbackMetadata))
+
+        status = SecItemAdd(fallbackAttributes as CFDictionary, nil)
+        if status == errSecSuccess {
+          return MutationResult(metadata: fallbackMetadata)
+        }
+      }
+
+      throw runtimeError(for: status, operation: "set")
     }
   }
 
-  override func getItem(request: SensitiveInfoGetRequest) throws -> Promise<SensitiveInfoItem?> {
-    Promise.parallel { [self] in
+  func getItem(request: SensitiveInfoGetRequest) throws -> Promise<SensitiveInfoItem?> {
+    Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let includeValue = request.includeValue ?? true
 
@@ -109,7 +106,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         query[kSecReturnData as String] = kCFBooleanTrue
       }
 
-      guard let raw = try copyMatching(query: query, prompt: request.authenticationPrompt) else {
+      guard let raw = try copyMatching(query: query, prompt: request.authenticationPrompt) as? NSDictionary else {
         return nil
       }
 
@@ -117,8 +114,8 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  override func deleteItem(request: SensitiveInfoDeleteRequest) throws -> Promise<Bool> {
-    Promise.parallel { [self] in
+  func deleteItem(request: SensitiveInfoDeleteRequest) throws -> Promise<Bool> {
+    Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let query = makeBaseQuery(
         key: request.key,
@@ -139,8 +136,8 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  override func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
-    Promise.parallel { [self] in
+  func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
+    Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       var query = makeBaseQuery(
         key: request.key,
@@ -156,8 +153,8 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  override func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
-    Promise.parallel { [self] in
+  func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
+    Promise.parallel(workQueue) { [self] in
       let includeValues = request?.includeValues ?? false
       let service = normalizedService(request?.service)
 
@@ -184,8 +181,8 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  override func clearService(request: SensitiveInfoOptions?) throws -> Promise<Void> {
-    Promise.parallel { [self] in
+  func clearService(request: SensitiveInfoOptions?) throws -> Promise<Void> {
+    Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request?.service)
       let query = makeBaseQuery(
         key: nil,
@@ -204,7 +201,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  override func getSupportedSecurityLevels() throws -> Promise<SecurityAvailability> {
+  func getSupportedSecurityLevels() throws -> Promise<SecurityAvailability> {
     Promise.resolved(withResult: resolveAvailability())
   }
 
@@ -242,13 +239,6 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     deleteQuery[kSecReturnAttributes as String] = nil
     deleteQuery[kSecMatchLimit as String] = kSecMatchLimitOne
     SecItemDelete(deleteQuery as CFDictionary)
-  }
-
-  private func addItem(attributes: [String: Any]) throws {
-    let status = SecItemAdd(attributes as CFDictionary, nil)
-    guard status == errSecSuccess else {
-      throw runtimeError(for: status, operation: "set")
-    }
   }
 
   private func copyMatching(query: [String: Any], prompt: AuthenticationPrompt?) throws -> AnyObject? {
@@ -292,8 +282,6 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     if includeValue {
       if let data = dictionary[kSecValueData as String] as? Data {
         value = String(data: data, encoding: .utf8)
-      } else if let cfData = dictionary[kSecValueData as String] as? CFData {
-        value = String(data: cfData as Data, encoding: .utf8)
       }
     }
 

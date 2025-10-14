@@ -76,13 +76,12 @@ function ActionButton({ label, onPress, disabled, style }: ActionButtonProps) {
     if (disabled) {
       return
     }
-    try {
-      const maybePromise = onPress()
-      if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
-        void (maybePromise as Promise<void>)
-      }
-    } catch (error) {
-      // Errors surface through the outer handler.
+
+    const maybePromise = onPress()
+    
+    if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
+      void (maybePromise as Promise<void>)
+    }
   }
 
   return (
