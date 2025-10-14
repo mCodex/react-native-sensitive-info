@@ -2,19 +2,19 @@ package com.sensitiveinfo
 
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.module.annotations.ReactModule
 
-@ReactModule(name = SensitiveInfoModule.NAME)
+// React Native TurboModule exposing encrypted SharedPreferences storage backed by Android Keystore.
+// The module keeps the historic JS API intact while silently re-encrypting legacy values when they are read.
+@ReactModule(name = SensitiveInfoModule.NAME, isTurboModule = true)
 class SensitiveInfoModule internal constructor(reactContext: ReactApplicationContext) :
-  ReactContextBaseJavaModule(reactContext) {
+  NativeSensitiveInfoSpec(reactContext) {
 
   private val keyStoreManager = KeyStoreManager(reactContext)
   private val cryptoManager = CryptoManager(keyStoreManager.keyStore)
@@ -28,7 +28,7 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
   override fun getName(): String = NAME
 
   @ReactMethod
-  fun setItem(key: String, value: String, options: ReadableMap, promise: Promise) {
+  override fun setItem(key: String, value: String, options: ReadableMap, promise: Promise) {
     val parsed = AndroidOptions.from(options)
     val prefs = prefs(parsed.sharedPreferencesName)
 
@@ -54,6 +54,7 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
         promise.reject("E_WRITE_FAILURE", "Failed to persist value for key $key")
         return
       }
+      // Stored value is now in the v2 format, so future reads can skip the migration branch.
       promise.resolve(null)
     } catch (error: Exception) {
       promise.reject(error)
@@ -61,7 +62,7 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
   }
 
   @ReactMethod
-  fun getItem(key: String, options: ReadableMap, promise: Promise) {
+  override fun getItem(key: String, options: ReadableMap, promise: Promise) {
     val parsed = AndroidOptions.from(options)
     val prefs = prefs(parsed.sharedPreferencesName)
     val stored = prefs.getString(key, null)
@@ -95,14 +96,14 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
   }
 
   @ReactMethod
-  fun hasItem(key: String, options: ReadableMap, promise: Promise) {
+  override fun hasItem(key: String, options: ReadableMap, promise: Promise) {
     val parsed = AndroidOptions.from(options)
     val prefs = prefs(parsed.sharedPreferencesName)
     promise.resolve(prefs.contains(key))
   }
 
   @ReactMethod
-  fun getAllItems(options: ReadableMap, promise: Promise) {
+  override fun getAllItems(options: ReadableMap, promise: Promise) {
     val parsed = AndroidOptions.from(options)
     val prefs = prefs(parsed.sharedPreferencesName)
     val map = prefs.all
@@ -123,7 +124,7 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
   }
 
   @ReactMethod
-  fun deleteItem(key: String, options: ReadableMap, promise: Promise) {
+  override fun deleteItem(key: String, options: ReadableMap, promise: Promise) {
     val parsed = AndroidOptions.from(options)
     val prefs = prefs(parsed.sharedPreferencesName)
     if (!prefs.edit().remove(key).commit()) {
@@ -134,26 +135,28 @@ class SensitiveInfoModule internal constructor(reactContext: ReactApplicationCon
   }
 
   @ReactMethod
-  fun isSensorAvailable(promise: Promise) {
+  override fun isSensorAvailable(promise: Promise) {
     promise.resolve(biometricHandler.isBiometricAvailable())
   }
 
   @ReactMethod
-  fun hasEnrolledFingerprints(promise: Promise) {
+  override fun hasEnrolledFingerprints(promise: Promise) {
     promise.resolve(biometricHandler.hasEnrolledBiometrics())
   }
 
   @ReactMethod
-  fun cancelFingerprintAuth() {
+  override fun cancelFingerprintAuth() {
     biometricHandler.cancelOngoing()
   }
 
   @ReactMethod
-  fun setInvalidatedByBiometricEnrollment(value: Boolean) {
+  override fun setInvalidatedByBiometricEnrollment(value: Boolean) {
     keyStoreManager.invalidateOnEnrollment = value
   }
 
   private fun migrateValue(key: String, plainText: String, prefs: SharedPreferences) {
+    // Migration strategy: decrypt into memory, re-encrypt using the new random IV payload, and save it back.
+    // This keeps the operation invisible to consumers while eliminating the fixed-IV legacy format.
     runCatching {
       val reEncrypted = cryptoManager.encrypt(plainText)
       prefs.edit().putString(key, reEncrypted).apply()

@@ -1,8 +1,10 @@
 import NativeSensitiveInfo from './NativeSensitiveInfo';
+import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
 import type {
   RNSensitiveInfoOptions,
   RNSensitiveInfoBiometryType,
   SensitiveInfoEntry,
+  SensitiveInfoEntries,
 } from './types';
 
 function withDefaultOptions(
@@ -11,45 +13,53 @@ function withDefaultOptions(
   return options ?? {};
 }
 
+function toNativeOptions(options?: RNSensitiveInfoOptions): UnsafeObject {
+  return withDefaultOptions(options) as unknown as UnsafeObject;
+}
+
 export function setItem(
   key: string,
   value: string,
   options?: RNSensitiveInfoOptions
 ): Promise<null> {
-  return NativeSensitiveInfo.setItem(key, value, withDefaultOptions(options));
+  return NativeSensitiveInfo.setItem(key, value, toNativeOptions(options));
 }
 
 export function getItem(
   key: string,
   options?: RNSensitiveInfoOptions
 ): Promise<string | null> {
-  return NativeSensitiveInfo.getItem(key, withDefaultOptions(options));
+  return NativeSensitiveInfo.getItem(key, toNativeOptions(options));
 }
 
 export function hasItem(
   key: string,
   options?: RNSensitiveInfoOptions
 ): Promise<boolean> {
-  return NativeSensitiveInfo.hasItem(key, withDefaultOptions(options));
+  return NativeSensitiveInfo.hasItem(key, toNativeOptions(options));
 }
 
 export function getAllItems(
   options?: RNSensitiveInfoOptions
-): Promise<SensitiveInfoEntry[]> {
-  return NativeSensitiveInfo.getAllItems(withDefaultOptions(options));
+): Promise<SensitiveInfoEntries> {
+  return NativeSensitiveInfo.getAllItems(
+    toNativeOptions(options)
+  ) as Promise<SensitiveInfoEntries>;
 }
 
 export function deleteItem(
   key: string,
   options?: RNSensitiveInfoOptions
 ): Promise<null> {
-  return NativeSensitiveInfo.deleteItem(key, withDefaultOptions(options));
+  return NativeSensitiveInfo.deleteItem(key, toNativeOptions(options));
 }
 
 export function isSensorAvailable(): Promise<
   RNSensitiveInfoBiometryType | boolean
 > {
-  return NativeSensitiveInfo.isSensorAvailable();
+  return NativeSensitiveInfo.isSensorAvailable() as Promise<
+    RNSensitiveInfoBiometryType | boolean
+  >;
 }
 
 export function hasEnrolledFingerprints(): Promise<boolean> {
@@ -68,4 +78,5 @@ export type {
   RNSensitiveInfoOptions,
   RNSensitiveInfoBiometryType,
   SensitiveInfoEntry,
+  SensitiveInfoEntries,
 };

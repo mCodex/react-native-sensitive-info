@@ -1,28 +1,6 @@
-import type { TurboModule } from 'react-native';
-import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
-
-import type {
-  RNSensitiveInfoOptions,
-  RNSensitiveInfoBiometryType,
-  SensitiveInfoEntry,
-} from './types';
-
-export interface Spec extends TurboModule {
-  readonly getConstants: () => Record<string, unknown>;
-  setItem(
-    key: string,
-    value: string,
-    options: RNSensitiveInfoOptions
-  ): Promise<null>;
-  getItem(key: string, options: RNSensitiveInfoOptions): Promise<string | null>;
-  hasItem(key: string, options: RNSensitiveInfoOptions): Promise<boolean>;
-  getAllItems(options: RNSensitiveInfoOptions): Promise<SensitiveInfoEntry[]>;
-  deleteItem(key: string, options: RNSensitiveInfoOptions): Promise<null>;
-  isSensorAvailable(): Promise<RNSensitiveInfoBiometryType | boolean>;
-  hasEnrolledFingerprints(): Promise<boolean>;
-  cancelFingerprintAuth(): void;
-  setInvalidatedByBiometricEnrollment(set: boolean): void;
-}
+import { NativeModules, Platform } from 'react-native';
+import NativeSensitiveInfoTurboModule from './NativeSensitiveInfoSpec';
+import type { Spec } from './NativeSensitiveInfoSpec';
 
 declare global {
   var __turboModuleProxy: object | undefined;
@@ -31,7 +9,7 @@ declare global {
 const isTurboModuleEnabled = globalThis.__turboModuleProxy != null;
 
 const NativeSensitiveInfoModule: Spec = isTurboModuleEnabled
-  ? TurboModuleRegistry.getEnforcing<Spec>('SensitiveInfo')
+  ? NativeSensitiveInfoTurboModule
   : (NativeModules.SensitiveInfo as Spec);
 
 if (__DEV__ && Platform.OS === 'android' && NativeModules.SensitiveInfoView) {

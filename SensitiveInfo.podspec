@@ -10,7 +10,11 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported }
+  s.platforms    = {
+    :ios => min_ios_version_supported,
+    :osx => '10.13',
+    :tvos => '11.0'
+  }
   s.source       = { :git => "https://github.com/mCodex/react-native-sensitive-info.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,cpp,swift}"

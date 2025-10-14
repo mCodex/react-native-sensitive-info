@@ -17,6 +17,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.IvParameterSpec
 
+// Handles encryption/decryption details, shielding the module from legacy format quirks.
 internal class CryptoManager(private val keyStore: KeyStore) {
   data class DecryptionResult(val value: String, val usedLegacyFormat: Boolean)
 
