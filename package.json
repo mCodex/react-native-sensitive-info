@@ -1,67 +1,139 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "6.0.0-alpha.9",
-  "main": "build/index.js",
-  "module": "build/index.es.js",
-  "jsnext:main": "build/index.es.js",
-  "types": "index.d.ts",
-  "description": "react-native-sensitive-info manages all data stored in Android Shared Preferences and iOS Keychain. You can set, get and delete keys/values using simple methods.",
+  "version": "6.0.0-rc.1",
+  "description": "react-native-sensitive-info is a react native package built with Nitro",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
   "scripts": {
-    "build": "rimraf -rf build && rollup -c",
-    "prepublishOnly": "yarn build",
-    "localPublish": "yalc publish && cd example && yalc add react-native-sensitive-info --yarn && cd .."
-  },
-  "author": {
-    "name": "mCodex & ClassApp",
-    "email": "mtw.andrade@gmail.com"
-  },
-  "contributors": [
-    "Mateus Andrade mtw.andrade@gmail.com",
-    "Samin Shams <samin@classapp.co>"
-  ],
-  "homepage": "https://mcodex.dev/react-native-sensitive-info/",
-  "bugs": {
-    "url": "https://github.com/mcodex/react-native-sensitive-info/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/mcodex/react-native-sensitive-info.git"
+    "typecheck": "tsc --noEmit",
+    "clean": "git clean -dfX",
+    "release": "semantic-release",
+    "build": "npm run typecheck && bob build",
+    "codegen": "nitrogen --logLevel=\"debug\" && npm run build && node post-script.js"
   },
   "keywords": [
-    "android",
-    "ios",
-    "keychain",
-    "shared-preferences",
     "react-native",
-    "windows"
+    "react-native-sensitive-info"
   ],
+  "files": [
+    "src",
+    "react-native.config.js",
+    "lib",
+    "nitrogen",
+    "cpp",
+    "nitro.json",
+    "android/build.gradle",
+    "android/fix-prefab.gradle",
+    "android/gradle.properties",
+    "android/CMakeLists.txt",
+    "android/src",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "app.plugin.js",
+    "*.podspec",
+    "README.md"
+  ],
+  "workspaces": [
+    "example"
+  ],
+  "repository": "https://github.com/mateusandrade/react-native-sensitive-info.git",
+  "author": "Mateus Andrade",
   "license": "MIT",
-  "peerDependencies": {
-    "react-native": "*"
+  "bugs": "https://github.com/mateusandrade/react-native-sensitive-info/issues",
+  "homepage": "https://github.com/mateusandrade/react-native-sensitive-info#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^16.0.0",
-    "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^4.6.1",
-    "@typescript-eslint/parser": "^4.6.1",
-    "eslint": "^7.12.1",
-    "eslint-config-airbnb": "^18.2.0",
-    "eslint-config-prettier": "^6.15.0",
-    "eslint-import-resolver-typescript": "^2.3.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-jsx-a11y": "^6.4.1",
-    "eslint-plugin-prettier": "^3.1.4",
-    "eslint-plugin-react": "^7.21.5",
-    "eslint-plugin-react-hooks": "^4.2.0",
-    "prettier": "^2.1.2",
-    "react": "^17.0.1",
-    "react-native": "^0.62.2",
-    "react-native-windows": "0.63.6",
-    "rollup": "^2.33.1",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-typescript2": "^0.29.0",
-    "typescript": "^4.0.5",
-    "yalc": "^1.0.0-pre.45"
-  }
+    "@eslint/compat": "^1.4.0",
+    "@eslint/js": "^9.37.0",
+    "@jamesacarr/eslint-formatter-github-actions": "^0.2.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/react": "19.1.x",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
+    "eslint": "^9.37.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-import-helpers": "^2.0.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.4.0",
+    "jiti": "^2.6.1",
+    "nitrogen": "0.30.0",
+    "prettier": "^3.6.2",
+    "react": "19.1.1",
+    "react-native": "0.82",
+    "react-native-builder-bob": "^0.40.13",
+    "react-native-nitro-modules": "0.30.0",
+    "semantic-release": "^24.2.9",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": [
+      "@react-native",
+      "prettier"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": [
+        "warn",
+        {
+          "quoteProps": "consistent",
+          "singleQuote": true,
+          "tabWidth": 2,
+          "trailingComma": "es5",
+          "useTabs": false
+        }
+      ]
+    }
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/"
+  ],
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false,
+    "semi": false
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.json"
+        }
+      ]
+    ]
+  },
+  "packageManager": "yarn@4.10.3"
 }

@@ -1,0 +1,107 @@
+name: Build iOS
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ios-build.yml'
+      - 'example/ios/**'
+      - 'example/Gemfile'
+      - 'example/Gemfile.lock'
+      - '**/nitrogen/generated/shared/**'
+      - '**/nitrogen/generated/ios/**'
+      - 'cpp/**'
+      - 'ios/**'
+      - '**/Podfile.lock'
+      - '**/bun.lock'
+      - '**/*.podspec'
+      - '**/react-native.config.js'
+      - '**/nitro.json'
+  pull_request:
+    paths:
+      - '.github/workflows/ios-build.yml'
+      - 'example/ios/**'
+      - 'example/Gemfile'
+      - 'example/Gemfile.lock'
+      - '**/nitrogen/generated/shared/**'
+      - '**/nitrogen/generated/ios/**'
+      - 'cpp/**'
+      - 'ios/**'
+      - '**/Podfile.lock'
+      - '**/bun.lock'
+      - '**/*.podspec'
+      - '**/react-native.config.js'
+      - '**/nitro.json'
+  workflow_dispatch:
+
+env:
+  USE_CCACHE: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iOS Example App (${{ matrix.arch }})
+    runs-on: macOS-15
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [new, old]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 16.4
+
+      - name: Install dependencies (bun)
+        run: bun install
+
+      - name: Disable new architecture in Podfile
+        if: matrix.arch == 'old'
+        run: sed -i "" "s/ENV\['RCT_NEW_ARCH_ENABLED'\] = '1'/ENV['RCT_NEW_ARCH_ENABLED'] = '0'/g" example/ios/Podfile
+
+      - name: Setup Ruby (bundle)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: example/ios
+
+      - name: Install xcpretty
+        run: gem install xcpretty
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cocoapods/repos
+            example/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('example/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install Pods
+        working-directory: example/ios
+        run: pod install
+
+      - name: Build App
+        working-directory: example/ios
+        run: |
+          set -o pipefail && xcodebuild \
+            CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ \
+            -derivedDataPath build -UseModernBuildSystem=YES \
+            -workspace SensitiveInfoExample.xcworkspace \
+            -scheme SensitiveInfoExample \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            build \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
