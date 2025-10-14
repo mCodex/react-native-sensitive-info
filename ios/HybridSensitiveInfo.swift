@@ -67,9 +67,10 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
       var attributes = query
       attributes[kSecValueData as String] = Data(request.value.utf8)
-      attributes[kSecAttrAccessible as String] = resolved.accessible
       if let accessControlRef = resolved.accessControlRef {
         attributes[kSecAttrAccessControl as String] = accessControlRef
+      } else {
+        attributes[kSecAttrAccessible as String] = resolved.accessible
       }
       attributes[kSecAttrGeneric as String] = try encoder.encode(PersistedMetadata(metadata: metadata))
 

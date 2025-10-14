@@ -2437,7 +2437,7 @@ PODS:
     - React-perflogger (= 0.82.0)
     - React-utils (= 0.82.0)
     - SocketRocket
-  - SensitiveInfo (6.0.0):
+  - SensitiveInfo (6.0.0-rc.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2784,7 +2784,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: c5c4f5280e4ae0f9f4a739c64c4260fe0b3edaf1
   ReactCodegen: 56b06c499623e25e6652cd2cc00c10fd87dae70b
   ReactCommon: 25c7f94aee74ddd93a8287756a8ac0830a309544
-  SensitiveInfo: 8aac8fad2ea33cca5ec5a867d7095def6cc745ff
+  SensitiveInfo: fed786b6300b9b324f025b881710d333b2c82aa5
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: edeb9900b9e5bb5b27b9a6a2d5914e4fe4033c1b
 
