@@ -62,13 +62,13 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 
 ```bash
 # with npm
-npm install react-native-sensitive-info react-native-nitro-modules
+npm install react-native-sensitive-info@next react-native-nitro-modules
 
 # or with yarn
-yarn add react-native-sensitive-info react-native-nitro-modules
+yarn add react-native-sensitive-info@next react-native-nitro-modules
 
 # or with pnpm
-pnpm add react-native-sensitive-info react-native-nitro-modules
+pnpm add react-native-sensitive-info@next react-native-nitro-modules
 ```
 
 No manual linking is required. Nitro handles platform registration via autolinking.
