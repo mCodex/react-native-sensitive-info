@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -11,7 +11,7 @@ import {
   Platform,
   type StyleProp,
   type ViewStyle,
-} from 'react-native'
+} from 'react-native';
 import {
   clearService,
   deleteItem,
@@ -23,13 +23,17 @@ import {
   type AccessControl,
   type SecurityAvailability,
   type SensitiveInfoItem,
-} from 'react-native-sensitive-info'
+} from 'react-native-sensitive-info';
 
-const DEFAULT_SERVICE = 'demo-service'
-const DEFAULT_KEY = 'demo-secret'
-const DEFAULT_VALUE = 'very-secret-value'
+const DEFAULT_SERVICE = 'demo-service';
+const DEFAULT_KEY = 'demo-secret';
+const DEFAULT_VALUE = 'very-secret-value';
 
-const ACCESS_CONTROL_OPTIONS: Array<{ value: AccessControl; label: string; description: string }> = [
+const ACCESS_CONTROL_OPTIONS: Array<{
+  value: AccessControl;
+  label: string;
+  description: string;
+}> = [
   {
     value: 'secureEnclaveBiometry',
     label: 'Secure Enclave',
@@ -55,34 +59,37 @@ const ACCESS_CONTROL_OPTIONS: Array<{ value: AccessControl; label: string; descr
     label: 'None',
     description: 'No user presence required. Least secure.',
   },
-]
+];
 
 function formatError(error: unknown): string {
   if (error instanceof Error) {
-    return `${error.name}: ${error.message}`
+    return `${error.name}: ${error.message}`;
   }
-  return `Unexpected error: ${JSON.stringify(error)}`
+  return `Unexpected error: ${JSON.stringify(error)}`;
 }
 
 interface ActionButtonProps {
-  label: string
-  onPress: () => void | Promise<void>
-  disabled?: boolean
-  style?: StyleProp<ViewStyle>
+  label: string;
+  onPress: () => void | Promise<void>;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 function ActionButton({ label, onPress, disabled, style }: ActionButtonProps) {
   const handlePress = () => {
     if (disabled) {
-      return
+      return;
     }
 
-    const maybePromise = onPress()
-    
-    if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
-      void (maybePromise as Promise<void>)
+    const maybePromise = onPress();
+
+    if (
+      maybePromise &&
+      typeof (maybePromise as Promise<void>).then === 'function'
+    ) {
+      void (maybePromise as Promise<void>);
     }
-  }
+  };
 
   return (
     <Pressable
@@ -97,35 +104,41 @@ function ActionButton({ label, onPress, disabled, style }: ActionButtonProps) {
     >
       <Text style={styles.buttonLabel}>{label}</Text>
     </Pressable>
-  )
+  );
 }
 
 function App(): React.JSX.Element {
-  const [service, setService] = useState(DEFAULT_SERVICE)
-  const [keyName, setKeyName] = useState(DEFAULT_KEY)
-  const [secret, setSecret] = useState(DEFAULT_VALUE)
-  const [selectedAccessControl, setSelectedAccessControl] = useState<AccessControl>('secureEnclaveBiometry')
-  const [includeValues, setIncludeValues] = useState(true)
-  const [includeValueOnGet, setIncludeValueOnGet] = useState(true)
-  const [iosSynchronizable, setIosSynchronizable] = useState(false)
-  const [androidBiometricsStrongOnly, setAndroidBiometricsStrongOnly] = useState(false)
-  const [usePrompt, setUsePrompt] = useState(true)
-  const [keychainGroup, setKeychainGroup] = useState('')
-  const [availability, setAvailability] = useState<SecurityAvailability | null>(null)
-  const [items, setItems] = useState<SensitiveInfoItem[]>([])
-  const [lastResult, setLastResult] = useState('Ready to interact with the secure store.')
-  const [pending, setPending] = useState(false)
-  const [lastSavedKey, setLastSavedKey] = useState<string | null>(null)
+  const [service, setService] = useState(DEFAULT_SERVICE);
+  const [keyName, setKeyName] = useState(DEFAULT_KEY);
+  const [secret, setSecret] = useState(DEFAULT_VALUE);
+  const [selectedAccessControl, setSelectedAccessControl] =
+    useState<AccessControl>('secureEnclaveBiometry');
+  const [includeValues, setIncludeValues] = useState(true);
+  const [includeValueOnGet, setIncludeValueOnGet] = useState(true);
+  const [iosSynchronizable, setIosSynchronizable] = useState(false);
+  const [androidBiometricsStrongOnly, setAndroidBiometricsStrongOnly] =
+    useState(false);
+  const [usePrompt, setUsePrompt] = useState(true);
+  const [keychainGroup, setKeychainGroup] = useState('');
+  const [availability, setAvailability] = useState<SecurityAvailability | null>(
+    null,
+  );
+  const [items, setItems] = useState<SensitiveInfoItem[]>([]);
+  const [lastResult, setLastResult] = useState(
+    'Ready to interact with the secure store.',
+  );
+  const [pending, setPending] = useState(false);
+  const [lastSavedKey, setLastSavedKey] = useState<string | null>(null);
 
   const normalizedService = useMemo(() => {
-    const trimmed = service.trim()
-    return trimmed.length > 0 ? trimmed : DEFAULT_SERVICE
-  }, [service])
+    const trimmed = service.trim();
+    return trimmed.length > 0 ? trimmed : DEFAULT_SERVICE;
+  }, [service]);
 
   const normalizedKeychainGroup = useMemo(() => {
-    const trimmed = keychainGroup.trim()
-    return trimmed.length > 0 ? trimmed : undefined
-  }, [keychainGroup])
+    const trimmed = keychainGroup.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }, [keychainGroup]);
 
   const baseOptions = useMemo(
     () => ({
@@ -133,12 +146,15 @@ function App(): React.JSX.Element {
       accessControl: selectedAccessControl,
       iosSynchronizable: iosSynchronizable ? true : undefined,
       keychainGroup: normalizedKeychainGroup,
-      androidBiometricsStrongOnly: androidBiometricsStrongOnly ? true : undefined,
+      androidBiometricsStrongOnly: androidBiometricsStrongOnly
+        ? true
+        : undefined,
       authenticationPrompt: usePrompt
         ? {
             title: 'Authenticate to continue',
             subtitle: 'Demo prompt provided by the sample app',
-            description: 'Sensitive data access requires local authentication on secured keys.',
+            description:
+              'Sensitive data access requires local authentication on secured keys.',
             cancel: 'Cancel',
           }
         : undefined,
@@ -151,63 +167,73 @@ function App(): React.JSX.Element {
       selectedAccessControl,
       usePrompt,
     ],
-  )
+  );
 
   const refreshAvailability = useCallback(async () => {
     try {
-      const result = await getSupportedSecurityLevels()
-      setAvailability(result)
-      setLastResult(`Security capabilities refreshed at ${new Date().toLocaleTimeString()}`)
+      const result = await getSupportedSecurityLevels();
+      setAvailability(result);
+      setLastResult(
+        `Security capabilities refreshed at ${new Date().toLocaleTimeString()}`,
+      );
     } catch (error) {
-      setLastResult(formatError(error))
+      setLastResult(formatError(error));
     }
-  }, [])
+  }, []);
 
-  const refreshItems = useCallback(async (opts?: { suppressSensitiveValues?: boolean }) => {
-    try {
-      const shouldIncludeValues = includeValues && !opts?.suppressSensitiveValues
-      const entries = await getAllItems({
-        ...baseOptions,
-        includeValues: shouldIncludeValues,
-        authenticationPrompt: shouldIncludeValues ? baseOptions.authenticationPrompt : undefined,
-      })
-      setItems(entries)
-    } catch (error) {
-      setLastResult(formatError(error))
-    }
-  }, [baseOptions, includeValues])
+  const refreshItems = useCallback(
+    async (opts?: { suppressSensitiveValues?: boolean }) => {
+      try {
+        const shouldIncludeValues =
+          includeValues && !opts?.suppressSensitiveValues;
+        const entries = await getAllItems({
+          ...baseOptions,
+          includeValues: shouldIncludeValues,
+          authenticationPrompt: shouldIncludeValues
+            ? baseOptions.authenticationPrompt
+            : undefined,
+        });
+        setItems(entries);
+      } catch (error) {
+        setLastResult(formatError(error));
+      }
+    },
+    [baseOptions, includeValues],
+  );
 
   useEffect(() => {
-    void refreshAvailability()
-    void refreshItems()
-  }, [refreshAvailability, refreshItems])
+    void refreshAvailability();
+    void refreshItems();
+  }, [refreshAvailability, refreshItems]);
 
   const execute = useCallback(
     async (task: () => Promise<void>) => {
       if (pending) {
-        return
+        return;
       }
-      setPending(true)
+      setPending(true);
       try {
-        await task()
+        await task();
       } finally {
-        setPending(false)
+        setPending(false);
       }
     },
     [pending],
-  )
+  );
 
   const handleSetItem = useCallback(async () => {
     await execute(async () => {
       try {
-  const result = await setItem(keyName, secret, baseOptions)
-  setLastResult(`Saved secret with policy=${result.metadata.accessControl}, level=${result.metadata.securityLevel}`)
-        await refreshItems({ suppressSensitiveValues: true })
+        const result = await setItem(keyName, secret, baseOptions);
+        setLastResult(
+          `Saved secret with policy=${result.metadata.accessControl}, level=${result.metadata.securityLevel}`,
+        );
+        await refreshItems({ suppressSensitiveValues: true });
       } catch (error) {
-        setLastResult(formatError(error))
+        setLastResult(formatError(error));
       }
-    })
-  }, [baseOptions, execute, keyName, refreshItems, secret])
+    });
+  }, [baseOptions, execute, keyName, refreshItems, secret]);
 
   const handleGetItem = useCallback(async () => {
     await execute(async () => {
@@ -215,77 +241,83 @@ function App(): React.JSX.Element {
         const item = await getItem(keyName, {
           ...baseOptions,
           includeValue: includeValueOnGet,
-        })
+        });
         if (item) {
-          setLastResult(`Fetched item:\n${JSON.stringify(item, null, 2)}`)
+          setLastResult(`Fetched item:\n${JSON.stringify(item, null, 2)}`);
         } else {
-          setLastResult('No entry found for the provided key.')
+          setLastResult('No entry found for the provided key.');
         }
       } catch (error) {
-        setLastResult(formatError(error))
+        setLastResult(formatError(error));
       }
-    })
-  }, [baseOptions, execute, includeValueOnGet, keyName])
+    });
+  }, [baseOptions, execute, includeValueOnGet, keyName]);
 
   const handleHasItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const exists = await hasItem(keyName, baseOptions)
-        setLastResult(`Key "${keyName}" ${exists ? 'exists' : 'does not exist'} in service "${baseOptions.service}"`)
+        const exists = await hasItem(keyName, baseOptions);
+        setLastResult(
+          `Key "${keyName}" ${exists ? 'exists' : 'does not exist'} in service "${baseOptions.service}"`,
+        );
       } catch (error) {
-        setLastResult(formatError(error))
+        setLastResult(formatError(error));
       }
-    })
-  }, [baseOptions, execute, keyName])
+    });
+  }, [baseOptions, execute, keyName]);
 
   const handleDeleteItem = useCallback(async () => {
     await execute(async () => {
       try {
-  const deleted = await deleteItem(keyName, baseOptions)
-  setLastResult(deleted ? 'Secret deleted.' : 'Nothing deleted (key was absent).')
-        await refreshItems()
+        const deleted = await deleteItem(keyName, baseOptions);
+        setLastResult(
+          deleted ? 'Secret deleted.' : 'Nothing deleted (key was absent).',
+        );
+        await refreshItems();
       } catch (error) {
-        setLastResult(formatError(error))
+        setLastResult(formatError(error));
       }
-    })
-  }, [baseOptions, execute, keyName, refreshItems])
+    });
+  }, [baseOptions, execute, keyName, refreshItems]);
 
   const handleClearService = useCallback(async () => {
     await execute(async () => {
       try {
-        await clearService(baseOptions)
-        setLastResult(`Cleared service "${baseOptions.service}"`)
-        await refreshItems()
+        await clearService(baseOptions);
+        setLastResult(`Cleared service "${baseOptions.service}"`);
+        await refreshItems();
       } catch (error) {
-        setLastResult(formatError(error))
+        setLastResult(formatError(error));
       }
-    })
-  }, [baseOptions, execute, refreshItems])
+    });
+  }, [baseOptions, execute, refreshItems]);
 
   const handleRefresh = useCallback(async () => {
     await execute(async () => {
-      await refreshAvailability()
-      await refreshItems()
-    })
-  }, [execute, refreshAvailability, refreshItems])
+      await refreshAvailability();
+      await refreshItems();
+    });
+  }, [execute, refreshAvailability, refreshItems]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>react-native-sensitive-info demo</Text>
         <Text style={styles.subtitle}>
-          Demonstrates secure storage operations, metadata, and platform capability detection.
+          Demonstrates secure storage operations, metadata, and platform
+          capability detection.
         </Text>
 
-    <View style={[styles.banner, styles.blockSpacing]}>
+        <View style={[styles.banner, styles.blockSpacing]}>
           <Text style={styles.bannerTitle}>Simulators & emulators</Text>
           <Text style={styles.bannerText}>
-            Virtual devices often report limited security hardware. Expect Secure Enclave / StrongBox to be unavailable and
-            biometric prompts to fall back to passcode screens.
+            Virtual devices often report limited security hardware. Expect
+            Secure Enclave / StrongBox to be unavailable and biometric prompts
+            to fall back to passcode screens.
           </Text>
         </View>
 
-    <View style={[styles.section, styles.blockSpacing]}>
+        <View style={[styles.section, styles.blockSpacing]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Security capabilities</Text>
             <ActionButton
@@ -297,15 +329,24 @@ function App(): React.JSX.Element {
           </View>
           {availability ? (
             <View style={styles.card}>
-              <Text style={styles.cardRow}>Secure Enclave: {availability.secureEnclave ? 'yes' : 'no'}</Text>
-              <Text style={styles.cardRow}>StrongBox: {availability.strongBox ? 'yes' : 'no'}</Text>
-              <Text style={styles.cardRow}>Biometry: {availability.biometry ? 'yes' : 'no'}</Text>
               <Text style={styles.cardRow}>
-                Device credential: {availability.deviceCredential ? 'yes' : 'no'}
+                Secure Enclave: {availability.secureEnclave ? 'yes' : 'no'}
+              </Text>
+              <Text style={styles.cardRow}>
+                StrongBox: {availability.strongBox ? 'yes' : 'no'}
+              </Text>
+              <Text style={styles.cardRow}>
+                Biometry: {availability.biometry ? 'yes' : 'no'}
+              </Text>
+              <Text style={styles.cardRow}>
+                Device credential:{' '}
+                {availability.deviceCredential ? 'yes' : 'no'}
               </Text>
             </View>
           ) : (
-            <Text style={styles.bodyText}>Tap refresh to query native capabilities.</Text>
+            <Text style={styles.bodyText}>
+              Tap refresh to query native capabilities.
+            </Text>
           )}
         </View>
 
@@ -331,7 +372,9 @@ function App(): React.JSX.Element {
             placeholder={DEFAULT_KEY}
           />
 
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>Secret value</Text>
+          <Text style={[styles.bodyText, styles.sectionSpacing]}>
+            Secret value
+          </Text>
           <TextInput
             value={secret}
             onChangeText={setSecret}
@@ -341,10 +384,12 @@ function App(): React.JSX.Element {
             placeholder={DEFAULT_VALUE}
           />
 
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>Access control</Text>
+          <Text style={[styles.bodyText, styles.sectionSpacing]}>
+            Access control
+          </Text>
           <View style={styles.accessOptionsContainer}>
             {ACCESS_CONTROL_OPTIONS.map((option, index) => {
-              const selected = option.value === selectedAccessControl
+              const selected = option.value === selectedAccessControl;
               return (
                 <Pressable
                   key={option.value}
@@ -357,12 +402,19 @@ function App(): React.JSX.Element {
                     index > 0 && styles.accessOptionSpacing,
                   ]}
                 >
-                  <Text style={[styles.accessOptionLabel, selected && styles.accessOptionLabelSelected]}>
+                  <Text
+                    style={[
+                      styles.accessOptionLabel,
+                      selected && styles.accessOptionLabelSelected,
+                    ]}
+                  >
                     {option.label}
                   </Text>
-                  <Text style={styles.accessOptionDescription}>{option.description}</Text>
+                  <Text style={styles.accessOptionDescription}>
+                    {option.description}
+                  </Text>
                 </Pressable>
-              )
+              );
             })}
           </View>
 
@@ -371,23 +423,40 @@ function App(): React.JSX.Element {
             <Switch value={includeValues} onValueChange={setIncludeValues} />
           </View>
           <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>Include value when fetching a key</Text>
-            <Switch value={includeValueOnGet} onValueChange={setIncludeValueOnGet} />
+            <Text style={styles.bodyText}>
+              Include value when fetching a key
+            </Text>
+            <Switch
+              value={includeValueOnGet}
+              onValueChange={setIncludeValueOnGet}
+            />
           </View>
           <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>Use biometrics prompt (if required)</Text>
+            <Text style={styles.bodyText}>
+              Use biometrics prompt (if required)
+            </Text>
             <Switch value={usePrompt} onValueChange={setUsePrompt} />
           </View>
           <View style={styles.toggleRow}>
             <Text style={styles.bodyText}>iCloud keychain sync (iOS)</Text>
-            <Switch value={iosSynchronizable} onValueChange={setIosSynchronizable} />
+            <Switch
+              value={iosSynchronizable}
+              onValueChange={setIosSynchronizable}
+            />
           </View>
           <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>Android biometrics must be strong</Text>
-            <Switch value={androidBiometricsStrongOnly} onValueChange={setAndroidBiometricsStrongOnly} />
+            <Text style={styles.bodyText}>
+              Android biometrics must be strong
+            </Text>
+            <Switch
+              value={androidBiometricsStrongOnly}
+              onValueChange={setAndroidBiometricsStrongOnly}
+            />
           </View>
 
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>Custom keychain access group (optional)</Text>
+          <Text style={[styles.bodyText, styles.sectionSpacing]}>
+            Custom keychain access group (optional)
+          </Text>
           <TextInput
             value={keychainGroup}
             onChangeText={setKeychainGroup}
@@ -401,19 +470,45 @@ function App(): React.JSX.Element {
         <View style={[styles.section, styles.blockSpacing]}>
           <Text style={styles.sectionTitle}>Actions</Text>
           <View style={styles.buttonGrid}>
-            <ActionButton label="Save" onPress={handleSetItem} disabled={pending} />
-            <ActionButton label="Get" onPress={handleGetItem} disabled={pending} />
-            <ActionButton label="Has" onPress={handleHasItem} disabled={pending} />
-            <ActionButton label="Delete" onPress={handleDeleteItem} disabled={pending} />
-            <ActionButton label="Clear service" onPress={handleClearService} disabled={pending} />
-            <ActionButton label="Refresh list" onPress={handleRefresh} disabled={pending} />
+            <ActionButton
+              label="Save"
+              onPress={handleSetItem}
+              disabled={pending}
+            />
+            <ActionButton
+              label="Get"
+              onPress={handleGetItem}
+              disabled={pending}
+            />
+            <ActionButton
+              label="Has"
+              onPress={handleHasItem}
+              disabled={pending}
+            />
+            <ActionButton
+              label="Delete"
+              onPress={handleDeleteItem}
+              disabled={pending}
+            />
+            <ActionButton
+              label="Clear service"
+              onPress={handleClearService}
+              disabled={pending}
+            />
+            <ActionButton
+              label="Refresh list"
+              onPress={handleRefresh}
+              disabled={pending}
+            />
           </View>
         </View>
 
         <View style={[styles.section, styles.blockSpacing]}>
           <Text style={styles.sectionTitle}>Stored items</Text>
           {items.length === 0 ? (
-            <Text style={styles.bodyText}>No secrets stored for service "{baseOptions.service}".</Text>
+            <Text style={styles.bodyText}>
+              No secrets stored for service "{baseOptions.service}".
+            </Text>
           ) : (
             items.map((item, index) => (
               <View
@@ -425,11 +520,18 @@ function App(): React.JSX.Element {
                 {includeValues && item.value != null && (
                   <Text style={styles.cardRow}>Value: {item.value}</Text>
                 )}
-                <Text style={styles.cardRow}>Security level: {item.metadata.securityLevel}</Text>
-                <Text style={styles.cardRow}>Access control: {item.metadata.accessControl}</Text>
-                <Text style={styles.cardRow}>Backend: {item.metadata.backend}</Text>
                 <Text style={styles.cardRow}>
-                  Stored at: {new Date(item.metadata.timestamp * 1000).toLocaleString()}
+                  Security level: {item.metadata.securityLevel}
+                </Text>
+                <Text style={styles.cardRow}>
+                  Access control: {item.metadata.accessControl}
+                </Text>
+                <Text style={styles.cardRow}>
+                  Backend: {item.metadata.backend}
+                </Text>
+                <Text style={styles.cardRow}>
+                  Stored at:{' '}
+                  {new Date(item.metadata.timestamp * 1000).toLocaleString()}
                 </Text>
               </View>
             ))
@@ -444,7 +546,7 @@ function App(): React.JSX.Element {
         </View>
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -614,12 +716,16 @@ const styles = StyleSheet.create({
   },
   logText: {
     color: '#f3f4f6',
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'Courier' }),
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'Courier',
+    }),
     fontSize: 13,
   },
   blockSpacing: {
     marginTop: 24,
   },
-})
+});
 
-export default App
+export default App;

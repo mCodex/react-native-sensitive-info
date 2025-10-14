@@ -13,9 +13,8 @@ import type {
   SensitiveInfoSetRequest,
 } from './views/sensitive-info.nitro'
 
-const SensitiveInfoCtor = getHybridObjectConstructor<SensitiveInfoNativeHandle>(
-  'SensitiveInfo'
-)
+const SensitiveInfoCtor =
+  getHybridObjectConstructor<SensitiveInfoNativeHandle>('SensitiveInfo')
 
 let cachedInstance: SensitiveInfoNativeHandle | null = null
 
@@ -69,6 +68,16 @@ export async function setItem(
     ...resolveOptions(options),
   }
   return native.setItem(payload)
+}
+
+function isNotFoundError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message?.includes('[E_NOT_FOUND]') ?? false
+  }
+  if (typeof error === 'string') {
+    return error.includes('[E_NOT_FOUND]')
+  }
+  return false
 }
 
 /**
@@ -142,7 +151,9 @@ export async function getAllItems(
 /**
  * Remove every secret associated with a service.
  */
-export async function clearService(options?: SensitiveInfoOptions): Promise<void> {
+export async function clearService(
+  options?: SensitiveInfoOptions
+): Promise<void> {
   const native = ensureInstance()
   return native.clearService(resolveOptions(options))
 }
@@ -182,13 +193,3 @@ export type {
   SensitiveInfoOptions,
   SensitiveInfoSetRequest,
 } from './views/sensitive-info.nitro'
-
-function isNotFoundError(error: unknown): boolean {
-  if (error instanceof Error) {
-    return error.message?.includes('[E_NOT_FOUND]') ?? false
-  }
-  if (typeof error === 'string') {
-    return error.includes('[E_NOT_FOUND]')
-  }
-  return false
-}

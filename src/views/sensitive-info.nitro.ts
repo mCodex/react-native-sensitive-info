@@ -13,7 +13,10 @@ export type SecurityLevel =
 /**
  * Enumerates the native storage backend used to persist sensitive data.
  */
-export type StorageBackend = 'keychain' | 'androidKeystore' | 'encryptedSharedPreferences'
+export type StorageBackend =
+  | 'keychain'
+  | 'androidKeystore'
+  | 'encryptedSharedPreferences'
 
 /**
  * Enumerates the access-control policy enforced by the underlying secure storage.
@@ -111,7 +114,9 @@ export interface SensitiveInfo
   getItem(request: SensitiveInfoGetRequest): Promise<SensitiveInfoItem | null>
   deleteItem(request: SensitiveInfoDeleteRequest): Promise<boolean>
   hasItem(request: SensitiveInfoHasRequest): Promise<boolean>
-  getAllItems(request?: SensitiveInfoEnumerateRequest): Promise<SensitiveInfoItem[]>
+  getAllItems(
+    request?: SensitiveInfoEnumerateRequest
+  ): Promise<SensitiveInfoItem[]>
   clearService(request?: SensitiveInfoOptions): Promise<void>
   getSupportedSecurityLevels(): Promise<SecurityAvailability>
 }

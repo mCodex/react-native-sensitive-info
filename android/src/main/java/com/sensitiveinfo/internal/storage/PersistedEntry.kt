@@ -76,8 +76,10 @@ internal data class PersistedEntry(
         return null
       }
 
-      val ciphertext = json.optString(KEY_CIPHERTEXT, null)?.let { Base64.decode(it, Base64.NO_WRAP) }
-      val iv = json.optString(KEY_IV, null)?.let { Base64.decode(it, Base64.NO_WRAP) }
+  val ciphertextEncoded = json.optString(KEY_CIPHERTEXT, "")
+  val ciphertext = ciphertextEncoded.takeIf { it.isNotEmpty() }?.let { Base64.decode(it, Base64.NO_WRAP) }
+  val ivEncoded = json.optString(KEY_IV, "")
+  val iv = ivEncoded.takeIf { it.isNotEmpty() }?.let { Base64.decode(it, Base64.NO_WRAP) }
       val authenticators = json.optInt(KEY_AUTHENTICATORS, 0)
       val requiresAuth = json.optBoolean(KEY_REQUIRES_AUTH, false)
       val invalidateOnEnrollment = json.optBoolean(KEY_INVALIDATE_ON_ENROLLMENT, false)

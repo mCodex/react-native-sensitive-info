@@ -52,19 +52,35 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "@eslint/compat": "^1.4.0",
+    "@eslint/js": "^9.37.0",
     "@jamesacarr/eslint-formatter-github-actions": "^0.2.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/jest": "^30.0.0",
     "@types/react": "19.1.x",
     "conventional-changelog-conventionalcommits": "^9.1.0",
+    "eslint": "^9.37.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-import-helpers": "^2.0.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.4.0",
+    "jiti": "^2.6.1",
     "nitrogen": "0.30.0",
+    "prettier": "^3.6.2",
     "react": "19.1.1",
     "react-native": "0.82",
     "react-native-builder-bob": "^0.40.13",
     "react-native-nitro-modules": "0.30.0",
     "semantic-release": "^24.2.9",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1"
   },
   "peerDependencies": {
     "react": "*",
@@ -118,5 +134,6 @@
         }
       ]
     ]
-  }
+  },
+  "packageManager": "yarn@4.10.3"
 }
