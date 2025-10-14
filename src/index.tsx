@@ -7,6 +7,61 @@ import type {
   SensitiveInfoEntries,
 } from './types';
 
+type NativeModule = Spec;
+
+type NativeMethodName = Extract<
+  {
+    [Key in keyof NativeModule]: NativeModule[Key] extends (
+      ...args: any[]
+    ) => any
+      ? Key
+      : never;
+  }[keyof NativeModule],
+  string
+>;
+
+const nativeModule = NativeSensitiveInfo as NativeModule;
+
+const MISSING_METHOD_ERROR =
+  '[react-native-sensitive-info] The requested native method is not available. Ensure the native module is linked and the app has been rebuilt.';
+
+function callNative<Method extends NativeMethodName>(
+  method: Method,
+  ...args: Parameters<NativeModule[Method]>
+): ReturnType<NativeModule[Method]> {
+  const implementation = nativeModule[method];
+  if (typeof implementation !== 'function') {
+    throw new Error(`${MISSING_METHOD_ERROR} (method: ${String(method)})`);
+  }
+
+  return (
+    implementation as (
+      ...nativeArgs: Parameters<NativeModule[Method]>
+    ) => ReturnType<NativeModule[Method]>
+  ).apply(nativeModule, args) as ReturnType<NativeModule[Method]>;
+}
+
+function callNativeOptional<Method extends NativeMethodName>(
+  method: Method,
+  ...args: Parameters<NativeModule[Method]>
+): ReturnType<NativeModule[Method]> | undefined {
+  const implementation = nativeModule[method];
+  if (typeof implementation !== 'function') {
+    if (__DEV__) {
+      console.warn(
+        `[react-native-sensitive-info] Native method '${String(method)}' is not implemented on this platform. The call was ignored.`
+      );
+    }
+    return undefined;
+  }
+
+  return (
+    implementation as (
+      ...nativeArgs: Parameters<NativeModule[Method]>
+    ) => ReturnType<NativeModule[Method]>
+  ).apply(nativeModule, args) as ReturnType<NativeModule[Method]>;
+}
+
 function withDefaultOptions(
   options?: RNSensitiveInfoOptions
 ): RNSensitiveInfoOptions {
@@ -59,27 +114,28 @@ export function setItem(
   value: string,
   options?: RNSensitiveInfoOptions
 ): Promise<null> {
-  return NativeSensitiveInfo.setItem(key, value, toNativeOptions(options));
+  return callNative('setItem', key, value, toNativeOptions(options));
 }
 
 export function getItem(
   key: string,
   options?: RNSensitiveInfoOptions
 ): Promise<string | null> {
-  return NativeSensitiveInfo.getItem(key, toNativeOptions(options));
+  return callNative('getItem', key, toNativeOptions(options));
 }
 
 export function hasItem(
   key: string,
   options?: RNSensitiveInfoOptions
 ): Promise<boolean> {
-  return NativeSensitiveInfo.hasItem(key, toNativeOptions(options));
+  return callNative('hasItem', key, toNativeOptions(options));
 }
 
 export function getAllItems(
   options?: RNSensitiveInfoOptions
 ): Promise<SensitiveInfoEntries> {
-  return NativeSensitiveInfo.getAllItems(
+  return callNative(
+    'getAllItems',
     toNativeOptions(options)
   ) as Promise<SensitiveInfoEntries>;
 }
@@ -88,43 +144,27 @@ export function deleteItem(
   key: string,
   options?: RNSensitiveInfoOptions
 ): Promise<null> {
-  return NativeSensitiveInfo.deleteItem(key, toNativeOptions(options));
+  return callNative('deleteItem', key, toNativeOptions(options));
 }
 
 export function isSensorAvailable(): Promise<
   RNSensitiveInfoBiometryType | boolean
 > {
-  return NativeSensitiveInfo.isSensorAvailable() as Promise<
+  return callNative('isSensorAvailable') as Promise<
     RNSensitiveInfoBiometryType | boolean
   >;
 }
 
 export function hasEnrolledFingerprints(): Promise<boolean> {
-  return NativeSensitiveInfo.hasEnrolledFingerprints();
+  return callNative('hasEnrolledFingerprints');
 }
 
 export function cancelFingerprintAuth(): void {
-  NativeSensitiveInfo.cancelFingerprintAuth();
+  callNative('cancelFingerprintAuth');
 }
 
 export function setInvalidatedByBiometricEnrollment(set: boolean): void {
-  const module = NativeSensitiveInfo as Partial<Spec>;
-  const method = module.setInvalidatedByBiometricEnrollment;
-
-  if (typeof method !== 'function') {
-    if (__DEV__) {
-      // Helpful reminder during development that the host platform does not expose the feature.
-      // Common scenarios: running on Android or using an older native build without the new method.
-
-      console.warn(
-        '[react-native-sensitive-info] setInvalidatedByBiometricEnrollment is not available on this platform. ' +
-          'The call is being ignored.'
-      );
-    }
-    return;
-  }
-
-  method.call(module, set);
+  callNativeOptional('setInvalidatedByBiometricEnrollment', set);
 }
 
 export type {
@@ -133,3 +173,17 @@ export type {
   SensitiveInfoEntry,
   SensitiveInfoEntries,
 };
+
+const SensitiveInfo = {
+  setItem,
+  getItem,
+  hasItem,
+  getAllItems,
+  deleteItem,
+  isSensorAvailable,
+  hasEnrolledFingerprints,
+  cancelFingerprintAuth,
+  setInvalidatedByBiometricEnrollment,
+};
+
+export default SensitiveInfo;
