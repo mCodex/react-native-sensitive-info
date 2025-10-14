@@ -6,26 +6,29 @@
 
 Modern secure storage for React Native, powered by Nitro Modules. Version 6 ships a new headless API surface, stronger security defaults, and a fully revamped example app.
 
+> [!TIP]
+> Need the TL;DR? Jump to [🚀 Highlights](#-highlights) and [⚙️ Installation](#-installation) to get productive in under five minutes.
+
 > [!WARNING]
 > Version 6 drops Windows support. The module now targets iOS and Android only.
 
 ## Table of contents
 
-- [Highlights](#highlights)
-- [Platform support](#platform-support)
-- [Installation](#installation)
-- [Quick start](#quick-start)
-- [API reference](#api-reference)
-- [Access control & metadata](#access-control--metadata)
-- [Simulators and emulators](#simulators-and-emulators)
-- [Performance benchmarks](#performance-benchmarks)
-- [Example application](#example-application)
-- [Development](#development)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+- [🚀 Highlights](#-highlights)
+- [🧭 Platform support](#-platform-support)
+- [⚙️ Installation](#-installation)
+- [⚡️ Quick start](#-quick-start)
+- [📚 API reference](#-api-reference)
+- [🔐 Access control & metadata](#-access-control--metadata)
+- [🧪 Simulators and emulators](#-simulators-and-emulators)
+- [📈 Performance benchmarks](#-performance-benchmarks)
+- [🎮 Example application](#-example-application)
+- [🛠️ Development](#-development)
+- [🩺 Troubleshooting](#-troubleshooting)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
-## Highlights
+## 🚀 Highlights
 
 - Headless Nitro hybrid object with a simple Promise-based API (`setItem`, `getItem`, `hasItem`, `getAllItems`, `clearService`).
 - Automatic security negotiation: prefers Secure Enclave (iOS) or StrongBox/biometric-protected keys (Android) with graceful fallbacks.
@@ -33,7 +36,10 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 - Friendly example app showcasing prompts, metadata inspection, and per-platform capability detection.
 - First-class TypeScript definitions and tree-shakeable distribution via `react-native-builder-bob`.
 
-## Platform support
+> [!NOTE]
+> All APIs are fully typed. Hover over any option in your editor to explore the metadata surface without leaving VS Code.
+
+## 🧭 Platform support
 
 | Platform | Minimum OS | Notes |
 | --- | --- | --- |
@@ -46,7 +52,10 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 - Node.js `18` or newer.
 - `react-native-nitro-modules` `>=0.30.0`.
 
-## Installation
+> [!TIP]
+> Pair this module with [`react-native-quick-crypto`](https://github.com/mCodex/react-native-quick-crypto) when you need high-performance hashing alongside secure storage.
+
+## ⚙️ Installation
 
 ```bash
 # with npm
@@ -61,7 +70,7 @@ pnpm add react-native-sensitive-info react-native-nitro-modules
 
 No manual linking is required. Nitro handles platform registration via autolinking.
 
-### iOS setup
+### 🍏 iOS setup
 
 - Install pods from the root of your project:
 
@@ -76,7 +85,7 @@ No manual linking is required. Nitro handles platform registration via autolinki
 	<string>Face ID is used to unlock secrets stored in the secure enclave.</string>
 	```
 
-### Android setup
+### 🤖 Android setup
 
 - Ensure the following permissions are present in your `AndroidManifest.xml`:
 
@@ -87,7 +96,10 @@ No manual linking is required. Nitro handles platform registration via autolinki
 
 - If you rely on hardware-backed keystores, verify the device/emulator supports the biometrics you request.
 
-## Quick start
+> [!TIP]
+> Use `includeValue: false` during reads when you only care about metadata—this keeps plaintext out of memory and speeds up list views.
+
+## ⚡️ Quick start
 
 ```tsx
 import React, { useEffect } from 'react'
@@ -123,7 +135,7 @@ export function SecureTokenExample() {
 void SensitiveInfo.clearService({ service: 'auth' })
 ```
 
-## API reference
+## 📚 API reference
 
 All functions live at the top level export and return Promises.
 
@@ -137,7 +149,7 @@ All functions live at the top level export and return Promises.
 | `clearService` | `(options?) => Promise<void>` | Removes every secret within a service namespace. |
 | `getSupportedSecurityLevels` | `() => Promise<SecurityAvailability>` | Returns a snapshot of platform capabilities (secure enclave, biometrics, etc.). |
 
-### Options shared by all operations
+### 🧩 Options shared by all operations
 
 - `service` (default: bundle identifier or `default`) — logical namespace for secrets.
 - `accessControl` (default: `secureEnclaveBiometry`) — preferred policy; the native layer chooses the strongest supported fallback.
@@ -148,7 +160,7 @@ All functions live at the top level export and return Promises.
 
 See `src/views/sensitive-info.nitro.ts` for full TypeScript definitions.
 
-## Access control & metadata
+## 🔐 Access control & metadata
 
 `MutationResult` and `SensitiveInfoItem.metadata` surface how a value was stored:
 
@@ -159,17 +171,28 @@ See `src/views/sensitive-info.nitro.ts` for full TypeScript definitions.
 
 Use `getSupportedSecurityLevels()` to tailor UX before prompting users. For example, disable Secure Enclave options on simulators.
 
-## Simulators and emulators
+> [!TIP]
+> Need to demo biometrics on a simulator? Use Xcode’s “Features → Face ID” and Android Studio’s “Fingerprints” toggles to simulate successful scans.
+
+## 🧪 Simulators and emulators
 
 - iOS simulators do not offer Secure Enclave hardware. Biometric prompts usually fall back to a passcode dialog.
 - Android emulators rarely provide StrongBox. Depending on the system image, biometric APIs may be stubbed.
 - The example app displays these limitations prominently under “Simulators & emulators”.
 
+> [!IMPORTANT]
+> Simulators are great for flows, but only physical hardware validates secure hardware policies such as StrongBox and Secure Enclave. Run your final regression tests on devices before shipping.
+
 Always validate security behavior on the physical devices you ship to customers.
 
-## Example application
+## 🎮 Example application
 
-## Performance benchmarks
+Explore the full feature set with the bundled example app. It showcases capability detection, metadata inspection, and error surface normalization for every API call.
+
+> [!TIP]
+> Prefer Expo? The same Nitro module works inside bare Expo projects—just install via `expo install` and run the commands below from `example/`.
+
+## 📈 Performance benchmarks
 
 The Nitro rewrite in v6 removes the classic React Native bridge bottleneck that previous releases (v5 and earlier) relied on.
 
@@ -202,7 +225,10 @@ yarn android
 
 The example includes required permissions and the `NSFaceIDUsageDescription` string out of the box (see `example/android/app/src/main/AndroidManifest.xml` and `example/ios/SensitiveInfoExample/Info.plist`).
 
-## Development
+> [!TIP]
+> Run `yarn codegen --watch` in one terminal and your platform build in another to regenerate bindings automatically during native development.
+
+## 🛠️ Development
 
 ```bash
 # Install dependencies
@@ -220,17 +246,17 @@ yarn build
 
 The project uses Nitrogen for code generation and `react-native-builder-bob` for packaging CommonJS/ESM bundles.
 
-## Troubleshooting
+## 🩺 Troubleshooting
 
 - **Biometric prompt never appears** — verify the device supports the requested access control. Fallback to `devicePasscode` where appropriate.
 - **`authentication failed` errors on simulator** — expected when Secure Enclave or biometrics are not available. Test on hardware.
 - **Undefined symbol on iOS** — ensure `pod install` was run after upgrading to v6.
 - **Windows build errors** — Windows is no longer supported. Pin to v5 if you must target that platform.
 
-## Contributing
+## 🤝 Contributing
 
 PRs and issue reports are welcome. Please open an issue before introducing breaking API changes so we can discuss the best upgrade path.
 
-## License
+## 📄 License
 
 MIT © [Mateus Andrade](https://github.com/mateusandrade)
