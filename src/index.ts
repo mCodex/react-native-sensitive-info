@@ -85,7 +85,14 @@ export async function getItem(
     includeValue: options?.includeValue ?? true,
     ...resolveOptions(options),
   }
-  return native.getItem(payload)
+  try {
+    return await native.getItem(payload)
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return null
+    }
+    throw error
+  }
 }
 
 /**
@@ -175,3 +182,13 @@ export type {
   SensitiveInfoOptions,
   SensitiveInfoSetRequest,
 } from './views/sensitive-info.nitro'
+
+function isNotFoundError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message?.includes('[E_NOT_FOUND]') ?? false
+  }
+  if (typeof error === 'string') {
+    return error.includes('[E_NOT_FOUND]')
+  }
+  return false
+}

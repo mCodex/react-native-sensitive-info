@@ -4,6 +4,7 @@ import com.margelo.nitro.sensitiveinfo.AccessControl
 import com.margelo.nitro.sensitiveinfo.SecurityLevel
 import com.margelo.nitro.sensitiveinfo.StorageBackend
 
+/** Ensures enums round-trip between Kotlin and the generated TypeScript string literal unions. */
 internal fun AccessControl.persistedName(): String = when (this) {
   AccessControl.SECUREENCLAVEBIOMETRY -> "secureEnclaveBiometry"
   AccessControl.BIOMETRYCURRENTSET -> "biometryCurrentSet"

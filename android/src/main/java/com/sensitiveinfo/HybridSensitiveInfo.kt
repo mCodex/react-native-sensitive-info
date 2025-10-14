@@ -25,6 +25,7 @@ import com.sensitiveinfo.internal.storage.PersistedMetadata
 import com.sensitiveinfo.internal.storage.SecureStorage
 import com.sensitiveinfo.internal.util.AliasGenerator
 import com.sensitiveinfo.internal.util.ReactContextHolder
+import com.sensitiveinfo.internal.util.SensitiveInfoException
 import com.sensitiveinfo.internal.util.ServiceNameResolver
 import com.sensitiveinfo.internal.util.accessControlFromPersisted
 import com.sensitiveinfo.internal.util.storageBackendFromPersisted
@@ -32,6 +33,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.text.Charsets
 
+/**
+ * Android implementation of the SensitiveInfo Nitro module.
+ *
+ * All calls happen on Nitro managed promises, so the JS side can simply import the generated
+ * functions:
+ *
+ * ```ts
+ * import { setItem } from 'react-native-sensitive-info'
+ * await setItem('bank-pin', '1234', { accessControl: 'secureEnclaveBiometry' })
+ * ```
+ *
+ * The class resolves the appropriate storage backend, encrypts values with the Android Keystore,
+ * and keeps metadata so JavaScript consumers always know which security tier saved an entry.
+ */
 class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     private val applicationContext get() = ReactContextHolder.requireContext()
 
@@ -42,6 +57,11 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     private val authenticator by lazy { BiometricAuthenticator() }
     private val cryptoManager by lazy { CryptoManager(authenticator) }
 
+    /**
+     * Encrypts and stores a secret for the requested service/key pair.
+     *
+     * @return Metadata describing the security level used, mirroring the JS `MutationResult` type.
+     */
     override fun setItem(request: SensitiveInfoSetRequest): Promise<MutationResult> {
         return Promise.async {
             val service = serviceResolver.resolve(request.service)
@@ -90,11 +110,15 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         }
     }
 
+    /**
+     * Reads a single item; optionally decrypts the payload if JS requested the plaintext value.
+     */
     override fun getItem(request: SensitiveInfoGetRequest): Promise<SensitiveInfoItem?> {
         return Promise.async {
             val includeValue = request.includeValue ?: true
             val service = serviceResolver.resolve(request.service)
-            val entry = withContext(Dispatchers.IO) { storage.read(service, request.key) } ?: return@async null
+                        val entry = withContext(Dispatchers.IO) { storage.read(service, request.key) }
+                            ?: throw SensitiveInfoException.NotFound(request.key, service)
 
             val metadata = entry.metadata.toStorageMetadata() ?: fallbackMetadata(entry)
 
@@ -113,6 +137,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         }
     }
 
+    /**
+     * Deletes a saved secret. If the underlying keystore alias becomes unused we dispose it as well.
+     */
     override fun deleteItem(request: SensitiveInfoDeleteRequest): Promise<Boolean> {
         return Promise.async {
             val service = serviceResolver.resolve(request.service)
@@ -125,6 +152,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         }
     }
 
+    /**
+     * Lightweight existence check backed by the SharedPreferences metadata store.
+     */
     override fun hasItem(request: SensitiveInfoHasRequest): Promise<Boolean> {
         return Promise.async {
             val service = serviceResolver.resolve(request.service)
@@ -134,6 +164,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         }
     }
 
+    /**
+     * Enumerates every entry in a service. When `includeValues` is false the secrets stay encrypted.
+     */
     override fun getAllItems(request: SensitiveInfoEnumerateRequest?): Promise<Array<SensitiveInfoItem>> {
         return Promise.async {
             val includeValues = request?.includeValues == true
@@ -160,6 +193,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         }
     }
 
+    /**
+     * Clears an entire service namespace and purges any orphaned keystore aliases.
+     */
     override fun clearService(request: SensitiveInfoOptions?): Promise<Unit> {
         return Promise.async {
             val service = serviceResolver.resolve(request?.service)

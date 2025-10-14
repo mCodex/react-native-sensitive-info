@@ -115,6 +115,7 @@ function App(): React.JSX.Element {
   const [items, setItems] = useState<SensitiveInfoItem[]>([])
   const [lastResult, setLastResult] = useState('Ready to interact with the secure store.')
   const [pending, setPending] = useState(false)
+  const [lastSavedKey, setLastSavedKey] = useState<string | null>(null)
 
   const normalizedService = useMemo(() => {
     const trimmed = service.trim()
@@ -162,11 +163,13 @@ function App(): React.JSX.Element {
     }
   }, [])
 
-  const refreshItems = useCallback(async () => {
+  const refreshItems = useCallback(async (opts?: { suppressSensitiveValues?: boolean }) => {
     try {
+      const shouldIncludeValues = includeValues && !opts?.suppressSensitiveValues
       const entries = await getAllItems({
         ...baseOptions,
-        includeValues,
+        includeValues: shouldIncludeValues,
+        authenticationPrompt: shouldIncludeValues ? baseOptions.authenticationPrompt : undefined,
       })
       setItems(entries)
     } catch (error) {
@@ -197,9 +200,9 @@ function App(): React.JSX.Element {
   const handleSetItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const result = await setItem(keyName, secret, baseOptions)
-        setLastResult(`Saved secret with policy=${result.metadata.accessControl}, level=${result.metadata.securityLevel}`)
-        await refreshItems()
+  const result = await setItem(keyName, secret, baseOptions)
+  setLastResult(`Saved secret with policy=${result.metadata.accessControl}, level=${result.metadata.securityLevel}`)
+        await refreshItems({ suppressSensitiveValues: true })
       } catch (error) {
         setLastResult(formatError(error))
       }
@@ -238,8 +241,8 @@ function App(): React.JSX.Element {
   const handleDeleteItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const deleted = await deleteItem(keyName, baseOptions)
-        setLastResult(deleted ? 'Secret deleted.' : 'Nothing deleted (key was absent).')
+  const deleted = await deleteItem(keyName, baseOptions)
+  setLastResult(deleted ? 'Secret deleted.' : 'Nothing deleted (key was absent).')
         await refreshItems()
       } catch (error) {
         setLastResult(formatError(error))

@@ -16,6 +16,13 @@ internal data class SecurityAvailabilitySnapshot(
   val deviceCredential: Boolean
 )
 
+/**
+ * Caches hardware capability checks (StrongBox, biometrics, device credential).
+ *
+ * The Android system calls here can be relatively expensive, so we memoize the result until the
+ * process restarts. JS can always request a fresh snapshot by calling
+ * `getSupportedSecurityLevels()`.
+ */
 internal class SecurityAvailabilityResolver(private val context: Context) {
   private val lock = ReentrantLock()
   private var cached: SecurityAvailabilitySnapshot? = null

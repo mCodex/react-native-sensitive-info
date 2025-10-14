@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 
+/// Aggregates the current device's authentication capabilities (biometrics, passcode, secure enclave).
 final class SecurityAvailabilityResolver {
   private let lock = NSLock()
   private var cached: (secureEnclave: Bool, strongBox: Bool, biometry: Bool, deviceCredential: Bool)?

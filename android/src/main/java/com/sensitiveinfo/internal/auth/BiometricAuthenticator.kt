@@ -14,6 +14,13 @@ import javax.crypto.Cipher
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * Coroutine-friendly wrapper around `BiometricPrompt` used by the Keystore flows.
+ *
+ * The helper always executes prompts on the main dispatcher and returns the cipher configured for
+ * the successful authentication. Cancellation propagates back to the calling coroutine, matching
+ * the surface used by the Nitro Promise bridge.
+ */
 internal class BiometricAuthenticator {
   suspend fun authenticate(
     prompt: AuthenticationPrompt?,
@@ -84,6 +91,7 @@ internal class BiometricAuthenticator {
       }
     } else {
       if (allowsDeviceCredential) {
+        @Suppress("DEPRECATION")
         builder.setDeviceCredentialAllowed(true)
       } else {
         builder.setNegativeButtonText(prompt?.cancel ?: DEFAULT_CANCEL)

@@ -9,6 +9,7 @@ import com.sensitiveinfo.internal.util.persistedName
 import com.sensitiveinfo.internal.util.securityLevelFromPersisted
 import com.sensitiveinfo.internal.util.storageBackendFromPersisted
 
+/** Mirrors the TypeScript `StorageMetadata` shape so we can round-trip metadata through JSON. */
 internal data class PersistedMetadata(
   val securityLevel: String,
   val backend: String,

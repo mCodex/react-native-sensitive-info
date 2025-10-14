@@ -6,6 +6,9 @@ import java.util.Locale
 
 /**
  * Normalizes the requested service string so storage namespaces stay consistent and filesystem-safe.
+ *
+ * The SHA-256 suffix mirrors iOS behaviour (Keychain isolates entries by service) and keeps the
+ * SharedPreferences file name short even when callers supply verbose service identifiers.
  */
 internal class ServiceNameResolver(private val context: Context) {
   private val defaultService: String = context.packageName.ifBlank { "sensitiveInfo" }

@@ -20,11 +20,20 @@ import javax.crypto.spec.GCMParameterSpec
 private const val ANDROID_KEY_STORE = "AndroidKeyStore"
 private const val TRANSFORMATION = "AES/GCM/NoPadding"
 
+/**
+ * Handles Android Keystore interactions (AES/GCM keys, biometric gating, alias cleanup).
+ *
+ * Callers supply an alias and the resolved `AccessResolution` (which captures whether StrongBox,
+ * biometrics, or device credentials are required). The manager takes care of provisioning keys,
+ * invoking the biometric prompt, and transparently rebuilding the resolution for entries fetched
+ * from disk.
+ */
 internal class CryptoManager(
   private val authenticator: BiometricAuthenticator
 ) {
   private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
 
+  /** Encrypts data and returns the ciphertext plus generated IV. */
   suspend fun encrypt(
     alias: String,
     plaintext: ByteArray,
@@ -51,6 +60,7 @@ internal class CryptoManager(
     return EncryptionResult(ciphertext = ciphertext, iv = readyCipher.iv)
   }
 
+  /** Decrypts an item using the preconfigured alias, IV, and policy. */
   suspend fun decrypt(
     alias: String,
     ciphertext: ByteArray,
@@ -81,6 +91,7 @@ internal class CryptoManager(
     return readyCipher.doFinal(ciphertext)
   }
 
+  /** Best-effort removal of a keystore entry. */
   fun deleteKey(alias: String) {
     try {
       keyStore.deleteEntry(alias)
@@ -89,6 +100,12 @@ internal class CryptoManager(
     }
   }
 
+  /**
+   * Reconstructs the resolution for data loaded from SharedPreferences.
+   *
+   * This lets us decrypt entries that were encrypted on a previous run without re-reading
+   * the original access-control input, since the persisted metadata is authoritative.
+   */
   fun buildResolutionForPersisted(
     accessControl: AccessControl,
     securityLevel: SecurityLevel,
@@ -155,6 +172,7 @@ internal class CryptoManager(
       builder.setUserAuthenticationParameters(0, sanitized)
     } else {
       builder.setUserAuthenticationRequired(true)
+      @Suppress("DEPRECATION")
       builder.setUserAuthenticationValidityDurationSeconds(1)
     }
 

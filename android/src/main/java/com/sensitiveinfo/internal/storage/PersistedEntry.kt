@@ -3,6 +3,12 @@ package com.sensitiveinfo.internal.storage
 import org.json.JSONObject
 import android.util.Base64
 
+/**
+ * Serialized representation of an entry in SharedPreferences.
+ *
+ * `ciphertext` and `iv` remain optional so callers can cache metadata-only items (for example
+ * when a secret is hardware-gated and the user has not authenticated yet).
+ */
 internal data class PersistedEntry(
   val alias: String,
   val ciphertext: ByteArray?,

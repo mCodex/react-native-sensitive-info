@@ -10,6 +10,16 @@ private struct ResolvedAccessControl {
   let accessControlRef: SecAccessControl?
 }
 
+/// iOS implementation of the SensitiveInfo Nitro module.
+///
+/// Consumers interact with the generated JS API:
+/// ```ts
+/// import { setItem } from 'react-native-sensitive-info'
+/// await setItem('session-token', 'secret', { accessControl: 'secureEnclaveBiometry' })
+/// ```
+///
+/// The Swift bridge runs keychain queries on a dedicated queue, encodes consistent metadata, and
+/// returns results that mirror the TypeScript types shipped in the package.
 final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   private let workQueue = DispatchQueue(label: "com.mcodex.sensitiveinfo.keychain", qos: .userInitiated)
   private let encoder: JSONEncoder = {
@@ -33,6 +43,9 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     )
   }
 
+  /// Stores or replaces an item in the Keychain, returning metadata describing the applied
+  /// security policy. If the requested hardware policy is unavailable (for example, simulators with
+  /// no passcode), we fall back to a software-only accessibility to keep the call successful.
   func setItem(request: SensitiveInfoSetRequest) throws -> Promise<MutationResult> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
@@ -89,6 +102,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
+  /// Fetches a single item and optionally includes the plaintext value if the client requested it.
   func getItem(request: SensitiveInfoGetRequest) throws -> Promise<SensitiveInfoItem?> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
@@ -114,6 +128,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
+  /// Removes a specific key/service pair from the Keychain.
   func deleteItem(request: SensitiveInfoDeleteRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
@@ -136,6 +151,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
+  /// Checks for existence without allocating an item payload.
   func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
@@ -153,6 +169,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
+  /// Enumerates every item matching the provided service and inclusion options.
   func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
     Promise.parallel(workQueue) { [self] in
       let includeValues = request?.includeValues ?? false
@@ -181,6 +198,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
+  /// Deletes all items for the requested service.
   func clearService(request: SensitiveInfoOptions?) throws -> Promise<Void> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request?.service)

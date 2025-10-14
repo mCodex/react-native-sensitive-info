@@ -4,6 +4,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.sensitiveinfo.internal.util.ServiceNameResolver
 
+/**
+ * Thin SharedPreferences wrapper. The real secret is stored in the Keystore; this component keeps
+ * the encrypted payload, IV, and metadata JSON on disk so we can enumerate entries cheaply.
+ */
 internal class SecureStorage(context: Context) {
   private val resolver = ServiceNameResolver(context)
   private val applicationContext = context.applicationContext

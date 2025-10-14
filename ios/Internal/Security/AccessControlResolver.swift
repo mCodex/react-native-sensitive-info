@@ -28,6 +28,8 @@ struct AccessControlContext {
   let accessControlRef: SecAccessControl?
 }
 
+/// Mirrors the Android access control resolver: picks the strongest available policy that satisfies
+/// the caller's preference while respecting the current device's hardware capabilities.
 final class AccessControlResolver {
   private let resolveAvailability: () -> (secureEnclave: Bool, strongBox: Bool, biometry: Bool, deviceCredential: Bool)
   private let defaultOrder: [AccessPolicy] = [

@@ -7,6 +7,10 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * Stores a reference to the current [ReactApplicationContext] so HybridObjects created via
  * [DefaultConstructableObject] can lazily access it without requiring constructor parameters.
+ *
+ * Nitro instantiates the bridge in native code, so we cannot rely on constructor DI. This helper is
+ * the canonical way for internal classes to reach the context or the current activity when they
+ * need to launch a biometric prompt.
  */
 internal object ReactContextHolder {
   private val contextRef = AtomicReference<ReactApplicationContext?>()

@@ -4,6 +4,13 @@ import androidx.biometric.BiometricManager.Authenticators
 import com.margelo.nitro.sensitiveinfo.AccessControl
 import com.margelo.nitro.sensitiveinfo.SecurityLevel
 
+/**
+ * Determines which Android security primitives should back a requested access control.
+ *
+ * The resolver walks through a preference list, discarding options that are unavailable on the
+ * current device (e.g. no StrongBox, weak biometrics only). The resulting `AccessResolution`
+ * instructs the `CryptoManager` how to create or reopen the matching keystore key.
+ */
 internal class AccessControlResolver(
   private val availabilityResolver: SecurityAvailabilityResolver
 ) {
@@ -15,6 +22,7 @@ internal class AccessControlResolver(
     AccessControl.NONE
   )
 
+  /** Chooses the best available policy given the caller preference and hardware capabilities. */
   fun resolve(preferred: AccessControl?, strongBiometricsOnly: Boolean): AccessResolution {
     val availability = availabilityResolver.resolve()
     val ordered = orderPreferences(preferred)
