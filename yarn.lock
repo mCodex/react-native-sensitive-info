@@ -5,7 +5,7 @@ __metadata:
   version: 8
   cacheKey: 10
 
-"@actions/core@npm:^1.10.0":
+"@actions/core@npm:^1.10.0, @actions/core@npm:^1.11.1":
   version: 1.11.1
   resolution: "@actions/core@npm:1.11.1"
   dependencies:
@@ -2999,12 +2999,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@semantic-release/npm@npm:^13.0.0":
-  version: 13.0.0
-  resolution: "@semantic-release/npm@npm:13.0.0"
+"@semantic-release/npm@npm:^13.1.1":
+  version: 13.1.1
+  resolution: "@semantic-release/npm@npm:13.1.1"
   dependencies:
+    "@actions/core": "npm:^1.11.1"
     "@semantic-release/error": "npm:^4.0.0"
     aggregate-error: "npm:^5.0.0"
+    env-ci: "npm:^11.2.0"
     execa: "npm:^9.0.0"
     fs-extra: "npm:^11.0.0"
     lodash-es: "npm:^4.17.21"
@@ -3018,7 +3020,7 @@ __metadata:
     tempy: "npm:^3.0.0"
   peerDependencies:
     semantic-release: ">=20.1.0"
-  checksum: 10/0827e78e37ca1d3fbef1aaf287efb77c4a272d25fc7539ab05e539212e7aca332fa5ca687202b0589d9e27ca726894cb9fc8051dc6d9e7cf0a2d6816e4cb1221
+  checksum: 10/55254c976261413289356e9206b4b428f221e57d782f3e40554d5bb50087a1cd6f6e59ff1ccac094d80800071b5b301b43d80fcb0be7d7a2ae382ad5393c84a1
   languageName: node
   linkType: hard
 
@@ -5450,7 +5452,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"env-ci@npm:^11.0.0":
+"env-ci@npm:^11.0.0, env-ci@npm:^11.2.0":
   version: 11.2.0
   resolution: "env-ci@npm:11.2.0"
   dependencies:
@@ -11087,13 +11089,13 @@ __metadata:
   linkType: hard
 
 "semantic-release@npm:^25.0.0":
-  version: 25.0.0
-  resolution: "semantic-release@npm:25.0.0"
+  version: 25.0.1
+  resolution: "semantic-release@npm:25.0.1"
   dependencies:
     "@semantic-release/commit-analyzer": "npm:^13.0.1"
     "@semantic-release/error": "npm:^4.0.0"
     "@semantic-release/github": "npm:^12.0.0"
-    "@semantic-release/npm": "npm:^13.0.0"
+    "@semantic-release/npm": "npm:^13.1.1"
     "@semantic-release/release-notes-generator": "npm:^14.1.0"
     aggregate-error: "npm:^5.0.0"
     cosmiconfig: "npm:^9.0.0"
@@ -11121,7 +11123,7 @@ __metadata:
     yargs: "npm:^18.0.0"
   bin:
     semantic-release: bin/semantic-release.js
-  checksum: 10/4d537bed6130dfae790c7314659145d693edc6bbd5bc6bc24941614f7c4c938828049e5c1a6f5cdfcec7b8c5009c9f15b3cc949742018d672db609f12855ce46
+  checksum: 10/04432398ef0f2cdf81802c97aed35b63a43b8cf2aab117435f0b7aef174327d9cdc3afa03bade575a608cc40e001218539a9f332a4a7e306752285bfb2c3b866
   languageName: node
   linkType: hard
 
