@@ -74,12 +74,40 @@ data class PersistedEntry(
         /**
          * Parses JSON back to PersistedEntry.
          *
+         * Uses manual JSON parsing (no external dependencies) for reliability.
+         *
          * @param json JSON string
          * @return Parsed entry, or null if parsing fails
          */
         fun fromJson(json: String): PersistedEntry? {
-            // TODO: Implement proper JSON parsing
-            return null
+            return try {
+                // Manual JSON parsing to avoid external dependencies
+                val cleanJson = json.trim()
+                if (!cleanJson.startsWith("{") || !cleanJson.endsWith("}")) {
+                    return null
+                }
+
+                // Extract fields using regex
+                val keyMatch = "\"key\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+                val serviceMatch = "\"service\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+                val ciphertextMatch = "\"ciphertext\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+                val ivMatch = "\"iv\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+                val timestampMatch = "\"timestamp\":(\\d+)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toLong() ?: return null
+                val securityLevelMatch = "\"securityLevel\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+                val accessControlMatch = "\"accessControl\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+
+                PersistedEntry(
+                    key = keyMatch,
+                    service = serviceMatch,
+                    ciphertext = ciphertextMatch,
+                    iv = ivMatch,
+                    timestamp = timestampMatch,
+                    securityLevel = securityLevelMatch,
+                    accessControl = accessControlMatch
+                )
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 }

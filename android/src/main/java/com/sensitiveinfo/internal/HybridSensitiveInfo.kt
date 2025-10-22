@@ -4,8 +4,8 @@ import android.content.Context
 import com.sensitiveinfo.internal.auth.BiometricAuthenticator
 import com.sensitiveinfo.internal.auth.AuthenticationPrompt
 import com.sensitiveinfo.internal.storage.SecureStorage
-import com.sensitiveinfo.internal.storage.StorageResult as StorageStorageResult
-import com.sensitiveinfo.internal.storage.StorageMetadata as StorageStorageMetadata
+import com.sensitiveinfo.internal.storage.StorageResult
+import com.sensitiveinfo.internal.storage.StorageMetadata
 import com.sensitiveinfo.internal.util.ActivityContextHolder
 import com.sensitiveinfo.internal.util.SensitiveInfoException
 import com.sensitiveinfo.internal.util.AccessControlResolver
@@ -135,6 +135,14 @@ class HybridSensitiveInfo(private val context: Context) {
         accessControl: String? = null,
         authenticationPrompt: AuthenticationPrompt? = null
     ): StorageResult {
+        // Validate inputs
+        if (key.isEmpty()) {
+            throw SensitiveInfoException.InvalidConfiguration("key", "Cannot be empty")
+        }
+        if (value.isEmpty()) {
+            throw SensitiveInfoException.InvalidConfiguration("value", "Cannot be empty")
+        }
+
         try {
             // Resolve access control configuration
             val accessControlConfig = AccessControlResolver.resolve(accessControl)
@@ -162,7 +170,7 @@ class HybridSensitiveInfo(private val context: Context) {
             }
 
             // Store the encrypted value
-            val metadata = storage.setItem(
+            val storageMetadata = storage.setItem(
                 key = key,
                 value = value,
                 service = service,
@@ -171,7 +179,7 @@ class HybridSensitiveInfo(private val context: Context) {
 
             return StorageResult(
                 value = "",
-                metadata = metadata
+                metadata = storageMetadata
             )
         } catch (e: SensitiveInfoException) {
             throw e
@@ -221,6 +229,10 @@ class HybridSensitiveInfo(private val context: Context) {
      * @throws SensitiveInfoException.KeystoreUnavailable if key not accessible
      */
     fun getItem(key: String, service: String? = null): StorageResult? {
+        if (key.isEmpty()) {
+            throw SensitiveInfoException.InvalidConfiguration("key", "Cannot be empty")
+        }
+
         return try {
             val storageResult = storage.getItem(key, service)
             storageResult?.let { result ->
@@ -250,6 +262,10 @@ class HybridSensitiveInfo(private val context: Context) {
      * @throws SensitiveInfoException if deletion fails
      */
     fun deleteItem(key: String, service: String? = null) {
+        if (key.isEmpty()) {
+            throw SensitiveInfoException.InvalidConfiguration("key", "Cannot be empty")
+        }
+
         try {
             storage.deleteItem(key, service)
         } catch (e: SensitiveInfoException) {
@@ -268,6 +284,10 @@ class HybridSensitiveInfo(private val context: Context) {
      * @return true if the secret exists, false otherwise
      */
     fun hasItem(key: String, service: String? = null): Boolean {
+        if (key.isEmpty()) {
+            throw SensitiveInfoException.InvalidConfiguration("key", "Cannot be empty")
+        }
+
         return try {
             storage.hasItem(key, service)
         } catch (e: Exception) {
@@ -338,29 +358,3 @@ class HybridSensitiveInfo(private val context: Context) {
         )
     }
 }
-
-/**
- * Storage result wrapper.
- *
- * @property value The stored or retrieved value (empty for setItem)
- * @property metadata Metadata about the operation
- */
-data class StorageResult(
-    val value: String,
-    val metadata: StorageMetadata
-)
-
-/**
- * Metadata about stored secrets.
- *
- * @property securityLevel How the secret is protected ("biometry", "deviceCredential", "software")
- * @property accessControl The access control policy applied
- * @property backend Where it's stored ("preferences", "keychain", etc.)
- * @property timestamp Unix timestamp when stored
- */
-data class StorageMetadata(
-    val securityLevel: String,
-    val accessControl: String,
-    val backend: String,
-    val timestamp: Long
-)

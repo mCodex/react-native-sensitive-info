@@ -1,6 +1,7 @@
 package com.sensitiveinfo.internal.auth
 
 import android.content.Context
+import android.os.Build
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
@@ -140,7 +141,9 @@ class BiometricAuthenticator(
                 .setNegativeButtonText(prompt.cancel ?: "Cancel")
 
             // Allow biometric and optionally device credential
-            val authenticators = if (allowDeviceCredential) {
+            // Note: DEVICE_CREDENTIAL flag only available on Android 10 (API 29)+
+            // On Android 9 (API 28), use BIOMETRIC_STRONG only
+            val authenticators = if (allowDeviceCredential && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL
             } else {
                 Authenticators.BIOMETRIC_STRONG

@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "5.6.0",
+  "version": "5.5.8",
   "description": "Securely store and retrieve sensitive information on React Native with automatic migration, Fabric View support, and improved encryption with random IVs.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

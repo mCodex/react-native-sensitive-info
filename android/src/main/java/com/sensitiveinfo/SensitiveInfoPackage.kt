@@ -20,7 +20,7 @@ import java.util.ArrayList
  * @see SensitiveInfoModule for API methods
  * @see SensitiveInfoViewManager for UI components
  */
-class SensitiveInfoPackage : ReactPackage {
+open class SensitiveInfoPackage : ReactPackage {
 
     /**
      * Creates native modules for JavaScript access.
@@ -46,9 +46,19 @@ class SensitiveInfoPackage : ReactPackage {
      * @param reactContext The React application context
      * @return List of view managers
      */
+    @Suppress("DEPRECATION")
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
         return listOf(
             SensitiveInfoViewManager()
         )
     }
 }
+
+/**
+ * Alias for backwards compatibility with React Native autolinking.
+ *
+ * React Native's autolinking may look for SensitiveInfoViewPackage
+ * (old naming convention). This alias ensures compatibility.
+ */
+@Suppress("DEPRECATION")
+class SensitiveInfoViewPackage : SensitiveInfoPackage()
