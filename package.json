@@ -1,7 +1,7 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "5.5.0",
-  "description": "...",
+  "version": "5.6.0",
+  "description": "Securely store and retrieve sensitive information on React Native with automatic migration, Fabric View support, and improved encryption with random IVs.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -43,7 +43,13 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "macos",
+    "visionos",
+    "watchos",
+    "android",
+    "secure-storage",
+    "keychain",
+    "biometric"
   ],
   "repository": {
     "type": "git",
@@ -62,25 +68,26 @@
     "@commitlint/config-conventional": "^20.0.0",
     "@eslint/compat": "^1.4.0",
     "@eslint/eslintrc": "^3.3.1",
-    "@eslint/js": "^9.37.0",
-    "@evilmartians/lefthook": "^1.13.6",
+    "@eslint/js": "^9.38.0",
+    "@evilmartians/lefthook": "^2.0.0",
     "@react-native-community/cli": "20.0.2",
-    "@react-native/babel-preset": "0.82.0",
-    "@react-native/eslint-config": "^0.82.0",
+    "@react-native/babel-preset": "0.82.1",
+    "@react-native/eslint-config": "^0.82.1",
     "@release-it/conventional-changelog": "^10.0.1",
     "@types/jest": "^30.0.0",
     "@types/react": "^19.2.2",
     "commitlint": "^20.1.0",
     "del-cli": "^7.0.0",
-    "eslint": "^9.37.0",
+    "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "jest": "^30.2.0",
     "prettier": "^3.6.2",
-    "react": "19.2.0",
-    "react-native": "0.82.0",
+    "react": "19.1.1",
+    "react-native": "0.82.1",
     "react-native-builder-bob": "^0.40.13",
     "release-it": "^19.0.5",
+    "ts-jest": "^29.4.5",
     "turbo": "^2.5.8",
     "typescript": "^5.9.3"
   },
@@ -92,13 +99,6 @@
     "example"
   ],
   "packageManager": "yarn@3.6.1",
-  "jest": {
-    "preset": "react-native",
-    "modulePathIgnorePatterns": [
-      "<rootDir>/example/node_modules",
-      "<rootDir>/lib/"
-    ]
-  },
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
@@ -149,21 +149,21 @@
     ]
   },
   "codegenConfig": {
-    "name": "NativeSensitiveInfoSpec",
-    "type": "modules",
+    "name": "SensitiveInfoViewSpec",
+    "type": "all",
     "jsSrcsDir": "src",
     "android": {
       "javaPackageName": "com.sensitiveinfo"
     },
     "ios": {
-      "modules": {
-        "SensitiveInfo": "SensitiveInfo"
+      "componentProvider": {
+        "SensitiveInfoView": "SensitiveInfoView"
       }
     }
   },
   "create-react-native-library": {
-    "languages": "kotlin-swift",
-    "type": "module",
-    "version": "0.54.5"
+    "languages": "kotlin-objc",
+    "type": "fabric-view",
+    "version": "0.54.7"
   }
 }

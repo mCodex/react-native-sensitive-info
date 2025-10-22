@@ -1,243 +1,365 @@
 package com.sensitiveinfo
 
-import android.content.Context
-import android.content.SharedPreferences
-import android.util.Log
-import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.bridge.WritableNativeArray
-import com.facebook.react.bridge.WritableNativeMap
-import com.facebook.react.module.annotations.ReactModule
+import com.facebook.react.bridge.Arguments
+import com.sensitiveinfo.internal.HybridSensitiveInfo
+import com.sensitiveinfo.internal.auth.AuthenticationPrompt
+import com.sensitiveinfo.internal.util.SensitiveInfoException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-// React Native TurboModule exposing encrypted SharedPreferences storage backed by Android Keystore.
-// The module keeps the historic JS API intact while silently re-encrypting legacy values when they are read.
-@ReactModule(name = SensitiveInfoModule.NAME)
-class SensitiveInfoModule internal constructor(reactContext: ReactApplicationContext) :
-  NativeSensitiveInfoSpec(reactContext) {
+/**
+ * SensitiveInfoModule.kt
+ *
+ * React Native bridge module for secure storage with biometric authentication.
+ *
+ * Exposes the following methods to JavaScript:
+ * - setItem(key, value, options, promise)
+ * - getItem(key, options, promise)
+ * - deleteItem(key, options, promise)
+ * - hasItem(key, options, promise)
+ * - getAllItems(options, promise)
+ * - clearService(options, promise)
+ *
+ * **Error Handling**:
+ * Each method has an error code and message that map to JavaScript exceptions.
+ * Common error codes:
+ * - E_BIOMETRIC_NOT_AVAILABLE: Device doesn't support biometric
+ * - E_BIOMETRIC_LOCKOUT: Too many failed attempts
+ * - E_USER_CANCELLED: User cancelled authentication
+ * - E_ENCRYPTION_FAILED: Encryption/storage failed
+ * - E_DECRYPTION_FAILED: Decryption failed
+ * - E_ACTIVITY_UNAVAILABLE: Activity context not available
+ *
+ * **Usage from JavaScript**:
+ * ```typescript
+ * import { NativeModules } from 'react-native';
+ * const { SensitiveInfo } = NativeModules;
+ *
+ * // Store with biometric protection
+ * SensitiveInfo.setItem(
+ *     'auth-token',
+ *     'jwt-token-xyz',
+ *     {
+ *         service: 'myapp',
+ *         accessControl: 'secureEnclaveBiometry',
+ *         authenticationPrompt: {
+ *             title: 'Authenticate',
+ *             subtitle: 'Please scan your fingerprint',
+ *             description: 'Required to store your token'
+ *         }
+ *     },
+ *     (result) => {
+ *         console.log('Stored:', result.securityLevel);
+ *     },
+ *     (error) => {
+ *         console.error('Failed:', error.code, error.message);
+ *     }
+ * );
+ *
+ * // Retrieve stored value
+ * SensitiveInfo.getItem(
+ *     'auth-token',
+ *     { service: 'myapp' },
+ *     (result) => {
+ *         console.log('Token:', result.value);
+ *     },
+ *     (error) => {
+ *         if (error.code === 'E_NOT_FOUND') {
+ *             console.log('Token not stored yet');
+ *         }
+ *     }
+ * );
+ * ```
+ *
+ * @property reactContext The React application context
+ * @see HybridSensitiveInfo for storage implementation
+ * @see BiometricAuthenticator for authentication
+ */
+class SensitiveInfoModule(reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
 
-  private val keyStoreManager = KeyStoreManager(reactContext)
-  private val cryptoManager = CryptoManager(keyStoreManager.keyStore)
-  private val biometricHandler = BiometricHandler(reactContext, keyStoreManager, cryptoManager)
+    private val sensitiveInfo = HybridSensitiveInfo(reactContext)
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-  init {
-    runCatching { keyStoreManager.ensureGeneralKey() }
-      .onFailure { Log.e(NAME, "Failed to initialize keystore", it) }
-  }
+    override fun getName(): String = "SensitiveInfo"
 
-  override fun getName(): String = NAME
+    /**
+     * Stores a secret in secure storage with optional biometric protection.
+     *
+     * **Workflow**:
+     * 1. Parse options for service, accessControl, and authenticationPrompt
+     * 2. Call HybridSensitiveInfo.setItem()
+     * 3. If biometric is configured: Show biometric prompt
+     * 4. After authentication: Store encrypted value
+     * 5. Return metadata to JavaScript
+     *
+     * **Options**:
+     * ```kotlin
+     * {
+     *     "service": String? = null,  // Namespace for secrets (defaults to app package)
+     *     "accessControl": String? = null,  // Security policy ("secureEnclaveBiometry", etc)
+     *     "authenticationPrompt": {
+     *         "title": String,
+     *         "subtitle": String? = null,
+     *         "description": String? = null,
+     *         "cancel": String? = null
+     *     }
+     * }
+     * ```
+     *
+     * **Result**:
+     * ```kotlin
+     * {
+     *     "securityLevel": String,  // "biometry", "deviceCredential", or "software"
+     *     "accessControl": String,  // Policy used
+     *     "backend": String,  // "preferences"
+     *     "timestamp": Number  // Unix timestamp
+     * }
+     * ```
+     *
+     * @param key Secret identifier
+     * @param value Secret value to store
+     * @param options Configuration options
+     * @param promise Callback for success/error
+     */
+    @ReactMethod
+    fun setItem(
+        key: String,
+        value: String,
+        options: ReadableMap?,
+        promise: Promise
+    ) {
+        coroutineScope.launch {
+            try {
+                // Parse options
+                val service = options?.getString("service")
+                val accessControl = options?.getString("accessControl")
+                val authPromptMap = options?.getMap("authenticationPrompt")
+                val authenticationPrompt = authPromptMap?.let {
+                    AuthenticationPrompt(
+                        title = it.getString("title") ?: "Authenticate",
+                        subtitle = it.getString("subtitle"),
+                        description = it.getString("description"),
+                        cancel = it.getString("cancel")
+                    )
+                }
 
-  @ReactMethod
-  override fun setItem(key: String, value: String, options: ReadableMap, promise: Promise) {
-    val parsed = AndroidOptions.from(options)
-    val prefs = prefs(parsed.sharedPreferencesName)
+                // Store the value
+                val result = sensitiveInfo.setItem(
+                    key = key,
+                    value = value,
+                    service = service,
+                    accessControl = accessControl,
+                    authenticationPrompt = authenticationPrompt
+                )
 
-    if (parsed.touchId) {
-      biometricHandler.encryptWithBiometrics(
-        plainText = value,
-        prompt = parsed.promptOptions(),
-        promise = promise,
-        emitEvents = !parsed.showModal,
-      ) { payload ->
-        if (prefs.edit().putString(key, payload).commit()) {
-          promise.resolve(null)
-        } else {
-          promise.rejectSafely("E_WRITE_FAILURE", "Failed to persist value for key $key")
+                // Return metadata to JavaScript
+                val resultMap = Arguments.createMap().apply {
+                    putString("securityLevel", result.metadata.securityLevel)
+                    putString("accessControl", result.metadata.accessControl)
+                    putString("backend", result.metadata.backend)
+                    putDouble("timestamp", result.metadata.timestamp.toDouble())
+                }
+
+                promise.resolve(resultMap)
+            } catch (e: SensitiveInfoException) {
+                // Return error with code and message
+                promise.reject(e.code, e.message)
+            } catch (e: Exception) {
+                promise.reject("E_UNKNOWN_ERROR", e.message ?: "Unknown error")
+            }
         }
-      }
-      return
     }
 
-    try {
-      val encrypted = cryptoManager.encrypt(value)
-      if (!prefs.edit().putString(key, encrypted).commit()) {
-        promise.rejectSafely("E_WRITE_FAILURE", "Failed to persist value for key $key")
-        return
-      }
-      // Stored value is now in the v2 format, so future reads can skip the migration branch.
-      promise.resolve(null)
-    } catch (error: Exception) {
-      promise.rejectSafely(
-        code = "E_CRYPTO_FAILURE",
-        message = "Failed to encrypt value for key $key",
-        throwable = error
-      )
-    }
-  }
+    /**
+     * Retrieves and decrypts a stored secret.
+     *
+     * **Options**:
+     * ```kotlin
+     * {
+     *     "service": String? = null  // Namespace for secrets (defaults to app package)
+     * }
+     * ```
+     *
+     * **Result** (on success):
+     * ```kotlin
+     * {
+     *     "value": String,  // Decrypted secret
+     *     "metadata": {
+     *         "securityLevel": String,  // How it was protected
+     *         "accessControl": String,  // Policy used
+     *         "backend": String,  // "preferences"
+     *         "timestamp": Number  // When it was stored
+     *     }
+     * }
+     * ```
+     *
+     * **Error** (on not found):
+     * - error.code = "E_NOT_FOUND"
+     *
+     * @param key Secret identifier
+     * @param options Configuration options
+     * @param promise Callback for success/error
+     */
+    @ReactMethod
+    fun getItem(
+        key: String,
+        options: ReadableMap?,
+        promise: Promise
+    ) {
+        coroutineScope.launch {
+            try {
+                // Parse options
+                val service = options?.getString("service")
 
-  @ReactMethod
-  override fun getItem(key: String, options: ReadableMap, promise: Promise) {
-    val parsed = AndroidOptions.from(options)
-    val prefs = prefs(parsed.sharedPreferencesName)
-    val stored = prefs.getString(key, null)
+                // Retrieve the value
+                val result = sensitiveInfo.getItem(key, service)
 
-    if (stored == null) {
-      promise.resolve(null)
-      return
-    }
+                if (result != null) {
+                    // Return value and metadata
+                    val resultMap = Arguments.createMap().apply {
+                        putString("value", result.value)
 
-    if (parsed.touchId) {
-      biometricHandler.decryptWithBiometrics(
-        payload = stored,
-        prompt = parsed.promptOptions(),
-        promise = promise,
-        emitEvents = !parsed.showModal,
-      ) { decrypted ->
-        promise.resolve(decrypted)
-      }
-      return
-    }
+                        val metadataMap = Arguments.createMap().apply {
+                            putString("securityLevel", result.metadata.securityLevel)
+                            putString("accessControl", result.metadata.accessControl)
+                            putString("backend", result.metadata.backend)
+                            putDouble("timestamp", result.metadata.timestamp.toDouble())
+                        }
+                        putMap("metadata", metadataMap)
+                    }
 
-    try {
-      val result = cryptoManager.decrypt(stored)
-      promise.resolve(result.value)
-      if (result.usedLegacyFormat) {
-        migrateValue(key, result.value, prefs)
-      }
-    } catch (error: Exception) {
-      promise.rejectSafely(
-        code = "E_CRYPTO_FAILURE",
-        message = "Failed to decrypt value for key $key",
-        throwable = error
-      )
-    }
-  }
-
-  @ReactMethod
-  override fun hasItem(key: String, options: ReadableMap, promise: Promise) {
-    val parsed = AndroidOptions.from(options)
-    val prefs = prefs(parsed.sharedPreferencesName)
-    promise.resolve(prefs.contains(key))
-  }
-
-  @ReactMethod
-  override fun getAllItems(options: ReadableMap, promise: Promise) {
-    val parsed = AndroidOptions.from(options)
-    val prefs = prefs(parsed.sharedPreferencesName)
-    val map = prefs.all
-    val entries = mutableListOf<SensitiveInfoEntry>()
-    map.forEach { (entryKey, rawValue) ->
-      val stored = rawValue as? String ?: return@forEach
-      val decrypted = runCatching { cryptoManager.decrypt(stored) }
-        .onSuccess { if (it.usedLegacyFormat) migrateValue(entryKey, it.value, prefs) }
-        .map { it.value }
-        .getOrElse {
-          Log.w(NAME, "Failed to decrypt value for key $entryKey", it)
-          stored
+                    promise.resolve(resultMap)
+                } else {
+                    // Not found - reject with special code
+                    promise.reject(
+                        "E_NOT_FOUND",
+                        "Secret '$key' not found in service '$service'"
+                    )
+                }
+            } catch (e: SensitiveInfoException) {
+                promise.reject(e.code, e.message)
+            } catch (e: Exception) {
+                promise.reject("E_UNKNOWN_ERROR", e.message ?: "Unknown error")
+            }
         }
-      entries += SensitiveInfoEntry(entryKey, decrypted, parsed.sharedPreferencesName)
     }
 
-    promise.resolve(SensitiveInfoEntry.toWritableArray(entries))
-  }
+    /**
+     * Deletes a stored secret.
+     *
+     * @param key Secret identifier
+     * @param options Configuration options
+     * @param promise Callback for success/error
+     */
+    @ReactMethod
+    fun deleteItem(
+        key: String,
+        options: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            // Parse options
+            val service = options?.getString("service")
 
-  @ReactMethod
-  override fun deleteItem(key: String, options: ReadableMap, promise: Promise) {
-    val parsed = AndroidOptions.from(options)
-    val prefs = prefs(parsed.sharedPreferencesName)
-    if (!prefs.edit().remove(key).commit()) {
-      promise.rejectSafely("E_REMOVE_FAILURE", "Failed to remove key $key")
-      return
-    }
-    promise.resolve(null)
-  }
+            // Delete the item
+            sensitiveInfo.deleteItem(key, service)
 
-  @ReactMethod
-  override fun isSensorAvailable(promise: Promise) {
-    promise.resolve(biometricHandler.isBiometricAvailable())
-  }
-
-  @ReactMethod
-  override fun hasEnrolledFingerprints(promise: Promise) {
-    promise.resolve(biometricHandler.hasEnrolledBiometrics())
-  }
-
-  @ReactMethod
-  override fun cancelFingerprintAuth() {
-    biometricHandler.cancelOngoing()
-  }
-
-  @ReactMethod
-  override fun setInvalidatedByBiometricEnrollment(value: Boolean) {
-    keyStoreManager.invalidateOnEnrollment = value
-  }
-
-  private fun migrateValue(key: String, plainText: String, prefs: SharedPreferences) {
-    // Migration strategy: decrypt into memory, re-encrypt using the new random IV payload, and save it back.
-    // This keeps the operation invisible to consumers while eliminating the fixed-IV legacy format.
-    runCatching {
-      val reEncrypted = cryptoManager.encrypt(plainText)
-      prefs.edit().putString(key, reEncrypted).apply()
-    }.onFailure {
-      Log.w(NAME, "Failed to rewrite migrated value for key $key", it)
-    }
-  }
-
-  /** Lazily resolves the SharedPreferences instance backing the secure store. */
-  private fun prefs(name: String): SharedPreferences =
-    reactApplicationContext.getSharedPreferences(name, Context.MODE_PRIVATE)
-
-  /** Represents a secure entry emitted by `getAllItems`. */
-  private data class SensitiveInfoEntry(val key: String, val value: String, val service: String) {
-    companion object {
-      fun toWritableArray(arguments: List<SensitiveInfoEntry>): com.facebook.react.bridge.WritableArray {
-        val array = WritableNativeArray()
-        arguments.forEach { entry ->
-          val map = WritableNativeMap()
-          map.putString("key", entry.key)
-          map.putString("value", entry.value)
-          map.putString("service", entry.service)
-          array.pushMap(map)
+            promise.resolve(null)
+        } catch (e: SensitiveInfoException) {
+            promise.reject(e.code, e.message)
+        } catch (e: Exception) {
+            promise.reject("E_UNKNOWN_ERROR", e.message ?: "Unknown error")
         }
-        return array
-      }
     }
-  }
 
-  internal data class AndroidOptions(
-    val sharedPreferencesName: String,
-    val touchId: Boolean,
-    val showModal: Boolean,
-    val strings: Map<String, String>
-  ) {
-    /** Builds the localized prompts used by Android's BiometricPrompt API. */
-    fun promptOptions(): BiometricHandler.PromptOptions = BiometricHandler.PromptOptions(
-      header = strings["header"],
-      description = strings["description"],
-      hint = strings["hint"],
-      cancel = strings["cancel"]
-    )
+    /**
+     * Checks if a secret exists.
+     *
+     * @param key Secret identifier
+     * @param options Configuration options
+     * @param promise Callback with boolean result
+     */
+    @ReactMethod
+    fun hasItem(
+        key: String,
+        options: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            // Parse options
+            val service = options?.getString("service")
 
-    companion object {
-      fun from(options: ReadableMap): AndroidOptions {
-        val name = options.getStringOrNull("sharedPreferencesName") ?: "shared_preferences"
-        val touchId = options.getBooleanOrDefault("touchID", false)
-        val showModal = options.getBooleanOrDefault("showModal", true)
-        val strings = options.getMapOrNull("strings")?.toHashMap()?.mapNotNull {
-          val value = it.value as? String ?: return@mapNotNull null
-          it.key to value
-        }?.toMap() ?: emptyMap()
-        return AndroidOptions(name, touchId, showModal, strings)
-      }
+            // Check if exists
+            val exists = sensitiveInfo.hasItem(key, service)
+
+            promise.resolve(exists)
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
     }
-  }
 
-  companion object {
-    const val NAME = "SensitiveInfo"
-  }
-}
+    /**
+     * Retrieves all secret keys in a service.
+     *
+     * Does NOT return the actual values, only key names.
+     *
+     * @param options Configuration options
+     * @param promise Callback with list of keys
+     */
+    @ReactMethod
+    fun getAllItems(
+        options: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            // Parse options
+            val service = options?.getString("service")
 
-private fun ReadableMap.getStringOrNull(key: String): String? = if (hasKey(key) && !isNull(key)) getString(key) else null
-private fun ReadableMap.getBooleanOrDefault(key: String, defaultValue: Boolean): Boolean = if (hasKey(key) && !isNull(key)) getBoolean(key) else defaultValue
-private fun ReadableMap.getMapOrNull(key: String): ReadableMap? = if (hasKey(key) && !isNull(key)) getMap(key) else null
+            // Get all keys
+            val keys = sensitiveInfo.getAllItems(service)
 
-/** Logs the failure and forwards it to the JS promise interface. */
-private fun Promise.rejectSafely(code: String, message: String, throwable: Throwable? = null) {
-  if (throwable != null) {
-    Log.e(SensitiveInfoModule.NAME, "$message ($code)", throwable)
-  } else {
-    Log.e(SensitiveInfoModule.NAME, "$message ($code)")
-  }
-  reject(code, message, throwable)
+            val array = Arguments.createArray().apply {
+                keys.forEach { pushString(it) }
+            }
+
+            promise.resolve(array)
+        } catch (e: Exception) {
+            promise.resolve(Arguments.createArray())
+        }
+    }
+
+    /**
+     * Deletes all secrets in a service namespace.
+     *
+     * **Warning**: This is irreversible!
+     *
+     * @param options Configuration options
+     * @param promise Callback for success/error
+     */
+    @ReactMethod
+    fun clearService(
+        options: ReadableMap?,
+        promise: Promise
+    ) {
+        try {
+            // Parse options
+            val service = options?.getString("service")
+
+            // Clear all items in service
+            sensitiveInfo.clearService(service)
+
+            promise.resolve(null)
+        } catch (e: SensitiveInfoException) {
+            promise.reject(e.code, e.message)
+        } catch (e: Exception) {
+            promise.reject("E_UNKNOWN_ERROR", e.message ?: "Unknown error")
+        }
+    }
 }

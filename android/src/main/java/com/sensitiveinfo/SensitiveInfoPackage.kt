@@ -1,34 +1,54 @@
 package com.sensitiveinfo
 
 import com.facebook.react.ReactPackage
-import com.facebook.react.TurboReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.module.model.ReactModuleInfo
-import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
+import java.util.ArrayList
 
-@Suppress("DEPRECATION")
-class SensitiveInfoPackage : TurboReactPackage(), ReactPackage {
-  override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
-    if (name == SensitiveInfoModule.NAME) SensitiveInfoModule(reactContext) as NativeModule else null
+/**
+ * SensitiveInfoPackage.kt
+ *
+ * React Native package that registers:
+ * 1. SensitiveInfoModule - Native module for JS bridge
+ * 2. SensitiveInfoViewManager - UI component manager
+ *
+ * **Registration**:
+ * This package is auto-registered via React Native's autolinking.
+ * Ensure react-native.config.js includes this package.
+ *
+ * @see SensitiveInfoModule for API methods
+ * @see SensitiveInfoViewManager for UI components
+ */
+class SensitiveInfoPackage : ReactPackage {
 
-  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
-    listOf<NativeModule>(SensitiveInfoModule(reactContext))
+    /**
+     * Creates native modules for JavaScript access.
+     *
+     * Registered modules:
+     * - SensitiveInfoModule: Main API (setItem, getItem, deleteItem, etc)
+     *
+     * @param reactContext The React application context
+     * @return List of native modules
+     */
+    override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+        return listOf(
+            SensitiveInfoModule(reactContext)
+        )
+    }
 
-  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
-
-  override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider {
-    mapOf(
-      SensitiveInfoModule.NAME to ReactModuleInfo(
-        SensitiveInfoModule.NAME,
-        SensitiveInfoModule.NAME,
-        false,
-        false,
-        true,
-        false,
-        true
-      )
-    )
-  }
+    /**
+     * Creates view managers for UI components.
+     *
+     * Registered view managers:
+     * - SensitiveInfoViewManager: UI component manager
+     *
+     * @param reactContext The React application context
+     * @return List of view managers
+     */
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+        return listOf(
+            SensitiveInfoViewManager()
+        )
+    }
 }

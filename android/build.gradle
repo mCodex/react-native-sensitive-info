@@ -21,11 +21,6 @@ apply plugin: "kotlin-android"
 
 apply plugin: "com.facebook.react"
 
-react {
-  libraryName = "NativeSensitiveInfoSpec"
-  codegenJavaPackageName = "com.sensitiveinfo"
-}
-
 def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["SensitiveInfo_" + name]).toInteger()
 }
@@ -79,5 +74,14 @@ def kotlin_version = getExtOrDefault("kotlinVersion")
 dependencies {
   implementation "com.facebook.react:react-android"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  
+  // Biometric authentication (Face ID, Fingerprint, etc)
   implementation "androidx.biometric:biometric:1.1.0"
+  
+  // Fragment support (required by BiometricPrompt)
+  implementation "androidx.fragment:fragment-ktx:1.6.2"
+  
+  // Coroutines support for suspend functions
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3"
 }
