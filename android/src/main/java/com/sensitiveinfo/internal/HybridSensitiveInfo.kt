@@ -1,15 +1,10 @@
 package com.sensitiveinfo.internal
 
 import android.content.Context
-import com.sensitiveinfo.internal.auth.BiometricAuthenticator
-import com.sensitiveinfo.internal.auth.AuthenticationPrompt
 import com.sensitiveinfo.internal.storage.SecureStorage
 import com.sensitiveinfo.internal.storage.StorageResult
 import com.sensitiveinfo.internal.storage.StorageMetadata
-import com.sensitiveinfo.internal.util.ActivityContextHolder
 import com.sensitiveinfo.internal.util.SensitiveInfoException
-import com.sensitiveinfo.internal.util.AccessControlResolver
-import javax.crypto.Cipher
 
 /**
  * HybridSensitiveInfo.kt
@@ -114,7 +109,6 @@ class HybridSensitiveInfo(private val context: Context) {
      * @param value Secret value to encrypt and store
      * @param service Service namespace (defaults to package name)
      * @param accessControl Access control policy (defaults to "secureEnclaveBiometry")
-     * @param authenticationPrompt Custom prompt shown during biometric auth (optional)
      *
      * @return StorageResult with metadata about the stored secret
      *
@@ -124,7 +118,6 @@ class HybridSensitiveInfo(private val context: Context) {
      * @throws SensitiveInfoException.EncryptionFailed if encryption fails
      * @throws SensitiveInfoException.KeystoreUnavailable if AndroidKeyStore unavailable
      *
-     * @see AuthenticationPrompt for prompt customization
      * @see BiometricAuthenticator for biometric implementation
      * @see SecureStorage for storage implementation
      */
@@ -132,8 +125,7 @@ class HybridSensitiveInfo(private val context: Context) {
         key: String,
         value: String,
         service: String? = null,
-        accessControl: String? = null,
-        authenticationPrompt: AuthenticationPrompt? = null
+        accessControl: String? = null
     ): StorageResult {
         // Validate inputs
         if (key.isEmpty()) {
@@ -144,32 +136,9 @@ class HybridSensitiveInfo(private val context: Context) {
         }
 
         try {
-            // Resolve access control configuration
-            val accessControlConfig = AccessControlResolver.resolve(accessControl)
-
-            // If biometric is required, authenticate user first
-            if (accessControlConfig.requireBiometric && authenticationPrompt != null) {
-                val activity = ActivityContextHolder.getActivity()
-                    ?: throw SensitiveInfoException.ActivityUnavailable(
-                        "FragmentActivity is not available. Make sure to call ActivityContextHolder.setActivity(this) in MainActivity.onCreate()"
-                    )
-
-                // Create biometric authenticator
-                val biometricAuthenticator = BiometricAuthenticator(context, activity)
-
-                // Check if biometric is available
-                if (!biometricAuthenticator.canUseBiometric()) {
-                    throw SensitiveInfoException.BiometricNotAvailable(
-                        "Biometric authentication is not available on this device"
-                    )
-                }
-
-                // Show biometric prompt to user
-                // This will throw an exception if user cancels or authentication fails
-                authenticateBiometric(biometricAuthenticator, authenticationPrompt)
-            }
-
-            // Store the encrypted value
+            // Simply delegate to storage
+            // The biometric prompt will be shown automatically by AndroidKeyStore
+            // when the key is used during encryption
             val storageMetadata = storage.setItem(
                 key = key,
                 value = value,
@@ -330,31 +299,5 @@ class HybridSensitiveInfo(private val context: Context) {
             throw SensitiveInfoException.KeystoreUnavailable("Failed to clear service: ${e.message}", e)
         }
     }
-
-    /**
-     * Internal helper to authenticate with BiometricPrompt.
-     *
-     * Calls the suspend-based BiometricAuthenticator.authenticate() function
-     * which handles the coroutine<->callback bridge internally.
-     *
-     * @param biometricAuthenticator The authenticator instance
-     * @param prompt The authentication prompt configuration
-     *
-     * @throws SensitiveInfoException if authentication fails or is cancelled
-     */
-    private suspend fun authenticateBiometric(
-        biometricAuthenticator: BiometricAuthenticator,
-        prompt: AuthenticationPrompt
-    ) {
-        // Create a dummy cipher for the crypto object
-        // (not used since we just need to trigger authentication)
-        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
-        
-        // Call the suspend function which handles all the callback logic
-        biometricAuthenticator.authenticate(
-            prompt = prompt,
-            cipher = cipher,
-            allowDeviceCredential = true
-        )
-    }
 }
+

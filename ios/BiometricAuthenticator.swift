@@ -154,13 +154,13 @@ class BiometricAuthenticator {
         
         switch laError.code {
         case .userCancel, .userFallback, .appCancel, .notInteractive:
-            return SensitiveInfoException.authenticationCanceled()
+            return SensitiveInfoException.authenticationCanceled
             
         case .authenticationFailed:
             return SensitiveInfoException.authenticationFailed(laError.friendlyMessage)
             
         case .touchIDLockout:
-            return SensitiveInfoException.biometryLockout()
+            return SensitiveInfoException.biometryLockout
             
         case .passcodeNotSet, .touchIDNotAvailable, .touchIDNotEnrolled:
             return SensitiveInfoException.authenticationFailed(laError.friendlyMessage)

@@ -130,9 +130,9 @@ class BiometricAuthenticator(
     @Throws(SensitiveInfoException::class)
     suspend fun authenticate(
         prompt: AuthenticationPrompt,
-        cipher: Cipher,
+        cipher: Cipher? = null,
         allowDeviceCredential: Boolean = true
-    ): Cipher {
+    ): Cipher? {
         return suspendCancellableCoroutine { continuation ->
             val promptBuilder = BiometricPrompt.PromptInfo.Builder()
                 .setTitle(prompt.title)
@@ -157,14 +157,8 @@ class BiometricAuthenticator(
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     // User authenticated successfully
-                    val authenticatedCipher = result.cryptoObject?.cipher
-                    if (authenticatedCipher != null) {
-                        continuation.resume(authenticatedCipher)
-                    } else {
-                        continuation.resumeWithException(
-                            SensitiveInfoException.AuthenticationFailed("No cipher returned")
-                        )
-                    }
+                    // Return the original cipher or null if no cipher was provided
+                    continuation.resume(cipher)
                 }
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -214,10 +208,12 @@ class BiometricAuthenticator(
                 authCallback
             )
 
-            biometricPrompt.authenticate(
-                promptInfo,
-                BiometricPrompt.CryptoObject(cipher)
-            )
+            // Only wrap cipher in CryptoObject if it's not null
+            if (cipher != null) {
+                biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
+            } else {
+                biometricPrompt.authenticate(promptInfo)
+            }
         }
     }
 }

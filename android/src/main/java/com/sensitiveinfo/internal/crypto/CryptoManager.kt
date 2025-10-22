@@ -97,7 +97,7 @@ class CryptoManager(
             // Step 1: Generate random IV for this operation
             val iv = IVManager.generateRandomIV()
 
-            // Step 2: Retrieve key (may trigger biometric authentication)
+            // Step 2: Retrieve key (may trigger biometric authentication automatically)
             val key = KeyGenerator.getKey(keyAlias)
 
             // Step 3: Initialize GCM cipher

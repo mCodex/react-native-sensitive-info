@@ -18,13 +18,13 @@ enum SensitiveInfoException: Error {
     case keyInvalidated(key: String)
     
     /// User canceled authentication.
-    case authenticationCanceled()
+    case authenticationCanceled
     
     /// Biometric authentication failed.
     case authenticationFailed(_ reason: String)
     
     /// Biometric is locked out after too many attempts.
-    case biometryLockout()
+    case biometryLockout
     
     /// Keychain is unavailable.
     case keychainUnavailable(_ reason: String)

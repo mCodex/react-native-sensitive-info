@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Base64
 import com.sensitiveinfo.internal.crypto.CryptoManager
 import com.sensitiveinfo.internal.crypto.IVManager
+import com.sensitiveinfo.internal.crypto.KeyGenerator
 import com.sensitiveinfo.internal.util.SensitiveInfoException
 import com.sensitiveinfo.internal.util.ServiceNameResolver
 import com.sensitiveinfo.internal.util.AccessControlResolver
@@ -95,10 +96,29 @@ class SecureStorage(
         // Generate unique key alias for this secret
         val keyAlias = generateKeyAlias(resolvedService, key)
 
-        // Create crypto manager (handles encryption)
-        val crypto = CryptoManager(keyAlias)
+        // CRITICAL: Create the key BEFORE encryption
+        // On Android, keys with biometric protection don't need pre-authentication to be created
+        // The authentication happens automatically when the key is USED during encryption
+        try {
+            KeyGenerator.generateOrGetKey(
+                alias = keyAlias,
+                requireBiometric = accessConfig.requireBiometric,
+                requireDeviceCredential = accessConfig.requireDeviceCredential,
+                useStrongBox = accessConfig.useStrongBox
+            )
+        } catch (e: Exception) {
+            throw when (e) {
+                is SensitiveInfoException -> e
+                else -> SensitiveInfoException.EncryptionFailed(
+                    "Failed to generate/get key: ${e.message}",
+                    e
+                )
+            }
+        }
 
-        // Encrypt the value
+        // Now encrypt using the key we just created/retrieved
+        // If the key has biometric protection, AndroidKeyStore will trigger the biometric prompt automatically
+        val crypto = CryptoManager(keyAlias)
         val encrypted = crypto.encrypt(value)
 
         // Create persistent entry
@@ -186,7 +206,7 @@ class SecureStorage(
         val iv = IVManager.decodeFromBase64(entry.iv)
         val ciphertext = android.util.Base64.decode(entry.ciphertext, android.util.Base64.NO_WRAP)
 
-        // Decrypt
+        // Decrypt (retrieve existing key, no creation)
         val keyAlias = generateKeyAlias(resolvedService, key)
         val crypto = CryptoManager(keyAlias)
         val plaintext = crypto.decrypt(ciphertext, iv)
@@ -297,6 +317,76 @@ class SecureStorage(
                 // Key may not exist, continue
             }
         }
+    }
+
+    /**
+     * Pre-creates an encryption key in the Android KeyStore with the specified access control.
+     *
+     * **Purpose**:
+     * This method should be called BEFORE encryption happens, to ensure the key exists.
+     * This is especially important for biometric-protected keys, because:
+     * 1. Key is created with biometric access control
+     * 2. When encryption happens later, Android uses the existing key
+     * 3. AndroidKeyStore automatically triggers biometric prompt during cipher initialization
+     * 4. User authenticates
+     * 5. Cipher is initialized successfully
+     * 6. Encryption proceeds
+     *
+     * **Without pre-creation**:
+     * If you try to encrypt without creating the key first, CryptoManager.encrypt() will fail
+     * because it calls KeyGenerator.getKey() which throws an exception if the key doesn't exist.
+     *
+     * **With pre-creation** (this method):
+     * The key is created upfront with the correct access control settings, so encryption
+     * will use the existing key and can proceed with authentication if needed.
+     *
+     * @param key Secret identifier
+     * @param service Service namespace (defaults to app package name)
+     * @param accessControl Requested access control (defaults to "secureEnclaveBiometry")
+     * @param useStrongBox Use StrongBox hardware if available
+     *
+     * @throws SensitiveInfoException.KeystoreUnavailable If key creation fails
+     *
+     * @example
+     * ```kotlin
+     * val storage = SecureStorage(context)
+     *
+     * // Before storing a biometric-protected secret:
+     * storage.prepareKey(
+     *     key = "auth-token",
+     *     service = "myapp",
+     *     accessControl = "secureEnclaveBiometry"
+     * )
+     *
+     * // Now you can safely store:
+     * val metadata = storage.setItem(
+     *     key = "auth-token",
+     *     value = "secret-value",
+     *     service = "myapp",
+     *     accessControl = "secureEnclaveBiometry"
+     * )
+     * ```
+     */
+    @Throws(SensitiveInfoException::class)
+    fun prepareKey(
+        key: String,
+        service: String? = null,
+        accessControl: String? = null,
+        useStrongBox: Boolean = true
+    ) {
+        val resolvedService = ServiceNameResolver.resolve(context, service)
+        val accessConfig = AccessControlResolver.resolve(accessControl)
+
+        // Generate unique key alias for this secret
+        val keyAlias = generateKeyAlias(resolvedService, key)
+
+        // Create key with appropriate access control
+        KeyGenerator.generateOrGetKey(
+            alias = keyAlias,
+            requireBiometric = accessConfig.requireBiometric,
+            requireDeviceCredential = accessConfig.requireDeviceCredential,
+            useStrongBox = useStrongBox
+        )
     }
 
     /**

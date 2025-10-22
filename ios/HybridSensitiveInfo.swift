@@ -348,11 +348,11 @@ struct HybridSensitiveInfo {
      */
     private func isSecureEnclaveAvailable() -> Bool {
         #if os(iOS)
-        return ProcessInfo.processInfo.isOperatingSystemAtLeastVersion(
+        return ProcessInfo.processInfo.isOperatingSystemAtLeast(
             OperatingSystemVersion(majorVersion: 16, minorVersion: 0, patchVersion: 0)
         )
         #elseif os(macOS)
-        return ProcessInfo.processInfo.isOperatingSystemAtLeastVersion(
+        return ProcessInfo.processInfo.isOperatingSystemAtLeast(
             OperatingSystemVersion(majorVersion: 13, minorVersion: 0, patchVersion: 0)
         )
         #elseif os(visionOS)

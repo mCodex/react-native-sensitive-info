@@ -105,32 +105,45 @@ object KeyGenerator {
                 .setRandomizedEncryptionRequired(true)  // Important: Force random IV per operation
 
             // Set access control: Biometric and/or device credential
+            // Handle API level differences carefully
             if (requireBiometric && requireDeviceCredential) {
                 // Allow biometric OR device credential
-                // GCM cipher will be used for actual encryption
                 builder.setUserAuthenticationRequired(true)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Android 11+: Use setUserAuthenticationParameters
+                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL)
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    // Android 10: Can use device credential
                     builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL)
                 } else {
-                    builder.setUserAuthenticationValidityDurationSeconds(-1)  // Require auth every time
+                    // Android 9 and below: Use timeout (requires timeout > 0 or -1 for auth every time)
+                    // Note: On API 28, -1 may not work reliably, so use a very large timeout
+                    builder.setUserAuthenticationValidityDurationSeconds(15 * 60)  // 15 minutes
                 }
             } else if (requireBiometric) {
                 // Biometric only
                 builder.setUserAuthenticationRequired(true)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
                 } else {
-                    builder.setUserAuthenticationValidityDurationSeconds(-1)
+                    // Android 9: Use timeout with biometric
+                    builder.setUserAuthenticationValidityDurationSeconds(15 * 60)
                 }
             } else if (requireDeviceCredential) {
                 // Device credential only
                 builder.setUserAuthenticationRequired(true)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL)
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL)
                 } else {
-                    builder.setUserAuthenticationValidityDurationSeconds(-1)
+                    // Android 9: Use timeout with device credential
+                    builder.setUserAuthenticationValidityDurationSeconds(15 * 60)
                 }
             }
+            // If none of the above (no auth required), don't call setUserAuthenticationRequired
 
             // Use StrongBox if available (dedicated security processor)
             if (useStrongBox && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

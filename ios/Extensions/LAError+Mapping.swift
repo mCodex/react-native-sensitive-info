@@ -41,8 +41,6 @@ extension LAError {
             return "E_AUTH_CANCELED"
         case .invalidDimensions:
             return "E_AUTH_FAILED"
-        case .deviceOwnerAuthenticationRequired:
-            return "E_AUTH_FAILED"
         @unknown default:
             return "E_AUTH_FAILED"
         }
@@ -69,8 +67,6 @@ extension LAError {
             return "Invalid authentication context"
         case .invalidDimensions:
             return "Invalid context dimensions"
-        case .deviceOwnerAuthenticationRequired:
-            return "Device owner authentication is required"
         @unknown default:
             return "Authentication error"
         }
