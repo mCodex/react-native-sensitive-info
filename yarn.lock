@@ -9358,18 +9358,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nitrogen@npm:0.31.0":
-  version: 0.31.0
-  resolution: "nitrogen@npm:0.31.0"
+"nitrogen@npm:0.31.1":
+  version: 0.31.1
+  resolution: "nitrogen@npm:0.31.1"
   dependencies:
     chalk: "npm:^5.3.0"
-    react-native-nitro-modules: "npm:^0.31.0"
+    react-native-nitro-modules: "npm:^0.31.1"
     ts-morph: "npm:^27.0.0"
     yargs: "npm:^18.0.0"
     zod: "npm:^4.0.5"
   bin:
     nitrogen: lib/index.js
-  checksum: 10/ad32a8d374810788d051978e04b83e0b749c12b97521175df8e3e5a394d616220e1118a8befc1bc8616208847a798142016b8aa06d808211af88cbb7e304a660
+  checksum: 10/c00a9b8997d00c3dd4311a1e1d4b2169c5ed6f5c5da90261a0e96c8da9c5d9d238c3cbe17a0b9592fb7bb3d9145bc7917e5aa7ad5f350e94c64c232fbf9ad012
   languageName: node
   linkType: hard
 
@@ -10601,13 +10601,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-nitro-modules@npm:0.31.0, react-native-nitro-modules@npm:^0.31.0":
-  version: 0.31.0
-  resolution: "react-native-nitro-modules@npm:0.31.0"
+"react-native-nitro-modules@npm:0.31.1, react-native-nitro-modules@npm:^0.31.1":
+  version: 0.31.1
+  resolution: "react-native-nitro-modules@npm:0.31.1"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/ff26c6a9b51f7356f11fbd50fc1973cddde5e118ade3e8654cfa1bbc92778c6ab166b96397528b3cda016b8bb158b687056e85d7265db104edd1fff70bb787ac
+  checksum: 10/8050f1957b3dad09375fc802c22f98fc79c532c432e4a08b7f8aebc14156cf37cd21fd4767ee934fbeb093b55cbeb3ddff2cc9912042b3c14f8d46333e440b94
   languageName: node
   linkType: hard
 
@@ -10640,7 +10640,7 @@ __metadata:
     babel-plugin-module-resolver: "npm:^5.0.2"
     react: "npm:19.1.1"
     react-native: "npm:0.82.0"
-    react-native-nitro-modules: "npm:0.31.0"
+    react-native-nitro-modules: "npm:0.31.1"
     react-native-safe-area-context: "npm:^5.6.1"
   languageName: unknown
   linkType: soft
@@ -10669,12 +10669,12 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^7.0.0"
     globals: "npm:^16.4.0"
     jiti: "npm:^2.6.1"
-    nitrogen: "npm:0.31.0"
+    nitrogen: "npm:0.31.1"
     prettier: "npm:^3.6.2"
     react: "npm:19.1.1"
     react-native: "npm:0.82"
     react-native-builder-bob: "npm:^0.40.13"
-    react-native-nitro-modules: "npm:0.31.0"
+    react-native-nitro-modules: "npm:0.31.1"
     semantic-release: "npm:^25.0.0"
     typescript: "npm:^5.9.3"
     typescript-eslint: "npm:^8.46.1"
