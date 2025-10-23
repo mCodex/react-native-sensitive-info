@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "5.5.8",
+  "version": "5.6.0",
   "description": "Securely store and retrieve sensitive information on React Native with biometric authentication, AES-256-GCM encryption, and hardware-backed key storage.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
