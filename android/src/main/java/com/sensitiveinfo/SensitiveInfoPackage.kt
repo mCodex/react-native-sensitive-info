@@ -9,16 +9,25 @@ import java.util.ArrayList
 /**
  * SensitiveInfoPackage.kt
  *
- * React Native package that registers:
- * 1. SensitiveInfoModule - Native module for JS bridge
- * 2. SensitiveInfoViewManager - UI component manager
+ * React Native package that registers secure storage functionality.
+ *
+ * This package provides a native TurboModule for programmatic access,
+ * fully compatible with React Native's new Fabric architecture.
+ *
+ * **Components Registered**:
+ * - SensitiveInfoModule: TurboModule for secure storage operations
+ *
+ * **Architecture**:
+ * - Uses AndroidKeyStore for hardware-backed encryption
+ * - Supports biometric authentication via BiometricPrompt
+ * - Fallback to device credentials when biometric unavailable
+ * - Graceful degradation when StrongBox not available
  *
  * **Registration**:
  * This package is auto-registered via React Native's autolinking.
  * Ensure react-native.config.js includes this package.
  *
  * @see SensitiveInfoModule for API methods
- * @see SensitiveInfoViewManager for UI components
  */
 open class SensitiveInfoPackage : ReactPackage {
 
@@ -40,25 +49,14 @@ open class SensitiveInfoPackage : ReactPackage {
     /**
      * Creates view managers for UI components.
      *
-     * Registered view managers:
-     * - SensitiveInfoViewManager: UI component manager
+     * Since this library only provides storage functionality via TurboModule,
+     * no UI view managers are required.
      *
      * @param reactContext The React application context
-     * @return List of view managers
+     * @return Empty list (no UI components)
      */
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-        return listOf(
-            SensitiveInfoViewManager()
-        )
+        return emptyList()
     }
 }
-
-/**
- * Alias for backwards compatibility with React Native autolinking.
- *
- * React Native's autolinking may look for SensitiveInfoViewPackage
- * (old naming convention). This alias ensures compatibility.
- */
-@Suppress("DEPRECATION")
-class SensitiveInfoViewPackage : SensitiveInfoPackage()

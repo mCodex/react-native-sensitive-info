@@ -2,6 +2,7 @@ package com.sensitiveinfo.internal.storage
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
 import androidx.biometric.BiometricManager.Authenticators
@@ -114,7 +115,9 @@ class SecureStorage(
     ): StorageMetadata {
         val resolvedService = ServiceNameResolver.resolve(context, service)
         val baseConfig = AccessControlResolver.resolve(accessControl)
-        val accessConfig = baseConfig.withStrongBoxPreference(useStrongBox)
+        val accessConfig = baseConfig.withStrongBoxPreference(
+            resolveStrongBoxPreference(useStrongBox)
+        )
 
         val keyAlias = generateKeyAlias(resolvedService, key)
         val timestamp = System.currentTimeMillis() / 1000
@@ -365,7 +368,9 @@ class SecureStorage(
         useStrongBox: Boolean = true
     ) {
         val resolvedService = ServiceNameResolver.resolve(context, service)
-        val accessConfig = AccessControlResolver.resolve(accessControl).withStrongBoxPreference(useStrongBox)
+        val accessConfig = AccessControlResolver
+            .resolve(accessControl)
+            .withStrongBoxPreference(resolveStrongBoxPreference(useStrongBox))
         val keyAlias = generateKeyAlias(resolvedService, key)
 
         val crypto = CryptoManager(authenticator = null)
@@ -645,7 +650,9 @@ class SecureStorage(
         keyAlias: String
     ) {
         val baseConfig = AccessControlResolver.resolve(previous.accessControl)
-        val accessConfig = baseConfig.withStrongBoxPreference(previous.useStrongBox == true)
+        val accessConfig = baseConfig.withStrongBoxPreference(
+            resolveStrongBoxPreference(previous.useStrongBox == true)
+        )
         try {
             // Ensure key exists (legacy stores may have lost it if user cleared keystore manually)
             KeyGenerator.generateOrGetKey(
@@ -694,7 +701,9 @@ class SecureStorage(
         val invalidateOnEnrollment = entry.invalidateOnEnrollment
             ?: fallbackConfig.invalidateOnEnrollment
 
-        val useStrongBox = entry.useStrongBox ?: fallbackConfig.useStrongBox
+        val useStrongBox = resolveStrongBoxPreference(
+            entry.useStrongBox ?: fallbackConfig.useStrongBox
+        )
 
         val accessPolicy = mapAccessControl(entry.accessControl)
         val securityLevel = mapSecurityLevel(entry.securityLevel, fallbackConfig.securityLevel)
@@ -747,6 +756,17 @@ class SecureStorage(
             SecurityLevel.BIOMETRY -> "biometry"
             SecurityLevel.DEVICECREDENTIAL -> "deviceCredential"
             SecurityLevel.SOFTWARE -> "software"
+        }
+    }
+
+    private fun resolveStrongBoxPreference(requested: Boolean): Boolean {
+        if (!requested) return false
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+
+        return try {
+            context.packageManager?.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE) == true
+        } catch (_: Exception) {
+            false
         }
     }
 }

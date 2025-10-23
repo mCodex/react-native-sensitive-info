@@ -396,6 +396,10 @@ internal class CryptoManager(
             keyGenerator.init(builder.build())
             keyGenerator.generateKey()
         } catch (e: StrongBoxUnavailableException) {
+            if (resolution.useStrongBox) {
+                // Fallback: retry without StrongBox support
+                return generateKey(alias, resolution.copy(useStrongBox = false))
+            }
             throw SensitiveInfoException.EncryptionFailed(
                 "StrongBox unavailable for this key",
                 e

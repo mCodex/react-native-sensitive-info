@@ -1,6 +1,7 @@
 package com.sensitiveinfo.internal
 
 import android.content.Context
+import androidx.fragment.app.FragmentActivity
 import com.sensitiveinfo.internal.storage.SecureStorage
 import com.sensitiveinfo.internal.storage.StorageResult
 import com.sensitiveinfo.internal.storage.StorageMetadata
@@ -13,55 +14,131 @@ import com.sensitiveinfo.internal.auth.AuthenticationPrompt
  *
  * Unified API for secure storage with biometric authentication on Android.
  *
- * This is the Android equivalent of iOS's HybridSensitiveInfo.swift
+ * This is the Android equivalent of iOS's HybridSensitiveInfo.swift,
+ * providing a high-level interface that bridges native Android APIs (AndroidKeyStore,
+ * BiometricPrompt, SharedPreferences) with React Native's TurboModule system.
  *
- * **Architecture**:
- * 1. User calls setItem/getItem with optional authenticationPrompt
- * 2. HybridSensitiveInfo checks if biometric is required
- * 3. If biometric needed: Call BiometricAuthenticator.authenticate()
- * 4. User sees biometric prompt (Face ID/Touch ID or fingerprint)
- * 5. After authentication: Proceed with storage/retrieval
- * 6. Data is encrypted/decrypted in SecureStorage
+ * **Architecture** (Layered Design):
+ * ```
+ * ┌─────────────────────────────────────┐
+ * │  React Native (JavaScript)          │
+ * └────────────────┬────────────────────┘
+ *                  │
+ * ┌────────────────▼────────────────────┐
+ * │  SensitiveInfoModule (TurboModule)  │  ← Native bridge
+ * │  - Parses JS options                │
+ * │  - Manages coroutines               │
+ * │  - Returns results to JS            │
+ * └────────────────┬────────────────────┘
+ *                  │
+ * ┌────────────────▼────────────────────┐
+ * │  HybridSensitiveInfo (YOU ARE HERE) │  ← High-level API
+ * │  - Validates inputs                 │
+ * │  - Coordinates biometric + storage  │
+ * │  - Maps between domains             │
+ * └────────────────┬────────────────────┘
+ *                  │
+ * ┌─────────────┬──▼──┬─────────────────┐
+ * │ SecureStore │ Bio │ Exception       │  ← Implementation details
+ * │ - Encrypt   │Auth │ - Maps errors   │
+ * │ - Decrypt   │     │   to JS codes   │
+ * │ - Persist   │     │                 │
+ * └─────────────┴─────┴─────────────────┘
+ * ```
  *
- * **Key Features**:
- * - ✅ Explicit biometric prompts (via BiometricPrompt API)
- * - ✅ Custom prompt messages (title, subtitle, description)
- * - ✅ Biometric + device credential fallback
- * - ✅ Secure encryption (AES-256-GCM)
- * - ✅ Hardware-backed keys (AndroidKeyStore)
- * - ✅ Hardware attestation where available
- *
- * **Difference from iOS**:
- * - iOS: Keychain handles biometric automatically on retrieval
- * - Android: Must explicitly show BiometricPrompt during setItem
+ * **Key Differences from iOS**:
+ * - iOS: Keychain automatically shows biometric prompt during retrieval
+ * - Android: Must explicitly show BiometricPrompt during storage (setItem)
  * - Both: Support custom authentication prompts
+ * - Both: Use random IV per operation (semantic security)
+ * - Both: Support fallback to device credential
  *
- * **Permissions Required**:
- * - USE_BIOMETRIC (Android 10+, alternative to FINGERPRINT)
- * - USE_FINGERPRINT (Android 6-9, deprecated)
- * - USE_FACE_UNLOCK (some devices)
- * - USE_IRIS (some devices)
+ * **Security Features**:
+ * - ✅ AES-256-GCM encryption (authenticated encryption)
+ * - ✅ Random IV per operation (no replay attacks)
+ * - ✅ Hardware-backed keys (AndroidKeyStore)
+ * - ✅ Optional StrongBox (dedicated security processor on API 28+)
+ * - ✅ Biometric gating (key only accessible after biometric auth)
+ * - ✅ Device credential fallback (PIN, Pattern, Password)
+ * - ✅ Automatic key invalidation on biometric enrollment change
  *
- * **API**:
- * - setItem(key, value, service, accessControl, authenticationPrompt)
- * - getItem(key, service)
- * - deleteItem(key, service)
- * - hasItem(key, service)
- * - getAllItems(service)
- * - clearService(service)
+ * **Permissions Required** (AndroidManifest.xml):
+ * ```xml
+ * <!-- Android 11+ (API 30+): Use USE_BIOMETRIC instead -->
+ * <uses-permission android:name="android.permission.USE_BIOMETRIC" />
  *
- * @property context Android context for storage and biometric
+ * <!-- Android 6-10 (API 23-29): Deprecated but still needed for old devices -->
+ * <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+ * ```
  *
- * @see BiometricAuthenticator for authentication
- * @see SecureStorage for encryption/storage
- * @see ActivityContextHolder for Activity reference
- * @see AuthenticationPrompt for custom prompt configuration
+ * **Error Codes** (mapped to JavaScript):
+ * - E_NOT_FOUND: Secret not found (normal, not an error)
+ * - E_ENCRYPTION_FAILED: Encryption failed (storage, key gen, or IO error)
+ * - E_DECRYPTION_FAILED: Decryption failed (corruption, wrong key, or tampering)
+ * - E_KEY_INVALIDATED: Biometric enrollment changed after storage
+ * - E_BIOMETRY_LOCKOUT: Biometric locked (too many failed attempts)
+ * - E_AUTH_CANCELED: User canceled biometric prompt
+ * - E_INVALID_CONFIGURATION: Invalid parameter (empty key/value)
+ * - E_KEYSTORE_UNAVAILABLE: AndroidKeyStore unavailable or key deleted
+ * - E_ACTIVITY_UNAVAILABLE: FragmentActivity not available (needed for biometric)
+ *
+ * **Suspend Function Design**:
+ * - setItem() is a suspend function: May show biometric prompt (blocking until user acts)
+ * - getItem() is a suspend function: May show biometric prompt during key access
+ * - deleteItem() is synchronous: No biometric needed for deletion
+ * - hasItem() is synchronous: Just a local preferences lookup
+ *
+ * **Example Usage**:
+ * ```kotlin
+ * // From SensitiveInfoModule
+ * val sensitiveInfo = HybridSensitiveInfo(context, fragmentActivity)
+ *
+ * // Store a secret with biometric protection
+ * val result = sensitiveInfo.setItem(
+ *     key = "authToken",
+ *     value = "jwt-token-xyz",
+ *     service = "myapp",
+ *     accessControl = "secureEnclaveBiometry",
+ *     authenticationPrompt = AuthenticationPrompt(
+ *         title = "Authenticate",
+ *         subtitle = "Verify your fingerprint",
+ *         description = "Required to store authentication token"
+ *     )
+ * )
+ *
+ * println("Security level: ${result.metadata.securityLevel}")
+ * // Output: "Security level: biometry"
+ *
+ * // Retrieve the secret (may show biometric prompt)
+ * val retrieved = sensitiveInfo.getItem("authToken", "myapp")
+ * println("Token: ${retrieved?.value}")
+ * ```
+ *
+ * @property context Android context (for storage and biometric availability checks)
+ * @property activity Optional FragmentActivity (required if using biometric)
+ *
+ * @see SecureStorage for storage implementation
+ * @see BiometricAuthenticator for authentication implementation
+ * @see CryptoManager for encryption/decryption
+ * @see SensitiveInfoException for error types
  */
-class HybridSensitiveInfo(private val context: Context) {
+class HybridSensitiveInfo(
+    private val context: Context,
+    private val activity: FragmentActivity? = null
+) {
     
+    /**
+     * Delegate for all storage operations.
+     *
+     * SecureStorage handles:
+     * - Encryption/decryption via CryptoManager
+     * - Persistence to SharedPreferences
+     * - Metadata tracking
+     * - Migration of legacy entries
+     */
     private val storage = SecureStorage(
         context = context,
-        activity = ActivityContextHolder.getActivity()
+        activity = activity
     )
 
     /**

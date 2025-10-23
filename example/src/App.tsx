@@ -35,7 +35,7 @@ import {
   FlatList,
   SafeAreaView,
 } from 'react-native';
-import SensitiveInfo from 'react-native-sensitive-info';
+import SensitiveInfo, { type AccessControl } from 'react-native-sensitive-info';
 
 // 🎨 Color scheme
 const COLORS = {
@@ -196,9 +196,32 @@ export default function App() {
   );
   const [biometryAvailable, setBiometryAvailable] = useState(false);
   const [biometryType, setBiometryType] = useState('');
+  const [androidVersion, setAndroidVersion] = useState<number | null>(null);
 
   /**
-   * Check device biometry availability
+   * Get optimal access control for this device
+   *
+   * Strategy:
+   * - Android 10+: Use secureEnclaveBiometry (StrongBox supported)
+   * - Android 9: Use devicePasscode (avoid StrongBox issues)
+   *
+   * This avoids "StrongBox unavailable" errors on devices without hardware support.
+   */
+  const getOptimalAccessControl = useCallback(
+    (useBiometric: boolean): AccessControl => {
+      // On Android 9, avoid StrongBox and use software-backed storage
+      if (Platform.OS === 'android' && androidVersion && androidVersion < 29) {
+        return 'devicePasscode'; // Software-backed, no biometric prompt overhead
+      }
+
+      // iOS, Android 10+, or unknown version (assume modern)
+      return useBiometric ? 'secureEnclaveBiometry' : 'devicePasscode';
+    },
+    [androidVersion]
+  );
+
+  /**
+   * Check device biometry availability and Android version
    * Detects Face ID (iOS), Touch ID (iOS/Android), Fingerprint (Android)
    *
    * @async
@@ -207,6 +230,13 @@ export default function App() {
     try {
       setBiometryAvailable(true);
       setBiometryType(Platform.OS === 'ios' ? 'Face ID' : 'Biometric');
+
+      // Get Android version for access control strategy
+      if (Platform.OS === 'android') {
+        const version = Platform.Version || 0;
+        setAndroidVersion(version);
+        console.log(`Android API Level: ${version}`);
+      }
     } catch (error) {
       console.log('Biometry not available:', error);
     }
@@ -266,11 +296,11 @@ export default function App() {
     try {
       setLoading(true);
 
+      const accessControl = getOptimalAccessControl(biometryAvailable);
+
       await SensitiveInfo.setItem(inputKey, inputValue, {
         keychainService: 'demo-app',
-        accessControl: biometryAvailable
-          ? 'biometryOrDevicePasscode'
-          : 'devicePasscode',
+        accessControl,
         authenticationPrompt: {
           title: 'Secure Storage',
           subtitle: `Storing ${inputKey}`,
@@ -286,7 +316,13 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [inputKey, inputValue, biometryAvailable, loadStoredItems]);
+  }, [
+    inputKey,
+    inputValue,
+    biometryAvailable,
+    loadStoredItems,
+    getOptimalAccessControl,
+  ]);
 
   /**
    * Retrieve and display a secret value
@@ -418,11 +454,11 @@ export default function App() {
       setLoading(true);
 
       const sampleToken = `jwt_token_${Date.now()}`;
+      const accessControl = getOptimalAccessControl(biometryAvailable);
+
       await SensitiveInfo.setItem('demo_auth_token', sampleToken, {
         keychainService: 'demo-app',
-        accessControl: biometryAvailable
-          ? 'biometryOrDevicePasscode'
-          : 'devicePasscode',
+        accessControl,
       });
 
       Alert.alert(
@@ -443,7 +479,12 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [biometryAvailable, handleRetrieveItem, loadStoredItems]);
+  }, [
+    biometryAvailable,
+    handleRetrieveItem,
+    loadStoredItems,
+    getOptimalAccessControl,
+  ]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -629,8 +670,29 @@ export default function App() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>ℹ️ Documentation</Text>
 
+              {/* Device Info Banner */}
+              <View style={[styles.infoBox, styles.deviceInfoBox]}>
+                <Text style={styles.infoBoxTitle}>� Your Device</Text>
+                <Text style={styles.infoBoxText}>
+                  <Text style={styles.bold}>Platform:</Text>{' '}
+                  {Platform.OS === 'ios' ? 'iOS' : 'Android'}
+                  {'\n'}
+                  {Platform.OS === 'android' && androidVersion && (
+                    <>
+                      <Text style={styles.bold}>API Level:</Text>{' '}
+                      {androidVersion}
+                      {'\n'}
+                    </>
+                  )}
+                  <Text style={styles.bold}>Biometry:</Text>{' '}
+                  {biometryAvailable
+                    ? `${biometryType} Available`
+                    : 'Not Available'}
+                </Text>
+              </View>
+
               <View style={styles.infoBox}>
-                <Text style={styles.infoBoxTitle}>🔐 Security Features</Text>
+                <Text style={styles.infoBoxTitle}>�🔐 Security Features</Text>
                 <Text style={styles.infoBoxText}>
                   {`• AES-256-GCM encryption
 • Random IV per operation
@@ -654,9 +716,26 @@ export default function App() {
               </View>
 
               <View style={styles.infoBox}>
+                <Text style={styles.infoBoxTitle}>⚙️ StrongBox Strategy</Text>
+                <Text style={styles.infoBoxText}>
+                  {Platform.OS === 'android' &&
+                  androidVersion &&
+                  androidVersion < 29
+                    ? `Your device (Android ${androidVersion}) uses software-backed encryption to avoid StrongBox compatibility issues. This is still highly secure!\n\nUpgrade to Android 10+ for hardware-backed StrongBox support.`
+                    : `Your device ${
+                        Platform.OS === 'ios'
+                          ? 'uses iOS Secure Enclave (always hardware-backed)'
+                          : androidVersion && androidVersion >= 29
+                            ? `(Android ${androidVersion}) uses hardware-backed StrongBox when available`
+                            : 'uses the optimal security strategy'
+                      }.`}
+                </Text>
+              </View>
+
+              <View style={styles.infoBox}>
                 <Text style={styles.infoBoxTitle}>💡 Tips</Text>
                 <Text style={styles.infoBoxText}>
-                  {`• Use "biometryOrDevicePasscode" for best UX
+                  {`• App automatically selects best security for your device
 • Items persist across app restarts
 • Different keys = different ciphertexts
 • Automatic re-encryption with random IV
@@ -946,6 +1025,11 @@ const styles = StyleSheet.create({
   bold: {
     fontWeight: '700',
     color: COLORS.text,
+  },
+  deviceInfoBox: {
+    backgroundColor: `${COLORS.primary}10`,
+    borderLeftColor: COLORS.primary,
+    marginBottom: 16,
   },
   versionBox: {
     alignItems: 'center',

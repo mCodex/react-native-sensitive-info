@@ -72,16 +72,51 @@ repositories {
 def kotlin_version = getExtOrDefault("kotlinVersion")
 
 dependencies {
+  // React Native - Core library for bridging JavaScript and Native code
+  // Version: From parent gradle configuration
+  // Purpose: React Native bridge, component registry, etc.
   implementation "com.facebook.react:react-android"
+  
+  // Kotlin Standard Library - Runtime for Kotlin code
+  // Version: Configured in project gradle.properties
+  // Purpose: Core Kotlin stdlib functions, collections, etc.
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
   
-  // Biometric authentication (Face ID, Fingerprint, etc)
+  // AndroidX Biometric - Modern biometric authentication API
+  // Version: 1.1.0 (stable)
+  // Purpose: Face ID, Fingerprint, Iris recognition
+  // Minimum API: 14 (works on API 28+)
+  // Docs: https://developer.android.com/reference/androidx/biometric/BiometricPrompt
+  // Security: Handles authentication state, error codes, callbacks
+  // Performance: Async-first design, non-blocking UI
+  // Features:
+  //  - BiometricPrompt: System-level biometric UI
+  //  - BiometricManager: Check device capabilities
+  //  - Device credential fallback (PIN/Pattern/Password)
+  //  - Biometric template invalidation tracking
+  //  - Crypto object wrapping for cipher authentication
   implementation "androidx.biometric:biometric:1.1.0"
   
-  // Fragment support (required by BiometricPrompt)
+  // AndroidX Fragment - Lifecycle-aware fragments for BiometricPrompt
+  // Version: 1.6.2 (stable)
+  // Purpose: FragmentActivity support for BiometricPrompt UI rendering
+  // Why needed: BiometricPrompt requires FragmentActivity context
+  // Performance: Lightweight, no overhead if not using fragments directly
+  // Security: Integrates with fragment lifecycle for proper cleanup
   implementation "androidx.fragment:fragment-ktx:1.6.2"
   
-  // Coroutines support for suspend functions
+  // Kotlin Coroutines - Async/suspend functions for non-blocking operations
+  // Core library (1.7.3):
+  //  - Purpose: Suspend functions, async context switching
+  //  - Security: Thread-safe continuation handling
+  //  - Performance: Efficient, minimal allocations vs callbacks
+  // Android library (1.7.3):
+  //  - Purpose: Dispatcher.Main for UI operations
+  //  - Performance: Integrates with main thread event loop
+  //  - Usage in this library: All setItem/getItem are suspend functions
+  // Example:
+  //  suspend fun setItem(...): StorageResult
+  //  // Called from coroutineScope.launch { setItem(...) }
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3"
 }

@@ -42,9 +42,6 @@ npm install react-native-sensitive-info@5.6.0
 
 # Old Architecture (RN <0.73)
 npm install react-native-sensitive-info@5.5.x
-
-# Bleeding edge (Nitro Modules, v6)
-npm install github:mCodex/react-native-sensitive-info#master
 ```
 
 ---

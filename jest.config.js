@@ -27,7 +27,6 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/index.tsx',
     '!src/views/**',
-    '!src/SensitiveInfoViewNativeComponent.ts',
   ],
 
   // Coverage thresholds

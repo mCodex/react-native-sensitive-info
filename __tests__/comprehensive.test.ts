@@ -42,9 +42,9 @@ describe('SensitiveInfo API - Complete Coverage', () => {
   describe('Error Types', () => {
     it('should define all error codes', () => {
       const codes: ErrorCode[] = [
+        ErrorCode.NOT_FOUND,
         ErrorCode.AUTH_FAILED,
         ErrorCode.AUTH_CANCELED,
-        ErrorCode.AUTH_TIMEOUT,
         ErrorCode.BIOMETRY_LOCKOUT,
         ErrorCode.KEY_INVALIDATED,
         ErrorCode.DECRYPTION_FAILED,
@@ -53,7 +53,7 @@ describe('SensitiveInfo API - Complete Coverage', () => {
         ErrorCode.MIGRATION_FAILED,
       ];
 
-      expect(codes).toHaveLength(10);
+      expect(codes).toHaveLength(9);
       codes.forEach((code) => {
         expect(code).toMatch(/^E_/);
       });
@@ -81,13 +81,14 @@ describe('SensitiveInfo API - Complete Coverage', () => {
   describe('Type Definitions', () => {
     it('should support all AccessControl types', () => {
       const controls: AccessControl[] = [
-        'devicePasscode',
-        'biometryOrDevicePasscode',
-        'biometryAndDevicePasscode',
+        'secureEnclaveBiometry',
         'biometryCurrentSet',
+        'biometryAny',
+        'devicePasscode',
+        'none',
       ];
 
-      expect(controls).toHaveLength(4);
+      expect(controls).toHaveLength(5);
       controls.forEach((control) => {
         expect(typeof control).toBe('string');
       });
@@ -97,13 +98,12 @@ describe('SensitiveInfo API - Complete Coverage', () => {
       const levels: SecurityLevel[] = [
         'secureEnclave',
         'strongBox',
-        'hardwareBacked',
-        'biometricProtected',
-        'passcodeProtected',
+        'biometry',
+        'deviceCredential',
         'software',
       ];
 
-      expect(levels).toHaveLength(6);
+      expect(levels).toHaveLength(5);
       levels.forEach((level) => {
         expect(typeof level).toBe('string');
       });
@@ -250,8 +250,8 @@ describe('SensitiveInfo API - Complete Coverage', () => {
     });
 
     it('should define default access control level', () => {
-      const defaultControl = 'biometryOrDevicePasscode' as AccessControl;
-      expect(defaultControl).toBe('biometryOrDevicePasscode');
+      const defaultControl = 'secureEnclaveBiometry' as AccessControl;
+      expect(defaultControl).toBe('secureEnclaveBiometry');
     });
 
     it('should define keychain service constants', () => {
@@ -366,7 +366,7 @@ describe('SensitiveInfo API - Complete Coverage', () => {
         metadata: {
           timestamp: Date.now(),
           securityLevel: 'secureEnclave' as SecurityLevel,
-          accessControl: 'biometryOrDevicePasscode' as AccessControl,
+          accessControl: 'secureEnclaveBiometry' as AccessControl,
           migratedFromV5: false,
         },
       };
@@ -420,7 +420,7 @@ describe('SensitiveInfo API - Complete Coverage', () => {
       const code = async () => {
         // const secret = await SensitiveInfo.getItem('password', {
         //   keychainService: 'myapp',
-        //   accessControl: 'biometryOrDevicePasscode',
+        //   accessControl: 'secureEnclaveBiometry',
         //   prompt: {
         //     title: 'Unlock Your Account',
         //     subtitle: 'Authenticate with Face ID or Touch ID'
@@ -428,7 +428,7 @@ describe('SensitiveInfo API - Complete Coverage', () => {
         // });
         return {
           keychainService: 'myapp',
-          accessControl: 'biometryOrDevicePasscode' as const,
+          accessControl: 'secureEnclaveBiometry' as const,
           prompt: {
             title: 'Unlock Your Account',
             subtitle: 'Authenticate with Face ID or Touch ID',
@@ -438,7 +438,7 @@ describe('SensitiveInfo API - Complete Coverage', () => {
 
       const result = await code();
       expect(result.keychainService).toBe('myapp');
-      expect(result.accessControl).toBe('biometryOrDevicePasscode');
+      expect(result.accessControl).toBe('secureEnclaveBiometry');
     });
 
     it('Example 3: Detect capabilities', async () => {

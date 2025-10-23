@@ -27,7 +27,7 @@
  * // Store with biometric protection
  * await SensitiveInfo.setItem('auth-token', jwtToken, {
  *   keychainService: 'myapp',
- *   accessControl: 'biometryOrDevicePasscode',
+ *   accessControl: 'secureEnclaveBiometry',
  *   authenticationPrompt: {
  *     title: 'Authenticate',
  *     subtitle: 'Store your authentication token'
@@ -53,18 +53,37 @@
 
 import { NativeModules } from 'react-native';
 
-// Re-export improved types for tree-shaking
-export {
-  type AccessControl,
-  type AuthenticationPrompt,
-  type DeviceCapabilities,
-  type ItemMetadata,
-  type RetrievalOptions,
-  type SecurityLevel,
-  type StorageOptions,
-  type OperationResult,
+import {
+  DEFAULT_ACCESS_CONTROL,
+  DEFAULT_KEYCHAIN_SERVICE,
   ErrorCode,
+} from './types';
+import type {
+  DeviceCapabilities,
+  OperationResult,
+  RetrievalOptions,
+  StorageOptions,
+} from './types';
+
+// ============================================================================
+// RE-EXPORT UNIFIED TYPES (from src/types.ts)
+// ============================================================================
+
+export type {
+  AccessControl,
+  AuthenticationPrompt,
+  SecurityLevel,
+  StorageMetadata,
+  DeviceCapabilities,
+  StorageOptions,
+  RetrievalOptions,
+  OperationResult,
+  StoredItem,
+} from './types';
+
+export {
   SensitiveInfoError,
+  ErrorCode,
   isSensitiveInfoError,
   SUPPORTED_PLATFORMS,
   MIN_VERSIONS,
@@ -72,54 +91,6 @@ export {
   DEFAULT_KEYCHAIN_SERVICE,
   MAX_VALUE_LENGTH,
 } from './types';
-
-// Legacy exports for backward compatibility
-export interface SensitiveInfoOptions {
-  keychainService?: string;
-  accessControl?:
-    | 'devicePasscode'
-    | 'biometryOrDevicePasscode'
-    | 'biometryCurrentSet';
-  authenticationPrompt?: {
-    title?: string;
-    subtitle?: string;
-    description?: string;
-    negativeButtonText?: string;
-  };
-  prompt?: {
-    title?: string;
-    subtitle?: string;
-    description?: string;
-  };
-}
-
-export interface StoredItemMetadata {
-  timestamp: string;
-  securityLevel:
-    | 'hardware-backed'
-    | 'biometric-protected'
-    | 'passcode-protected'
-    | 'software';
-  accessControl: string;
-}
-
-export interface StorageOperationResult {
-  success: boolean;
-  metadata?: StoredItemMetadata;
-}
-
-export enum SensitiveInfoErrorCode {
-  AUTH_FAILED = 'E_AUTH_FAILED',
-  AUTH_CANCELED = 'E_AUTH_CANCELED',
-  AUTH_TIMEOUT = 'E_AUTH_TIMEOUT',
-  BIOMETRY_LOCKOUT = 'E_BIOMETRY_LOCKOUT',
-  BIOMETRY_NOT_AVAILABLE = 'E_BIOMETRY_NOT_AVAILABLE',
-  KEY_INVALIDATED = 'E_KEY_INVALIDATED',
-  DECRYPTION_FAILED = 'E_DECRYPTION_FAILED',
-  ENCRYPTION_FAILED = 'E_ENCRYPTION_FAILED',
-  KEYSTORE_UNAVAILABLE = 'E_KEYSTORE_UNAVAILABLE',
-  MIGRATION_FAILED = 'E_MIGRATION_FAILED',
-}
 
 /**
  * Mock storage for development and example app
@@ -174,7 +145,7 @@ function createStorageKey(service: string, key: string): string {
  *
  * @returns Promise resolving to operation result with metadata
  *
- * @throws {Error} With code from SensitiveInfoErrorCode enum
+ * @throws {SensitiveInfoError} With code property
  * - E_ENCRYPTION_FAILED: Encryption operation failed
  * - E_KEYSTORE_UNAVAILABLE: Storage system not available
  * - E_AUTH_FAILED: Biometric authentication failed (if required)
@@ -189,20 +160,10 @@ function createStorageKey(service: string, key: string): string {
  * // Biometric-protected storage
  * await setItem('auth_token', jwtToken, {
  *   keychainService: 'myapp',
- *   accessControl: 'biometryOrDevicePasscode',
+ *   accessControl: 'secureEnclaveBiometry',
  *   authenticationPrompt: {
  *     title: 'Secure Storage',
  *     subtitle: 'Biometric required'
- *   }
- * });
- *
- * // Face ID only (iOS)
- * await setItem('payment_token', token, {
- *   keychainService: 'myapp',
- *   accessControl: 'biometryCurrentSet',
- *   authenticationPrompt: {
- *     title: 'Face ID Required',
- *     subtitle: 'Store payment method'
  *   }
  * });
  * ```
@@ -210,13 +171,13 @@ function createStorageKey(service: string, key: string): string {
 export async function setItem(
   key: string,
   value: string,
-  options?: SensitiveInfoOptions
-): Promise<StorageOperationResult> {
+  options?: StorageOptions
+): Promise<OperationResult> {
   if (!key || !value) {
     throw new Error('Key and value are required');
   }
 
-  const service = options?.keychainService || 'default';
+  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
   const nativeModule = getNativeModule();
 
   try {
@@ -233,19 +194,19 @@ export async function setItem(
     mockStorage[storageKey] = value;
 
     return {
-      success: true,
       metadata: {
-        timestamp: new Date().toISOString(),
+        timestamp: Math.floor(Date.now() / 1000),
         securityLevel: 'software',
-        accessControl: options?.accessControl || 'devicePasscode',
+        accessControl: options?.accessControl || DEFAULT_ACCESS_CONTROL,
+        backend: 'androidKeystore',
       },
     };
   } catch (error: any) {
-    const errorCode = error?.code || SensitiveInfoErrorCode.ENCRYPTION_FAILED;
+    const errorCode = error?.code || ErrorCode.ENCRYPTION_FAILED;
     const message = `Failed to store "${key}": ${error?.message}`;
     throw Object.assign(new Error(message), {
       code: errorCode,
-      originalError: error,
+      nativeError: error,
     });
   }
 }
@@ -278,7 +239,7 @@ export async function setItem(
  * - null if key doesn't exist
  * - Plaintext value if found and successfully decrypted
  *
- * @throws {Error} With code from SensitiveInfoErrorCode enum
+ * @throws {SensitiveInfoError} With code property
  * - E_AUTH_FAILED: Authentication failed
  * - E_AUTH_CANCELED: User canceled authentication
  * - E_BIOMETRY_LOCKOUT: Too many failed biometric attempts
@@ -318,9 +279,9 @@ export async function setItem(
  *     });
  *   }
  * } catch (error) {
- *   if (error.code === 'E_AUTH_CANCELED') {
+ *   if (error.code === ErrorCode.AUTH_CANCELED) {
  *     console.log('User canceled authentication');
- *   } else if (error.code === 'E_BIOMETRY_LOCKOUT') {
+ *   } else if (error.code === ErrorCode.BIOMETRY_LOCKOUT) {
  *     console.log('Too many failed attempts - try again later');
  *   } else {
  *     console.error('Failed to retrieve token:', error);
@@ -330,13 +291,13 @@ export async function setItem(
  */
 export async function getItem(
   key: string,
-  options?: SensitiveInfoOptions
+  options?: RetrievalOptions
 ): Promise<string | null> {
   if (!key) {
     throw new Error('Key is required');
   }
 
-  const service = options?.keychainService || 'default';
+  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
   const nativeModule = getNativeModule();
 
   try {
@@ -354,11 +315,11 @@ export async function getItem(
     const storageKey = createStorageKey(service, key);
     return mockStorage[storageKey] ?? null;
   } catch (error: any) {
-    const errorCode = error?.code || SensitiveInfoErrorCode.DECRYPTION_FAILED;
+    const errorCode = error?.code || ErrorCode.DECRYPTION_FAILED;
     const message = `Failed to retrieve "${key}": ${error?.message}`;
     throw Object.assign(new Error(message), {
       code: errorCode,
-      originalError: error,
+      nativeError: error,
     });
   }
 }
@@ -378,7 +339,7 @@ export async function getItem(
  *
  * @returns Promise resolving to true if key exists, false otherwise
  *
- * @throws {Error} If storage system unavailable
+ * @throws {SensitiveInfoError} If storage system unavailable
  *
  * @example
  * ```typescript
@@ -397,13 +358,13 @@ export async function getItem(
  */
 export async function hasItem(
   key: string,
-  options?: SensitiveInfoOptions
+  options?: Pick<StorageOptions, 'keychainService'>
 ): Promise<boolean> {
   if (!key) {
     throw new Error('Key is required');
   }
 
-  const service = options?.keychainService || 'default';
+  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
   const nativeModule = getNativeModule();
 
   try {
@@ -417,8 +378,8 @@ export async function hasItem(
   } catch (error: any) {
     const message = `Failed to check "${key}": ${error?.message}`;
     throw Object.assign(new Error(message), {
-      code: SensitiveInfoErrorCode.KEYSTORE_UNAVAILABLE,
-      originalError: error,
+      code: ErrorCode.KEYSTORE_UNAVAILABLE,
+      nativeError: error,
     });
   }
 }
@@ -438,7 +399,7 @@ export async function hasItem(
  *
  * @returns Promise resolving when deletion complete
  *
- * @throws {Error} If deletion fails
+ * @throws {SensitiveInfoError} If deletion fails
  *
  * @example
  * ```typescript
@@ -454,15 +415,16 @@ export async function hasItem(
  * }
  * ```
  */
+
 export async function deleteItem(
   key: string,
-  options?: SensitiveInfoOptions
+  options?: Pick<StorageOptions, 'keychainService'>
 ): Promise<void> {
   if (!key) {
     throw new Error('Key is required');
   }
 
-  const service = options?.keychainService || 'default';
+  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
   const nativeModule = getNativeModule();
 
   try {
@@ -477,8 +439,8 @@ export async function deleteItem(
   } catch (error: any) {
     const message = `Failed to delete "${key}": ${error?.message}`;
     throw Object.assign(new Error(message), {
-      code: SensitiveInfoErrorCode.KEYSTORE_UNAVAILABLE,
-      originalError: error,
+      code: ErrorCode.KEYSTORE_UNAVAILABLE,
+      nativeError: error,
     });
   }
 }
@@ -499,7 +461,7 @@ export async function deleteItem(
  *
  * @returns Promise resolving to array of stored key names
  *
- * @throws {Error} If operation fails
+ * @throws {SensitiveInfoError} If operation fails
  *
  * @example
  * ```typescript
@@ -515,9 +477,9 @@ export async function deleteItem(
  * ```
  */
 export async function getAllItems(
-  options?: SensitiveInfoOptions
+  options?: Pick<StorageOptions, 'keychainService'>
 ): Promise<string[]> {
-  const service = options?.keychainService || 'default';
+  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
   const nativeModule = getNativeModule();
 
   try {
@@ -532,8 +494,8 @@ export async function getAllItems(
       .map((k) => k.substring(prefix.length));
   } catch (error: any) {
     throw Object.assign(new Error(`Failed to list items: ${error?.message}`), {
-      code: SensitiveInfoErrorCode.KEYSTORE_UNAVAILABLE,
-      originalError: error,
+      code: ErrorCode.KEYSTORE_UNAVAILABLE,
+      nativeError: error,
     });
   }
 }
@@ -558,7 +520,7 @@ export async function getAllItems(
  *
  * @returns Promise resolving when all items cleared
  *
- * @throws {Error} If clearing fails
+ * @throws {SensitiveInfoError} If clearing fails
  *
  * @example
  * ```typescript
@@ -581,9 +543,9 @@ export async function getAllItems(
  * ```
  */
 export async function clearService(
-  options?: SensitiveInfoOptions
+  options?: Pick<StorageOptions, 'keychainService'>
 ): Promise<void> {
-  const service = options?.keychainService || 'default';
+  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
   const nativeModule = getNativeModule();
 
   try {
@@ -602,8 +564,8 @@ export async function clearService(
   } catch (error: any) {
     const message = `Failed to clear service: ${error?.message}`;
     throw Object.assign(new Error(message), {
-      code: SensitiveInfoErrorCode.KEYSTORE_UNAVAILABLE,
-      originalError: error,
+      code: ErrorCode.KEYSTORE_UNAVAILABLE,
+      nativeError: error,
     });
   }
 }
@@ -616,31 +578,29 @@ export async function clearService(
  * - Warn if only software-only storage available
  * - Decide which access control to request
  *
- * @param _options - Configuration options (reserved for future use)
- *
- * @returns Promise resolving to array of available security levels
+ * @returns Promise resolving to device capabilities
  *
  * @example
  * ```typescript
- * const supported = await getSupportedSecurityLevels();
+ * const caps = await getSupportedSecurityLevels();
  *
- * const usesBiometric = supported.includes('biometryOrDevicePasscode');
- * const usesPasscode = supported.includes('devicePasscode');
+ * if (caps.biometry) {
+ *   showBiometricOption(caps.biometryType);
+ * }
  *
- * // Adjust UI based on capabilities
- * if (usesBiometric) {
- *   // Show "Use Face ID" option
- * } else if (usesPasscode) {
- *   // Show "Use Device Passcode" option
- * } else {
- *   // Show warning about software-only storage
+ * if (!caps.deviceCredential) {
+ *   showSecurityWarning('Set device PIN for app protection');
  * }
  * ```
  */
-export async function getSupportedSecurityLevels(
-  _options?: SensitiveInfoOptions
-): Promise<string[]> {
-  return ['biometryOrDevicePasscode', 'devicePasscode'];
+export async function getSupportedSecurityLevels(): Promise<DeviceCapabilities> {
+  return {
+    secureEnclave: true,
+    strongBox: true,
+    biometry: false,
+    deviceCredential: true,
+    iCloudSync: false,
+  };
 }
 
 /**

@@ -82,8 +82,7 @@ lib/
 ios/generated
 android/generated
 
-# React Native Nitro Modules
-nitrogen/
+
 
 # Coverage
 coverage/

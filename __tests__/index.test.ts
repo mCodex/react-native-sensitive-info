@@ -6,6 +6,7 @@
  * on real devices/simulators.
  */
 
+import type { AccessControl, SecurityLevel } from '../src/index';
 import {
   SensitiveInfo,
   SensitiveInfoError,
@@ -56,7 +57,7 @@ describe('SensitiveInfo API', () => {
     it('should accept valid setItem options', () => {
       const options = {
         keychainService: 'com.example.app',
-        accessControl: 'biometryOrDevicePasscode' as const,
+        accessControl: 'secureEnclaveBiometry' as const,
       };
       expect(options.keychainService).toBe('com.example.app');
     });
@@ -73,28 +74,28 @@ describe('SensitiveInfo API', () => {
     });
 
     it('should support all access control types', () => {
-      const controls = [
-        'devicePasscode' as const,
-        'biometryOrDevicePasscode' as const,
-        'biometryAndDevicePasscode' as const,
-        'biometryCurrentSet' as const,
+      const controls: AccessControl[] = [
+        'secureEnclaveBiometry',
+        'biometryCurrentSet',
+        'biometryAny',
+        'devicePasscode',
+        'none',
       ];
 
-      expect(controls).toHaveLength(4);
+      expect(controls).toHaveLength(5);
       expect(controls.every((c) => typeof c === 'string')).toBe(true);
     });
 
     it('should support all security levels', () => {
-      const levels = [
+      const levels: SecurityLevel[] = [
         'secureEnclave',
         'strongBox',
-        'hardwareBacked',
-        'biometricProtected',
-        'passcodeProtected',
+        'biometry',
+        'deviceCredential',
         'software',
       ];
 
-      expect(levels).toHaveLength(6);
+      expect(levels).toHaveLength(5);
     });
   });
 
@@ -181,7 +182,7 @@ describe('SensitiveInfo API', () => {
       const expectedCode = async () => {
         const options = {
           keychainService: 'com.myapp',
-          accessControl: 'biometryOrDevicePasscode' as const,
+          accessControl: 'secureEnclaveBiometry' as const,
           prompt: {
             title: 'Authenticate',
             subtitle: 'Verify your identity',
@@ -192,7 +193,7 @@ describe('SensitiveInfo API', () => {
       };
 
       const result = await expectedCode();
-      expect(result.accessControl).toBe('biometryOrDevicePasscode');
+      expect(result.accessControl).toBe('secureEnclaveBiometry');
       expect(result.prompt.title).toBe('Authenticate');
     });
 
