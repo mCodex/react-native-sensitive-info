@@ -6,41 +6,41 @@
 [![downloads](https://img.shields.io/npm/dm/react-native-sensitive-info.svg?style=flat-square)](https://www.npmjs.com/package/react-native-sensitive-info)
 [![license](https://img.shields.io/npm/l/react-native-sensitive-info.svg?style=flat-square)](LICENSE)
 
-**v5.6.0** - Production Ready | iOS 13+ | Android 8+ | macOS 10.15+ | visionOS 1.0+ | watchOS 6+
+**v5.6.0** - Production Ready | iOS 13+ | Android 7+ | macOS 10.15+ | visionOS 1.0+ | watchOS 6+
 
 ---
 
 ## ⚠️ Version Information
 
-> **v5.6.0 (Current - Legacy Support)**
+> [!TIP]
+> **v6.0.0 (Nitro Preview)**
 > 
-> - ✅ **Works with React Native New Architecture**
-> - ✅ Production ready with complete Android/iOS implementation
-> - ✅ Biometric authentication (Face ID, Touch ID, Fingerprint)
-> - ✅ AES-256-GCM encryption with hardware-backed keys
-> - ⚠️ **Legacy support branch** - No new features planned
-> - 📦 Uses TurboModules (React Native bridge)
+> - 🚀 Adds full Nitro Module and Nitro View compatibility
+> - 🧪 Currently stabilizing on the `master` branch
+> - ⏳ Preview quality while documentation and samples are updated
 
-> **v5.5.x and Older**
+> [!IMPORTANT] 
+> **v5.6.0 (Current)**
 > 
-> - ✅ Works with **React Native Old Architecture only**
-> - ✅ Legacy support, bug fixes only
-> - 📝 Use this version if you cannot use New Architecture
+> - ✅ New Architecture ready (RN 0.73+)
+> - ✅ Universal Android authentication (API 24+)
+> - ✅ Biometric + device credential support
+> - ✅ AES-256-GCM hardware-backed encryption
+> - 📦 Distributed as a TurboModule
 
-> **v6.x (Master Branch - Next Generation)**
+> [!NOTE]
+> **v5.5.x and older**
 > 
-> - 🚀 **Upcoming release** with Nitro Modules
-> - 📍 On `master` branch
-> - 🔄 Better performance with Nitro native modules
-> - ⏳ **Not yet released** - Check back soon
-> - 🔗 Branch: `git checkout master`
+> - ✅ Old Architecture only
+> - 🛠 Bug fixes only, no new features
+> - ⬇️ Install when you cannot move to RN New Architecture yet
 
-**Choose your version based on your React Native architecture:**
+**Install the right build for your project:**
 ```bash
-# New Architecture (RN 0.73+, recommended)
+# React Native 0.73+ (New Architecture)
 npm install react-native-sensitive-info@5.6.0
 
-# Old Architecture (RN <0.73)
+# React Native <0.73 (Old Architecture)
 npm install react-native-sensitive-info@5.5.x
 ```
 
@@ -52,8 +52,8 @@ npm install react-native-sensitive-info@5.5.x
 |---------|-----|---------|-------|----------|---------|
 | **Secure Storage** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **AES-256 Encryption** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Hardware-Backed Keys** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Biometric Auth** | ✅ Face/Touch ID | ✅ Fingerprint | ✅ Touch ID | ✅ Optic ID | ❌ Passcode only |
+| **Hardware-Backed Keys** | ✅ | ✅ API 24+ | ✅ | ✅ | ✅ |
+| **Biometric Auth** | ✅ Face/Touch ID | ✅ Fingerprint & device credential | ✅ Touch ID | ✅ Optic ID | ❌ Passcode only |
 | **Automatic Migration** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Zero Dependencies** | ✅ | ✅ | ✅ | ✅ | ✅ |
 
@@ -70,7 +70,7 @@ AES-256-GCM Encryption (random IV per operation)
   ↓
 Hardware-Backed Key Storage
 ├─ iOS: Keychain + Secure Enclave (iOS 16+)
-├─ Android: AndroidKeyStore + StrongBox (Android 9+)
+├─ Android: AndroidKeyStore (StrongBox when available)
 └─ Optional: Biometric authentication required
   ↓
 Encrypted data stored securely
@@ -83,6 +83,21 @@ Encrypted data stored securely
 - PII (personally identifiable information)
 - Payment information
 - OAuth refresh tokens
+
+---
+
+## 🤖 Android Authentication Matrix
+
+| Android Version | API Level | Prompt Strategy | Storage Backend |
+|-----------------|-----------|-----------------|-----------------|
+| Android 14 - 10 | 34 - 29   | Keystore-gated biometric/device credential prompt shown when decrypting | AndroidKeyStore (hardware-backed, StrongBox when available) |
+| Android 9 - 7   | 28 - 24   | Manual prompt displayed before key use; library waits for user confirmation | AndroidKeyStore (hardware-backed) |
+
+> [!TIP]
+> Supply localized `authenticationPrompt` copy even on Android 10+ so users see consistent messaging across API levels.
+
+> [!CAUTION]
+> Android 7-9 throws `E_AUTHENTICATION_REQUIRED` if you skip the prompt configuration because the OS does not present a system dialog automatically.
 
 ---
 
@@ -108,6 +123,9 @@ Add permissions to `AndroidManifest.xml`:
 <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 <uses-permission android:name="android.permission.USE_FINGERPRINT" />
 ```
+
+> [!NOTE]
+> Android 7-9 rely on a manual authentication dialog. Provide `authenticationPrompt` strings whenever you request biometric/device credential protection so the library can display localized UI ahead of decrypting secrets.
 
 ### iOS Setup
 
@@ -151,7 +169,7 @@ const result = await SensitiveInfo.getItem('auth-token', {
 });
 
 console.log(result.value);        // 'jwt-token-xyz'
-console.log(result.metadata);     // { securityLevel: 'biometry', ... }
+console.log(result.metadata);     // { securityLevel: 'strongBox', backend: 'androidKeystore', timestamp: 1700000000 }
 
 // If biometric-protected: OS shows prompt automatically
 // User authenticates → value is decrypted and returned
@@ -199,8 +217,8 @@ await SensitiveInfo.clearService({
 |----------|---------|-----------------|-------|
 | iOS 16+ | Keychain + Secure Enclave | ✅ Yes | Isolated, tamper-resistant |
 | iOS 13-15 | Keychain only | ✅ Yes | Device passcode/biometric |
-| Android 9+ | AndroidKeyStore + StrongBox | ✅ Yes | Isolated secure processor |
-| Android 8 | AndroidKeyStore | ✅ Yes | Software-backed fallback |
+| Android 14-10 | AndroidKeyStore + StrongBox | ✅ Yes | System prompt wraps keystore auth |
+| Android 9-7 | AndroidKeyStore | ✅ Yes | Manual prompt required before key use |
 | macOS 13+ | Keychain + Secure Enclave | ✅ Yes | Touch ID support |
 | visionOS | Keychain + Secure Enclave | ✅ Yes | Optic ID support |
 | watchOS | Keychain | ✅ Partial | Shared with paired iPhone |
@@ -214,6 +232,9 @@ When enabled, biometric authentication is required to access encrypted data:
 - User authenticates with biometric or device credential
 - On success: Key is unlocked, value is decrypted
 - On failure/cancellation: Access denied, exception thrown
+
+> [!NOTE]
+> On Android 7-9 the library displays its own dialog before touching the keystore. On Android 10+ the OS handles the biometric/device credential UI directly.
 
 **Protection against**:
 - ✅ Screen reading (encryption)
@@ -234,9 +255,9 @@ interface SetOptions {
   keychainService?: string;          // Service namespace (app package by default)
   accessControl?: string;             // 'biometryOrDevicePasscode' | 'devicePasscode' | 'none'
   authenticationPrompt?: {
-    title: string;                    // Required: "Authenticate"
+    title: string;                    // Required: "Authenticate" (mandatory on Android 7-9)
     subtitle?: string;                // "Scan your fingerprint"
-    description?: string;             // "Required to protect this data"
+    description?: string;             // "Required to protect this data" (shown in manual dialog)
   };
 }
 
@@ -374,6 +395,9 @@ await testBiometricCancellation();
 await testBiometricTimeout();
 ```
 
+> [!TIP]
+> Run your suite on both an Android 13+ emulator **and** an Android 8/9 emulator to validate the automatic keystore dialog and the manual pre-auth dialog paths.
+
 ---
 
 ## 📖 Platform-Specific Notes
@@ -387,10 +411,10 @@ await testBiometricTimeout();
 
 ### Android
 
-- **StrongBox**: Available Android 9+ (secure processor)
-- **AndroidKeyStore**: Isolated key storage
-- **Hardware Requirements**: Biometric sensor for fingerprint
-- **Permissions**: USE_BIOMETRIC + USE_FINGERPRINT in AndroidManifest.xml
+- **Authentication Flow**: API 29+ (Android 10+) relies on keystore-gated OS dialogs, while API 24-28 (Android 7-9) shows a library-provided dialog before key use.
+- **StrongBox**: Hardware-backed keys automatically prefer StrongBox where present (Android 9+).
+- **Activity Hook**: Ensure `ActivityContextHolder.setActivity(this)` runs in `MainActivity.onCreate` so prompts attach to the foreground activity.
+- **Permissions**: Declare `USE_BIOMETRIC` and `USE_FINGERPRINT` in `AndroidManifest.xml`.
 
 ### macOS
 
@@ -504,6 +528,11 @@ try {
   }
 }
 ```
+
+### `E_AUTHENTICATION_REQUIRED` on Android 7-9
+
+**Cause**: `authenticationPrompt` text is missing, so the manual dialog cannot be rendered before hitting the keystore.
+**Solution**: Provide at least a `title` (and ideally description) when storing or reading biometric-protected secrets.
 
 ### "Key has been invalidated"
 

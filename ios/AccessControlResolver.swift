@@ -24,7 +24,7 @@ import Foundation
  * - iOS 10: Limited to basic access control options
  */
 struct AccessControlResolver {
-    
+
     /**
      * Resolves access control preference to concrete Keychain policy.
      *
@@ -44,50 +44,50 @@ struct AccessControlResolver {
         case "secureEnclaveBiometry":
             // Strongest: Secure Enclave + Biometric
             return AccessControlConfig(
+                preference: "secureEnclaveBiometry",
                 flags: [.biometryCurrentSet, .userPresence],
                 secureEnclave: true,
                 biometric: true,
                 securityLevel: "biometry"
             )
-            
+
         case "biometryCurrentSet":
-            // Biometric protection (enrollment-specific)
             return AccessControlConfig(
+                preference: "biometryCurrentSet",
                 flags: [.biometryCurrentSet, .userPresence],
                 secureEnclave: false,
                 biometric: true,
                 securityLevel: "biometry"
             )
-            
+
         case "biometryAny":
-            // Biometric protection (any enrollment)
             return AccessControlConfig(
+                preference: "biometryAny",
                 flags: [.biometryAny, .userPresence],
                 secureEnclave: false,
                 biometric: true,
                 securityLevel: "biometry"
             )
-            
+
         case "devicePasscode":
-            // Device credential protection
             return AccessControlConfig(
+                preference: "devicePasscode",
                 flags: [.userPresence],
                 secureEnclave: false,
                 biometric: false,
                 securityLevel: "deviceCredential"
             )
-            
+
         case "none":
-            // No additional access control
             return AccessControlConfig(
+                preference: "none",
                 flags: [],
                 secureEnclave: false,
                 biometric: false,
                 securityLevel: "software"
             )
-            
+
         default:
-            // Default to strongest available
             return resolve("secureEnclaveBiometry")
         }
     }
@@ -97,39 +97,85 @@ struct AccessControlResolver {
  * Resolved access control configuration.
  */
 struct AccessControlConfig {
+    /// Original preference string (echoed back to JS metadata)
+    let preference: String
+
     /// SecAccessControl flags to apply
-    let flags: [SecAccessControlCreateFlags]
-    
+    let flags: SecAccessControlCreateFlags
+
     /// Should request Secure Enclave (iOS 16+)
     let secureEnclave: Bool
-    
+
     /// Does this require biometric?
     let biometric: Bool
-    
+
     /// Resulting security level for reporting
     let securityLevel: String
-    
+
     /**
-     * Creates Keychain access control object.
+     * Creates Keychain access control object if flags are present.
      *
-     * - Returns: SecAccessControl, or nil if creation fails
+     * - Returns: SecAccessControl or nil when no access control required
+     * - Throws: SensitiveInfoException when creation fails
      */
-    func createSecAccessControl() -> SecAccessControl? {
+    func makeSecAccessControl() throws -> SecAccessControl? {
+        guard !flags.isEmpty else {
+            return nil
+        }
+
         var error: Unmanaged<CFError>?
-        
-        let flags: SecAccessControlCreateFlags = self.flags.isEmpty ? [] : self.flags.reduce([], { combined, flag in
-            combined.union(flag)
-        })
-        
-        guard let accessControl = SecAccessControlCreateWithFlags(
+        guard let control = SecAccessControlCreateWithFlags(
             kCFAllocatorDefault,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             flags,
             &error
         ) else {
-            return nil
+            let reason = (error?.takeRetainedValue() as Error?)?.localizedDescription ?? "Unknown error"
+            throw SensitiveInfoException.encryptionFailed("Failed to create access control: \(reason)")
         }
-        
-        return (accessControl as SecAccessControl)
+
+        return control
+    }
+
+    /// Encodes metadata for persistence in Keychain attributes.
+    func metadata(
+        timestamp: TimeInterval = Date().timeIntervalSince1970,
+        secureEnclaveActive: Bool? = nil
+    ) -> KeychainItemMetadata {
+        let effectiveLevel: String
+
+        if secureEnclave,
+           let secureEnclaveActive = secureEnclaveActive,
+           !secureEnclaveActive {
+            // Secure Enclave requested but unavailable; downgrade to next best level.
+            effectiveLevel = biometric ? "biometry" : "deviceCredential"
+        } else {
+            effectiveLevel = securityLevel
+        }
+
+        return KeychainItemMetadata(
+            accessControl: preference,
+            securityLevel: effectiveLevel,
+            timestamp: timestamp
+        )
+    }
+}
+
+// MARK: - Keychain Metadata Encoding
+
+/// Lightweight metadata persisted alongside Keychain values.
+struct KeychainItemMetadata: Codable {
+    let accessControl: String
+    let securityLevel: String
+    let timestamp: TimeInterval
+
+    /// Encodes metadata as Data suitable for kSecAttrGeneric.
+    func encoded() -> Data? {
+        try? JSONEncoder().encode(self)
+    }
+
+    /// Decodes metadata from Keychain attributes.
+    static func decode(_ data: Data) -> KeychainItemMetadata? {
+        try? JSONDecoder().decode(KeychainItemMetadata.self, from: data)
     }
 }

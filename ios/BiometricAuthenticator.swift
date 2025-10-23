@@ -39,29 +39,21 @@ import Security
  * @see LocalAuthentication framework
  */
 class BiometricAuthenticator {
-    
+
     /**
      * Checks if biometric authentication is available and enrolled.
-     *
-     * - Returns: true if Face ID or Touch ID is available
      */
     func isBiometricAvailable() -> Bool {
         let context = LAContext()
-        var error: NSError?
-        
-        return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        return context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
     }
-    
+
     /**
      * Checks if device has a passcode/PIN set.
-     *
-     * - Returns: true if device credential is available
      */
     func isDeviceCredentialAvailable() -> Bool {
         let context = LAContext()
-        var error: NSError?
-        
-        return context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
+        return context.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
     }
     
     /**
@@ -111,34 +103,34 @@ class BiometricAuthenticator {
         reason: String? = nil
     ) async throws {
         let context = LAContext()
-        var error: NSError?
-        
-        // Determine which policy to use
-        let policy: LAPolicy = isBiometricAvailable() ? 
-            .deviceOwnerAuthenticationWithBiometrics :
-            .deviceOwnerAuthentication
-        
-        // Check if authentication is possible
-        guard context.canEvaluatePolicy(policy, error: &error) else {
-            if let error = error {
-                throw mapError(error)
+        context.localizedFallbackTitle = prompt.cancel
+
+        var evaluateError: NSError?
+        let policy = preferredPolicy(for: context)
+
+        guard context.canEvaluatePolicy(policy, error: &evaluateError) else {
+            if let evaluateError = evaluateError {
+                throw mapError(evaluateError)
             }
             throw SensitiveInfoException.authenticationFailed("Authentication not available")
         }
-        
-        // Build reason string
-        let reason = reason ?? prompt.description ?? prompt.title
-        
-        // Authenticate
+
+        let reasonText = reason ?? prompt.localizedReason
+
         do {
-            try await context.evaluatePolicy(
-                policy,
-                localizedReason: reason
-            )
-            // Success
+            try await context.evaluatePolicy(policy, localizedReason: reasonText)
         } catch {
             throw mapError(error)
         }
+    }
+
+    // MARK: - Helpers
+
+    private func preferredPolicy(for context: LAContext) -> LAPolicy {
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) {
+            return .deviceOwnerAuthenticationWithBiometrics
+        }
+        return .deviceOwnerAuthentication
     }
     
     /**
@@ -207,5 +199,18 @@ struct AuthenticationPrompt {
         self.subtitle = subtitle
         self.description = description
         self.cancel = cancel
+    }
+}
+
+extension AuthenticationPrompt {
+    /// Generates the best available localized reason for Keychain / LA prompts.
+    var localizedReason: String {
+        if let description = description, !description.isEmpty {
+            return description
+        }
+        if let subtitle = subtitle, !subtitle.isEmpty {
+            return subtitle
+        }
+        return title
     }
 }

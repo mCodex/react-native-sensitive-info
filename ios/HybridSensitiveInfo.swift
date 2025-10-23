@@ -68,6 +68,48 @@ import LocalAuthentication
 struct HybridSensitiveInfo {
     
     private let biometricAuthenticator = BiometricAuthenticator()
+    private let defaultAccessControlName = "secureEnclaveBiometry"
+
+    // MARK: - Helpers
+
+    private func resolveService(_ service: String?) -> String {
+        guard let service = service?.trimmingCharacters(in: .whitespacesAndNewlines), !service.isEmpty else {
+            return Bundle.main.bundleIdentifier ?? "default"
+        }
+        return service
+    }
+
+    private func keychain(for service: String?) -> KeychainManager {
+        KeychainManager(service: resolveService(service))
+    }
+
+    private func resolveAccessControl(_ preference: String?) throws -> (config: AccessControlConfig, control: SecAccessControl?) {
+        let config = AccessControlResolver.resolve(preference)
+        let control = try config.makeSecAccessControl()
+        return (config, control)
+    }
+
+    private func ensureAuthenticationIfNeeded(
+        config: AccessControlConfig,
+        prompt: AuthenticationPrompt?
+    ) async throws {
+        guard config.biometric else { return }
+        let promptToUse = prompt ?? AuthenticationPrompt(title: "Authenticate")
+        try await biometricAuthenticator.authenticate(promptToUse)
+    }
+
+    private func makeMetadata(from metadata: KeychainItemMetadata?) -> StorageMetadata {
+        StorageMetadata(
+            securityLevel: metadata?.securityLevel ?? "software",
+            accessControl: metadata?.accessControl ?? defaultAccessControlName,
+            backend: "keychain",
+            timestamp: metadata?.timestamp ?? currentTimestamp()
+        )
+    }
+
+    private func currentTimestamp() -> TimeInterval {
+        Date().timeIntervalSince1970
+    }
     
     /**
      * Stores a secret in secure Keychain storage.
@@ -89,6 +131,7 @@ struct HybridSensitiveInfo {
      * - Parameter value: Secret value to store
      * - Parameter service: Service namespace (defaults to bundle ID)
      * - Parameter accessControl: Access control policy (defaults to "secureEnclaveBiometry")
+    * - Parameter authenticationPrompt: Custom prompt shown before secure operations
      * - Returns: Metadata describing security level
      * - Throws: SensitiveInfoException if storage fails
      *
@@ -112,33 +155,23 @@ struct HybridSensitiveInfo {
         accessControl: String? = nil,
         authenticationPrompt: AuthenticationPrompt? = nil
     ) async throws -> StorageResult {
-        // Resolve service name
-        let resolvedService = service ?? Bundle.main.bundleIdentifier ?? "default"
-        
-        // Resolve access control
-        let accessControlConfig = AccessControlResolver.resolve(accessControl)
-        
-        // Request biometric authentication if configured
-        if accessControlConfig.biometric, let prompt = authenticationPrompt {
-            try await biometricAuthenticator.authenticate(prompt)
-        }
-        
-        // Create access control object
-        let secAccessControl = accessControlConfig.createSecAccessControl()
-        
-        // Store in Keychain
-        let keychain = KeychainManager(service: resolvedService)
-        try keychain.set(key: key, value: value, accessControl: secAccessControl)
-        
-        // Return metadata
-        return StorageResult(
-            metadata: StorageMetadata(
-                securityLevel: accessControlConfig.securityLevel,
-                accessControl: accessControl ?? "secureEnclaveBiometry",
-                backend: "keychain",
-                timestamp: Date().timeIntervalSince1970
-            )
+        let (config, control) = try resolveAccessControl(accessControl)
+        try await ensureAuthenticationIfNeeded(config: config, prompt: authenticationPrompt)
+
+        let now = currentTimestamp()
+        let secureEnclaveEnabled = config.secureEnclave && isSecureEnclaveAvailable()
+        let metadata = config.metadata(timestamp: now, secureEnclaveActive: secureEnclaveEnabled)
+
+        let keychain = keychain(for: service)
+        try keychain.set(
+            key: key,
+            value: value,
+            accessControl: control,
+            useSecureEnclave: secureEnclaveEnabled,
+            metadata: metadata
         )
+
+        return StorageResult(metadata: makeMetadata(from: metadata))
     }
     
     /**
@@ -179,27 +212,18 @@ struct HybridSensitiveInfo {
         service: String? = nil,
         authenticationPrompt: AuthenticationPrompt? = nil
     ) async throws -> SensitiveInfoItem? {
-        // Resolve service name
-        let resolvedService = service ?? Bundle.main.bundleIdentifier ?? "default"
-        
-        // Look up in Keychain
-        let keychain = KeychainManager(service: resolvedService)
-        
-        guard let value = try keychain.get(key: key) else {
+        let resolvedService = resolveService(service)
+        let keychain = keychain(for: service)
+
+        guard let payload = try keychain.get(key: key, prompt: authenticationPrompt) else {
             return nil
         }
-        
-        // Return with metadata
+
         return SensitiveInfoItem(
             key: key,
             service: resolvedService,
-            value: value,
-            metadata: StorageMetadata(
-                securityLevel: "software",  // TODO: Detect actual security level
-                accessControl: "secureEnclaveBiometry",
-                backend: "keychain",
-                timestamp: Date().timeIntervalSince1970
-            )
+            value: payload.value,
+            metadata: makeMetadata(from: payload.metadata)
         )
     }
     
@@ -225,9 +249,7 @@ struct HybridSensitiveInfo {
         key: String,
         service: String? = nil
     ) async throws {
-        let resolvedService = service ?? Bundle.main.bundleIdentifier ?? "default"
-        let keychain = KeychainManager(service: resolvedService)
-        try keychain.delete(key: key)
+        try keychain(for: service).delete(key: key)
     }
     
     /**
@@ -253,9 +275,7 @@ struct HybridSensitiveInfo {
         key: String,
         service: String? = nil
     ) async -> Bool {
-        let resolvedService = service ?? Bundle.main.bundleIdentifier ?? "default"
-        let keychain = KeychainManager(service: resolvedService)
-        return keychain.exists(key: key)
+        keychain(for: service).exists(key: key)
     }
     
     /**
@@ -276,9 +296,7 @@ struct HybridSensitiveInfo {
      * ```
      */
     func getAllItems(service: String? = nil) async throws -> [String] {
-        let resolvedService = service ?? Bundle.main.bundleIdentifier ?? "default"
-        let keychain = KeychainManager(service: resolvedService)
-        return try keychain.allKeys()
+        try keychain(for: service).allKeys()
     }
     
     /**
@@ -296,9 +314,7 @@ struct HybridSensitiveInfo {
      * ```
      */
     func clearService(service: String? = nil) async throws {
-        let resolvedService = service ?? Bundle.main.bundleIdentifier ?? "default"
-        let keychain = KeychainManager(service: resolvedService)
-        try keychain.deleteAll()
+        try keychain(for: service).deleteAll()
     }
     
     /**
@@ -364,24 +380,6 @@ struct HybridSensitiveInfo {
         #endif
     }
     
-    /**
-     * Gets platform identifier for logging and configuration.
-     *
-     * - Returns: Platform name (iOS, macOS, visionOS, watchOS)
-     */
-    private func getPlatformName() -> String {
-        #if os(iOS)
-        return "iOS"
-        #elseif os(macOS)
-        return "macOS"
-        #elseif os(visionOS)
-        return "visionOS"
-        #elseif os(watchOS)
-        return "watchOS"
-        #else
-        return "Unknown"
-        #endif
-    }
 }
 
 // MARK: - Data Types

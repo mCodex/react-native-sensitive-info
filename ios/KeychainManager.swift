@@ -34,9 +34,11 @@ import Foundation
  * @see https://developer.apple.com/documentation/security
  */
 struct KeychainManager {
-    
+
     let service: String
-    
+
+    // MARK: - Public API
+
     /**
      * Stores an encrypted value in Keychain.
      *
@@ -48,7 +50,9 @@ struct KeychainManager {
      *
      * - Parameter key: Unique key within service
      * - Parameter value: Value to store (encrypted by Keychain)
-     * - Parameter accessControl: Access control policy
+    * - Parameter accessControl: Access control policy (nil for software-only)
+    * - Parameter useSecureEnclave: Requests Secure Enclave token (if available)
+    * - Parameter metadata: Additional metadata stored alongside value
      * - Throws: KeychainError if operation fails
      *
      * # Example
@@ -65,41 +69,58 @@ struct KeychainManager {
     func set(
         key: String,
         value: String,
-        accessControl: SecAccessControl?
+        accessControl: SecAccessControl?,
+        useSecureEnclave: Bool,
+        metadata: KeychainItemMetadata?
     ) throws {
         let valueData = value.data(using: .utf8) ?? Data()
-        
-        // Build query
-        var query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecValueData as String: valueData,
-            kSecUseDataProtectionKeychain as String: true
-        ]
-        
-        // Add access control if provided
+
+        // Attempt to add first (handles access-control-only creation)
+        var addQuery = baseQuery(for: key)
+        addQuery[kSecValueData as String] = valueData
+        addQuery[kSecUseDataProtectionKeychain as String] = true
+
         if let accessControl = accessControl {
-            query[kSecAttrAccessControl as String] = accessControl
+            addQuery[kSecAttrAccessControl as String] = accessControl
+        } else {
+            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         }
-        
-        // Try to update existing
-        let updateQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-        
-        let status = SecItemUpdate(updateQuery as CFDictionary, query as CFDictionary)
-        
-        if status == errSecItemNotFound {
-            // Item doesn't exist, create it
-            let addStatus = SecItemAdd(query as CFDictionary, nil)
-            if addStatus != errSecSuccess {
-                throw KeychainError.addFailed(addStatus)
+
+        if useSecureEnclave {
+            addQuery[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
+        }
+
+        if let encodedMetadata = metadata?.encoded() {
+            addQuery[kSecAttrGeneric as String] = encodedMetadata
+        }
+
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+
+        switch addStatus {
+        case errSecSuccess:
+            return
+
+        case errSecDuplicateItem:
+            // Update existing value (metadata + plaintext). Access control is immutable.
+            var updateAttributes: [String: Any] = [
+                kSecValueData as String: valueData
+            ]
+
+            if let encodedMetadata = metadata?.encoded() {
+                updateAttributes[kSecAttrGeneric as String] = encodedMetadata
             }
-        } else if status != errSecSuccess {
-            throw KeychainError.updateFailed(status)
+
+            let updateStatus = SecItemUpdate(
+                baseQuery(for: key) as CFDictionary,
+                updateAttributes as CFDictionary
+            )
+
+            guard updateStatus == errSecSuccess else {
+                throw KeychainError.updateFailed(updateStatus)
+            }
+
+        default:
+            throw KeychainError.addFailed(addStatus)
         }
     }
     
@@ -112,7 +133,8 @@ struct KeychainManager {
      * - Value never leaves Keychain in unencrypted form unless granted
      *
      * - Parameter key: Unique key within service
-     * - Returns: Decrypted value, or nil if not found
+    * - Parameter prompt: Optional custom prompt text shown by Keychain
+    * - Returns: Decrypted value + metadata, or nil if not found
      * - Throws: KeychainError if operation fails
      *
      * # Example
@@ -126,34 +148,47 @@ struct KeychainManager {
      * }
      * ```
      */
-    func get(key: String) throws -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecUseDataProtectionKeychain as String: true
-        ]
-        
-        var result: AnyObject?
+    func get(
+        key: String,
+        prompt: AuthenticationPrompt? = nil
+    ) throws -> KeychainPayload? {
+        var query = baseQuery(for: key)
+        query[kSecReturnData as String] = true
+        query[kSecReturnAttributes as String] = true
+        query[kSecUseDataProtectionKeychain as String] = true
+
+        if let prompt = prompt {
+            query[kSecUseOperationPrompt as String] = prompt.localizedReason
+        }
+
+        var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        
-        guard status == errSecSuccess else {
-            if status == errSecItemNotFound {
-                return nil
-            }
+
+        switch status {
+        case errSecSuccess:
+            break
+        case errSecItemNotFound:
+            return nil
+        default:
             throw KeychainError.retrieveFailed(status)
         }
-        
-        guard let data = result as? Data else {
-            throw KeychainError.invalidData
-        }
-        
-        guard let value = String(data: data, encoding: .utf8) else {
+
+        guard
+            let item = result as? [String: Any],
+            let data = item[kSecValueData as String] as? Data,
+            let value = String(data: data, encoding: .utf8)
+        else {
             throw KeychainError.decodingFailed
         }
-        
-        return value
+
+        let metadata: KeychainItemMetadata?
+        if let metadataData = item[kSecAttrGeneric as String] as? Data {
+            metadata = KeychainItemMetadata.decode(metadataData)
+        } else {
+            metadata = nil
+        }
+
+        return KeychainPayload(value: value, metadata: metadata)
     }
     
     /**
@@ -163,13 +198,7 @@ struct KeychainManager {
      * - Returns: true if key exists
      */
     func exists(key: String) -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-        
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        let status = SecItemCopyMatching(baseQuery(for: key) as CFDictionary, nil)
         return status == errSecSuccess
     }
     
@@ -180,13 +209,7 @@ struct KeychainManager {
      * - Throws: KeychainError if operation fails
      */
     func delete(key: String) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-        
-        let status = SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(baseQuery(for: key) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.deleteFailed(status)
         }
@@ -234,11 +257,21 @@ struct KeychainManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service
         ]
-        
+
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.deleteFailed(status)
         }
+    }
+
+    // MARK: - Helpers
+
+    private func baseQuery(for key: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key
+        ]
     }
 }
 
@@ -269,4 +302,10 @@ enum KeychainError: Error {
             return "Failed to decode Keychain data"
         }
     }
+}
+
+/// Value returned from Keychain lookups including metadata.
+struct KeychainPayload {
+    let value: String
+    let metadata: KeychainItemMetadata?
 }
