@@ -7,6 +7,7 @@ import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import com.sensitiveinfo.internal.util.SensitiveInfoException
+import com.sensitiveinfo.internal.util.ActivityContextHolder
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import javax.crypto.Cipher
@@ -256,6 +257,17 @@ internal class BiometricAuthenticator(
         cipher: Cipher? = null,
         allowDeviceCredential: Boolean = true
     ): Cipher? {
+        // Get the current activity (from constructor or from ActivityContextHolder)
+        val currentActivity = activity ?: ActivityContextHolder.getActivity()
+        
+        if (currentActivity == null) {
+            throw SensitiveInfoException.ActivityUnavailable(
+                "FragmentActivity not available. " +
+                "Make sure to call ActivityContextHolder.setActivity() from MainActivity.onCreate(). " +
+                "Error: Authentication required an active fragmentActivity"
+            )
+        }
+
         // Determine which authentication method to use based on API level and availability
         val supportsInlineDeviceCredential = allowDeviceCredential && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         val allowLegacyDeviceCredential = allowDeviceCredential && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
@@ -263,18 +275,18 @@ internal class BiometricAuthenticator(
         // Special handling for API 28 (Android 9): Biometric may not be available
         if (allowLegacyDeviceCredential && !canUseBiometric()) {
             // Biometric not available, try device credential manually
-            val success = DeviceCredentialPromptFragment.authenticate(activity, prompt)
+            val success = DeviceCredentialPromptFragment.authenticate(currentActivity, prompt)
             if (success) return cipher
             throw SensitiveInfoException.AuthenticationCanceled()
         }
 
         // Try BiometricPrompt (primary method for API 30+)
         return try {
-            authenticateWithBiometricPrompt(prompt, cipher, supportsInlineDeviceCredential)
+            authenticateWithBiometricPrompt(currentActivity, prompt, cipher, supportsInlineDeviceCredential)
         } catch (error: SensitiveInfoException) {
             // BiometricPrompt failed, try legacy device credential fallback
             if (allowLegacyDeviceCredential && error !is SensitiveInfoException.AuthenticationCanceled) {
-                val success = DeviceCredentialPromptFragment.authenticate(activity, prompt)
+                val success = DeviceCredentialPromptFragment.authenticate(currentActivity, prompt)
                 if (success) return cipher
             }
             throw error
@@ -301,6 +313,7 @@ internal class BiometricAuthenticator(
      * - API 30: Can use BIOMETRIC_STRONG | DEVICE_CREDENTIAL
      * - API 28-29: Only BIOMETRIC_STRONG available (no official device credential in BiometricPrompt)
      *
+     * @param fragmentActivity Required FragmentActivity for BiometricPrompt rendering
      * @param prompt User-facing prompt configuration
      * @param cipher Optional cipher to authenticate
      * @param supportsInlineDeviceCredential Whether to allow device credential in BiometricPrompt
@@ -309,6 +322,7 @@ internal class BiometricAuthenticator(
      * @throws SensitiveInfoException on authentication failure
      */
     private suspend fun authenticateWithBiometricPrompt(
+        fragmentActivity: FragmentActivity,
         prompt: AuthenticationPrompt,
         cipher: Cipher?,
         supportsInlineDeviceCredential: Boolean
@@ -394,7 +408,7 @@ internal class BiometricAuthenticator(
             }
 
             // Create and show BiometricPrompt
-            val biometricPrompt = BiometricPrompt(activity, executor, callback)
+            val biometricPrompt = BiometricPrompt(fragmentActivity, executor, callback)
 
             // Handle coroutine cancellation (user dismisses prompt)
             continuation.invokeOnCancellation {

@@ -9,6 +9,7 @@ import com.facebook.react.bridge.Arguments
 import com.sensitiveinfo.internal.HybridSensitiveInfo
 import com.sensitiveinfo.internal.auth.AuthenticationPrompt
 import com.sensitiveinfo.internal.util.SensitiveInfoException
+import com.sensitiveinfo.internal.util.ActivityContextHolder
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -104,12 +105,26 @@ import kotlinx.coroutines.launch
 class SensitiveInfoModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
-    private val sensitiveInfo: HybridSensitiveInfo
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    init {
+    /**
+     * Lazy initialization of HybridSensitiveInfo with runtime activity resolution.
+     *
+     * **Why lazy?**
+     * - reactContext.currentActivity might be null at module initialization
+     * - Activity becomes available after the app starts
+     * - We get the activity dynamically when first needed
+     *
+     * **Activity Resolution**:
+     * 1. First try: reactContext.currentActivity
+     * 2. Fallback: ActivityContextHolder.getActivity()
+     * 3. If both null: BiometricAuthenticator will handle gracefully
+     */
+    private val sensitiveInfo: HybridSensitiveInfo by lazy {
         val activity = reactContext.currentActivity as? FragmentActivity
-        sensitiveInfo = HybridSensitiveInfo(
+            ?: ActivityContextHolder.getActivity()
+        
+        HybridSensitiveInfo(
             context = reactContext,
             activity = activity
         )

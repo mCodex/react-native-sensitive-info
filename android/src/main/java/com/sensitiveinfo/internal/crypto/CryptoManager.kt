@@ -46,10 +46,18 @@ internal class CryptoManager(
      *
      * **Workflow:**
      * 1. Get or create key using the resolution
-     * 2. Initialize AES-GCM cipher (generates random IV)
-     * 3. If authentication required, show BiometricPrompt
-     * 4. Encrypt data
-     * 5. Return ciphertext + IV
+     * 2. Determine authentication strategy based on Android version
+     * 3. If authentication required:
+     *    - **Android 10+ (API 29+)** → Authenticate *with* a cipher (keystore gated)
+     *    - **Android 7-9 (API 24-28)** → Authenticate *before* crypto (app gated)
+     * 4. Initialize AES-GCM cipher and encrypt
+     * 5. Return ciphertext + IV (12-byte GCM nonce)
+     *
+     * **Universal Authentication Model**:
+     * - Android 10+ benefits from hardware-backed key authentication via `CryptoObject`
+     * - Android 7-9 perform a manual biometric/credential prompt before using the key
+     * - Both paths guarantee that the caller experiences an authentication UI whenever
+     *   `AccessResolution.requiresAuthentication == true`
      *
      * @param alias Unique key identifier
      * @param plaintext Data to encrypt (UTF-8 string converted to bytes)
@@ -70,36 +78,54 @@ internal class CryptoManager(
             // Step 1: Get or create key with proper authentication configuration
             val key = getOrCreateKey(alias, resolution)
 
-            // Step 2: Initialize cipher (generates random IV automatically)
+            // Step 2: Prepare cipher and authentication strategy
             val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.ENCRYPT_MODE, key)
+            val requiresAuth = resolution.requiresAuthentication
+            val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            val deviceCredentialAllowed =
+                (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
+            val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
 
-            // Step 3: Get the IV that was generated
-            val iv = cipher.iv
+            val workingCipher = when {
+                !requiresAuth -> {
+                    cipher.init(Cipher.ENCRYPT_MODE, key)
+                    cipher
+                }
+                supportsKeystoreAuth -> {
+                    val auth = authenticator ?: throw SensitiveInfoException.EncryptionFailed(
+                        "Biometric authenticator unavailable",
+                        IllegalStateException("No authenticator configured")
+                    )
+                    cipher.init(Cipher.ENCRYPT_MODE, key)
+                    val authenticatedCipher = auth.authenticate(
+                        prompt = resolvedPrompt,
+                        cipher = cipher,
+                        allowDeviceCredential = deviceCredentialAllowed
+                    ) ?: cipher
+                    authenticatedCipher
+                }
+                else -> {
+                    val auth = authenticator ?: throw SensitiveInfoException.EncryptionFailed(
+                        "Biometric authenticator unavailable",
+                        IllegalStateException("No authenticator configured")
+                    )
+                    // Android 7-9: authenticate first (no CryptoObject), then proceed
+                    auth.authenticate(
+                        prompt = resolvedPrompt,
+                        cipher = null,
+                        allowDeviceCredential = deviceCredentialAllowed
+                    )
+                    cipher.init(Cipher.ENCRYPT_MODE, key)
+                    cipher
+                }
+            }
+
+            val iv = workingCipher.iv
                 ?: throw SensitiveInfoException.EncryptionFailed(
                     "Cipher did not generate IV",
                     Exception("cipher.iv returned null")
                 )
-
-            // Step 4: If authentication is required, show biometric prompt
-            val readyCipher = if (resolution.requiresAuthentication) {
-                val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
-                val deviceCredentialAllowed =
-                    (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
-                authenticator?.authenticate(
-                    prompt = resolvedPrompt,
-                    cipher = cipher,
-                    allowDeviceCredential = deviceCredentialAllowed
-                ) ?: throw SensitiveInfoException.EncryptionFailed(
-                    "Biometric authenticator unavailable",
-                    IllegalStateException("No authenticator configured")
-                )
-            } else {
-                cipher
-            }
-
-            // Step 5: Encrypt the plaintext
-            val ciphertext = readyCipher.doFinal(plaintext)
+            val ciphertext = workingCipher.doFinal(plaintext)
 
             EncryptionResult(ciphertext = ciphertext, iv = iv)
         } catch (e: SensitiveInfoException) {
@@ -132,11 +158,17 @@ internal class CryptoManager(
      * Decrypts ciphertext using stored IV and key from alias.
      *
      * **Workflow:**
-     * 1. Get existing key from keystore
-     * 2. Initialize AES-GCM cipher with stored IV
-     * 3. If authentication required, show BiometricPrompt
-     * 4. Decrypt data (automatically verifies GCM auth tag)
-     * 5. Return plaintext
+     * 1. Validate IV and fetch key from AndroidKeyStore
+     * 2. Determine authentication strategy based on Android version
+     * 3. If authentication required:
+     *    - **Android 10+ (API 29+)** → Authenticate *with* the decrypt cipher
+     *    - **Android 7-9 (API 24-28)** → Authenticate *before* initializing the cipher
+     * 4. Initialize AES-GCM cipher with stored IV
+     * 5. Decrypt (verifies GCM tag automatically)
+     *
+     * **Universal Authentication Model** mirrors encrypt(): caller always sees an
+     * authentication prompt when required, while the keystore flow remains stable on
+     * older devices.
      *
      * @param alias Unique key identifier (must match encryption)
      * @param ciphertext Encrypted data (includes 16-byte GCM auth tag)
@@ -174,30 +206,50 @@ internal class CryptoManager(
                 )
             }
 
-            // Step 3: Initialize cipher with stored IV
+            // Step 3: Prepare cipher and authentication strategy
             val cipher = Cipher.getInstance(TRANSFORMATION)
             val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
-            cipher.init(Cipher.DECRYPT_MODE, key, spec)
+            val requiresAuth = resolution.requiresAuthentication
+            val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            val deviceCredentialAllowed =
+                (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
+            val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
 
-            // Step 4: If authentication is required, show biometric prompt
-            val readyCipher = if (resolution.requiresAuthentication) {
-                val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
-                val deviceCredentialAllowed =
-                    (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
-                authenticator?.authenticate(
-                    prompt = resolvedPrompt,
-                    cipher = cipher,
-                    allowDeviceCredential = deviceCredentialAllowed
-                ) ?: throw SensitiveInfoException.DecryptionFailed(
-                    "Biometric authenticator unavailable",
-                    IllegalStateException("No authenticator configured")
-                )
-            } else {
-                cipher
+            val workingCipher = when {
+                !requiresAuth -> {
+                    cipher.init(Cipher.DECRYPT_MODE, key, spec)
+                    cipher
+                }
+                supportsKeystoreAuth -> {
+                    val auth = authenticator ?: throw SensitiveInfoException.DecryptionFailed(
+                        "Biometric authenticator unavailable",
+                        IllegalStateException("No authenticator configured")
+                    )
+                    cipher.init(Cipher.DECRYPT_MODE, key, spec)
+                    val authenticatedCipher = auth.authenticate(
+                        prompt = resolvedPrompt,
+                        cipher = cipher,
+                        allowDeviceCredential = deviceCredentialAllowed
+                    ) ?: cipher
+                    authenticatedCipher
+                }
+                else -> {
+                    val auth = authenticator ?: throw SensitiveInfoException.DecryptionFailed(
+                        "Biometric authenticator unavailable",
+                        IllegalStateException("No authenticator configured")
+                    )
+                    auth.authenticate(
+                        prompt = resolvedPrompt,
+                        cipher = null,
+                        allowDeviceCredential = deviceCredentialAllowed
+                    )
+                    cipher.init(Cipher.DECRYPT_MODE, key, spec)
+                    cipher
+                }
             }
 
             // Step 5: Decrypt and verify auth tag (fails if tag doesn't match)
-            readyCipher.doFinal(ciphertext)
+            workingCipher.doFinal(ciphertext)
         } catch (e: SensitiveInfoException) {
             throw e
         } catch (e: KeyPermanentlyInvalidatedException) {

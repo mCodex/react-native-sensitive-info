@@ -285,18 +285,8 @@ class HybridSensitiveInfo(
         }
 
         return try {
-            val storageResult = storage.getItem(key, service)
-            storageResult?.let { result ->
-                StorageResult(
-                    value = result.value,
-                    metadata = StorageMetadata(
-                        securityLevel = result.metadata.securityLevel,
-                        accessControl = result.metadata.accessControl,
-                        backend = result.metadata.backend,
-                        timestamp = result.metadata.timestamp
-                    )
-                )
-            }
+            // storage.getItem() already returns StorageResult with metadata
+            storage.getItem(key, service)
         } catch (e: SensitiveInfoException) {
             throw e
         } catch (e: Exception) {

@@ -20,6 +20,7 @@ import com.sensitiveinfo.internal.util.AccessControlResolver
 import com.sensitiveinfo.internal.util.AccessControlConfig
 import com.sensitiveinfo.internal.util.AccessControl
 import com.sensitiveinfo.internal.util.SecurityLevel
+import com.sensitiveinfo.internal.util.ActivityContextHolder
 
 /**
  * Secure storage for sensitive data using encrypted SharedPreferences.
@@ -416,7 +417,7 @@ class SecureStorage(
         timestamp: Long
     ): StorageMetadata {
         val authenticator = if (accessConfig.requiresAuthentication) {
-            val hostActivity = activity ?: throw SensitiveInfoException.EncryptionFailed(
+            val hostActivity = activity ?: ActivityContextHolder.getActivity() ?: throw SensitiveInfoException.EncryptionFailed(
                 "Authentication requires an active FragmentActivity",
                 IllegalStateException("No active FragmentActivity registered")
             )
@@ -567,7 +568,7 @@ class SecureStorage(
     ): Pair<ByteArray, Boolean> {
         val resolution = buildResolutionFromEntry(entry)
         val authenticator = if (resolution.requiresAuthentication) {
-            val hostActivity = activity ?: throw SensitiveInfoException.DecryptionFailed(
+            val hostActivity = activity ?: ActivityContextHolder.getActivity() ?: throw SensitiveInfoException.DecryptionFailed(
                 "Authentication requires an active FragmentActivity",
                 IllegalStateException("No active FragmentActivity registered")
             )
@@ -598,31 +599,32 @@ class SecureStorage(
         version: Int
     ): Pair<ByteArray, Boolean> {
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P &&
-            entry.securityLevel.equals("biometry", ignoreCase = true) &&
-            activity != null) {
-
-            val bioAuth = BiometricAuthenticator(context, activity)
-            try {
-                bioAuth.authenticate(
-                    prompt = AuthenticationPrompt(
-                        title = "Authenticate",
-                        subtitle = "Biometric authentication required",
-                        description = "Authenticate to access your secure data",
-                        cancel = "Cancel"
-                    ),
-                    cipher = null,
-                    allowDeviceCredential = true
-                )
-            } catch (e: SensitiveInfoException.AuthenticationCanceled) {
-                throw SensitiveInfoException.DecryptionFailed(
-                    "Authentication canceled by user",
-                    e
-                )
-            } catch (e: SensitiveInfoException.BiometryLockout) {
-                throw SensitiveInfoException.DecryptionFailed(
-                    "Biometric locked due to too many failed attempts",
-                    e
-                )
+            entry.securityLevel.equals("biometry", ignoreCase = true)) {
+            val bioActivity = activity ?: ActivityContextHolder.getActivity()
+            if (bioActivity != null) {
+                val bioAuth = BiometricAuthenticator(context, bioActivity)
+                try {
+                    bioAuth.authenticate(
+                        prompt = AuthenticationPrompt(
+                            title = "Authenticate",
+                            subtitle = "Biometric authentication required",
+                            description = "Authenticate to access your secure data",
+                            cancel = "Cancel"
+                        ),
+                        cipher = null,
+                        allowDeviceCredential = true
+                    )
+                } catch (e: SensitiveInfoException.AuthenticationCanceled) {
+                    throw SensitiveInfoException.DecryptionFailed(
+                        "Authentication canceled by user",
+                        e
+                    )
+                } catch (e: SensitiveInfoException.BiometryLockout) {
+                    throw SensitiveInfoException.DecryptionFailed(
+                        "Biometric locked due to too many failed attempts",
+                        e
+                    )
+                }
             }
         }
 
@@ -770,11 +772,3 @@ class SecureStorage(
         }
     }
 }
-
-/**
- * Result of a retrieve operation.
- */
-data class StorageResult(
-    val value: String?,
-    val metadata: StorageMetadata
-)

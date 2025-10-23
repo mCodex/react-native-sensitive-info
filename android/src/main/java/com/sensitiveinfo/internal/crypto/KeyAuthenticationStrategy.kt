@@ -58,18 +58,14 @@ internal object KeyAuthenticationStrategy {
                 applyApi29(builder, resolution)
             }
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> {
-                // API 28: Use deprecated timeout-based authentication
+                // API 28: Manual pre-authentication (see applyApi28)
                 applyApi28(builder, resolution)
             }
             else -> {
-                // API 21-27: No biometric support in keystore
-                // Fallback to plain key without authentication
-                // The resolution should have been downgraded by AccessControlResolver
-                // but we handle it gracefully here
-                throw SensitiveInfoException.EncryptionFailed(
-                    "Biometric authentication not supported on API ${Build.VERSION.SDK_INT}",
-                    Exception("Minimum API for biometric keystore protection is 28")
-                )
+                // API 21-27: Hardware-enforced authentication unavailable.
+                // We still present biometric/device credential prompts at the
+                // application layer, but the key itself cannot enforce auth.
+                builder.setUserAuthenticationRequired(false)
             }
         }
     }
@@ -117,26 +113,30 @@ internal object KeyAuthenticationStrategy {
 
     /**
      * API 28 (Android 9): No setUserAuthenticationParameters.
-     * Must use deprecated setUserAuthenticationValidityDurationSeconds.
-     *
-     * This is problematic because:
+     * Can't use timeout-based authentication because:
      * 1. The timeout is rarely shown to users as a prompt
-     * 2. It's deprecated in API 30+
-     * 3. It doesn't integrate well with BiometricPrompt
+     * 2. Cipher.init() must happen within the timeout window (impractical)
+     * 3. It's deprecated in API 30+
+     * 4. It doesn't integrate well with BiometricPrompt
      *
-     * Solution: Use a 1-second timeout as a marker that auth WAS required.
-     * The BiometricAuthenticator will handle the actual biometric prompt separately.
+     * **Solution**: Don't require authentication at the KEY level.
+     * Instead, rely on BiometricPrompt at the APPLICATION level (CryptoManager).
+     * The workflow:
+     * 1. Create key WITHOUT authentication requirement
+     * 2. In CryptoManager, always show BiometricPrompt if authentication needed
+     * 3. BiometricPrompt happens at app level, not key level
+     * 4. This provides the same security: user must authenticate to access the secret
+     * 5. But it works reliably on Android 9
+     *
+     * On Android 9, if the resolution requires authentication, we downgrade the key
+     * to not require authentication, and rely on app-level BiometricPrompt instead.
      */
     private fun applyApi28(
         builder: KeyGenParameterSpec.Builder,
         resolution: AccessResolution
     ) {
-        builder.setUserAuthenticationRequired(true)
-        
-        // Can't use setUserAuthenticationParameters on API 28
-        // Use timeout-based instead (deprecated, but necessary for API 28)
-        @Suppress("DEPRECATION")
-        builder.setUserAuthenticationValidityDurationSeconds(1)
+        // Android 9 relies on application-level authentication; keystore auth is disabled.
+        builder.setUserAuthenticationRequired(false)
     }
 
     /**
