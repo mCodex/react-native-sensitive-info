@@ -155,7 +155,8 @@ class SensitiveInfoModule(reactContext: ReactApplicationContext) :
                     key = key,
                     value = value,
                     service = service,
-                    accessControl = accessControl
+                    accessControl = accessControl,
+                    authenticationPrompt = authenticationPrompt
                 )
 
                 // Return metadata to JavaScript

@@ -39,7 +39,12 @@ data class PersistedEntry(
     val iv: String,           // Base64-encoded
     val timestamp: Long,
     val securityLevel: String,      // "biometry", "deviceCredential", "software"
-    val accessControl: String       // "secureEnclaveBiometry", "devicePasscode", etc
+    val accessControl: String,      // "secureEnclaveBiometry", "devicePasscode", etc
+    val version: Int? = null,
+    val authenticators: Int? = null,
+    val requiresAuthentication: Boolean? = null,
+    val invalidateOnEnrollment: Boolean? = null,
+    val useStrongBox: Boolean? = null
 ) : Serializable {
 
     /**
@@ -59,15 +64,26 @@ data class PersistedEntry(
     fun toJson(): String {
         // TODO: Use proper JSON library (Moshi, Gson, kotlinx.serialization)
         // For now, use simple string concatenation
-        return """{
-            "key":"$key",
-            "service":"$service",
-            "ciphertext":"$ciphertext",
-            "iv":"$iv",
-            "timestamp":$timestamp,
-            "securityLevel":"$securityLevel",
-            "accessControl":"$accessControl"
-        }""".replace(Regex("\\s+"), "")
+        val builder = StringBuilder()
+        builder.append('{')
+        builder.append("\"key\":\"").append(key).append('\"')
+        builder.append(',').append("\"service\":\"").append(service).append('\"')
+        builder.append(',').append("\"ciphertext\":\"").append(ciphertext).append('\"')
+        builder.append(',').append("\"iv\":\"").append(iv).append('\"')
+        builder.append(',').append("\"timestamp\":").append(timestamp)
+        builder.append(',').append("\"securityLevel\":\"").append(securityLevel).append('\"')
+        builder.append(',').append("\"accessControl\":\"").append(accessControl).append('\"')
+        version?.let { builder.append(',').append("\"version\":").append(it) }
+        authenticators?.let { builder.append(',').append("\"authenticators\":").append(it) }
+        requiresAuthentication?.let {
+            builder.append(',').append("\"requiresAuthentication\":").append(it)
+        }
+        invalidateOnEnrollment?.let {
+            builder.append(',').append("\"invalidateOnEnrollment\":").append(it)
+        }
+        useStrongBox?.let { builder.append(',').append("\"useStrongBox\":").append(it) }
+        builder.append('}')
+        return builder.toString()
     }
 
     companion object {
@@ -95,6 +111,11 @@ data class PersistedEntry(
                 val timestampMatch = "\"timestamp\":(\\d+)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toLong() ?: return null
                 val securityLevelMatch = "\"securityLevel\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
                 val accessControlMatch = "\"accessControl\":\"([^\"]*)\"".toRegex().find(cleanJson)?.groupValues?.get(1) ?: return null
+                val versionMatch = "\"version\":(\\d+)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toInt()
+                val authenticatorsMatch = "\"authenticators\":(\\d+)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toInt()
+                val requiresAuthMatch = "\"requiresAuthentication\":(true|false)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toBoolean()
+                val invalidateMatch = "\"invalidateOnEnrollment\":(true|false)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toBoolean()
+                val strongBoxMatch = "\"useStrongBox\":(true|false)".toRegex().find(cleanJson)?.groupValues?.get(1)?.toBoolean()
 
                 PersistedEntry(
                     key = keyMatch,
@@ -103,7 +124,12 @@ data class PersistedEntry(
                     iv = ivMatch,
                     timestamp = timestampMatch,
                     securityLevel = securityLevelMatch,
-                    accessControl = accessControlMatch
+                    accessControl = accessControlMatch,
+                    version = versionMatch,
+                    authenticators = authenticatorsMatch,
+                    requiresAuthentication = requiresAuthMatch,
+                    invalidateOnEnrollment = invalidateMatch,
+                    useStrongBox = strongBoxMatch
                 )
             } catch (e: Exception) {
                 null

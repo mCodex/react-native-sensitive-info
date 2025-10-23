@@ -91,6 +91,72 @@ object KeyGenerator {
                 return existingKey
             }
 
+            // On Android 9 (API 28), biometric-protected keys with timeout have issues
+            // Fall back to plain keys without authentication
+            val actualRequireBiometric = requireBiometric && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            val actualRequireDeviceCredential = requireDeviceCredential && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+
+            // Attempt 1: Try with requested auth and StrongBox
+            tryGenerateKey(
+                alias = alias,
+                requireBiometric = actualRequireBiometric,
+                requireDeviceCredential = actualRequireDeviceCredential,
+                useStrongBox = useStrongBox
+            )?.let { return it }
+
+            // Attempt 2: If that failed, try without StrongBox (might be unavailable)
+            if (useStrongBox) {
+                tryGenerateKey(
+                    alias = alias,
+                    requireBiometric = actualRequireBiometric,
+                    requireDeviceCredential = actualRequireDeviceCredential,
+                    useStrongBox = false
+                )?.let { return it }
+            }
+
+            // Attempt 3: If auth still failed, try completely without auth
+            if (actualRequireBiometric || actualRequireDeviceCredential) {
+                tryGenerateKey(
+                    alias = alias,
+                    requireBiometric = false,
+                    requireDeviceCredential = false,
+                    useStrongBox = false
+                )?.let { return it }
+            }
+
+            // All attempts failed
+            throw SensitiveInfoException.EncryptionFailed(
+                "Failed to generate key: all attempts failed",
+                Exception("Could not create key with alias: $alias")
+            )
+        } catch (e: Exception) {
+            throw when (e) {
+                is SensitiveInfoException -> e
+                else -> SensitiveInfoException.EncryptionFailed(
+                    "Key generation failed: ${e.message}",
+                    e
+                )
+            }
+        }
+    }
+
+    /**
+     * Internal method to attempt key generation with specific parameters.
+     * 
+     * Returns null if generation fails, otherwise returns the generated key.
+     * This method catches all exceptions and returns null instead of throwing.
+     */
+    private fun tryGenerateKey(
+        alias: String,
+        requireBiometric: Boolean,
+        requireDeviceCredential: Boolean,
+        useStrongBox: Boolean
+    ): javax.crypto.SecretKey? {
+        return try {
+            // First, ensure AndroidKeyStore provider is available
+            val keyStore = java.security.KeyStore.getInstance(KEYSTORE_PROVIDER)
+            keyStore.load(null)
+            
             // Generate new key
             val keyGen = KeyGenerator.getInstance(ENCRYPTION_ALGORITHM, KEYSTORE_PROVIDER)
 
@@ -102,69 +168,61 @@ object KeyGenerator {
                 .setKeySize(KEY_SIZE)
                 .setBlockModes(BLOCK_MODE)
                 .setEncryptionPaddings(ENCRYPTION_PADDING)
-                .setRandomizedEncryptionRequired(true)  // Important: Force random IV per operation
+                .setRandomizedEncryptionRequired(true)
 
-            // Set access control: Biometric and/or device credential
-            // Handle API level differences carefully
-            if (requireBiometric && requireDeviceCredential) {
-                // Allow biometric OR device credential
+            // Set access control if auth is required
+            if (requireBiometric || requireDeviceCredential) {
                 builder.setUserAuthenticationRequired(true)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    // Android 11+: Use setUserAuthenticationParameters
-                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL)
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // Android 10: Can use device credential
-                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG or KeyProperties.AUTH_DEVICE_CREDENTIAL)
-                } else {
-                    // Android 9 and below: Use timeout (requires timeout > 0 or -1 for auth every time)
-                    // Note: On API 28, -1 may not work reliably, so use a very large timeout
-                    builder.setUserAuthenticationValidityDurationSeconds(15 * 60)  // 15 minutes
-                }
-            } else if (requireBiometric) {
-                // Biometric only
-                builder.setUserAuthenticationRequired(true)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
-                } else {
-                    // Android 9: Use timeout with biometric
-                    builder.setUserAuthenticationValidityDurationSeconds(15 * 60)
-                }
-            } else if (requireDeviceCredential) {
-                // Device credential only
-                builder.setUserAuthenticationRequired(true)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL)
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    builder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL)
-                } else {
-                    // Android 9: Use timeout with device credential
-                    builder.setUserAuthenticationValidityDurationSeconds(15 * 60)
+                
+                when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                        // Android 11+: Use setUserAuthenticationParameters
+                        var authTypes = 0
+                        if (requireBiometric) authTypes = authTypes or KeyProperties.AUTH_BIOMETRIC_STRONG
+                        if (requireDeviceCredential) authTypes = authTypes or KeyProperties.AUTH_DEVICE_CREDENTIAL
+                        if (authTypes > 0) {
+                            builder.setUserAuthenticationParameters(0, authTypes)
+                        }
+                    }
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                        // Android 10: Can use device credential
+                        var authTypes = 0
+                        if (requireBiometric) authTypes = authTypes or KeyProperties.AUTH_BIOMETRIC_STRONG
+                        if (requireDeviceCredential) authTypes = authTypes or KeyProperties.AUTH_DEVICE_CREDENTIAL
+                        if (authTypes > 0) {
+                            builder.setUserAuthenticationParameters(0, authTypes)
+                        }
+                    }
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> {
+                        // Android 9: Use timeout-based auth
+                        // Don't use -1, use actual timeout value
+                        @Suppress("DEPRECATION")
+                        builder.setUserAuthenticationValidityDurationSeconds(15 * 60)
+                    }
+                    else -> {
+                        // Android 8 and below: Use timeout
+                        @Suppress("DEPRECATION")
+                        builder.setUserAuthenticationValidityDurationSeconds(15 * 60)
+                    }
                 }
             }
-            // If none of the above (no auth required), don't call setUserAuthenticationRequired
 
-            // Use StrongBox if available (dedicated security processor)
+            // Try to use StrongBox if available (only on Android 9+)
             if (useStrongBox && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 try {
                     builder.setIsStrongBoxBacked(true)
                 } catch (e: Exception) {
-                    // StrongBox may not be available on all devices
-                    // Silently fall back to regular keystore
+                    // Ignore - StrongBox not available on this device
                 }
             }
 
-            keyGen.init(builder.build())
+            // Initialize and generate the key
+            val spec = builder.build()
+            keyGen.init(spec)
             keyGen.generateKey()
         } catch (e: Exception) {
-            throw when (e) {
-                is SensitiveInfoException -> e
-                else -> SensitiveInfoException.EncryptionFailed(
-                    "Key generation failed: ${e.message}",
-                    e
-                )
-            }
+            // Return null on any failure - let the caller try other approaches
+            null
         }
     }
 

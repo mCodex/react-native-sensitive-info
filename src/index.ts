@@ -342,10 +342,12 @@ export async function getItem(
   try {
     if (nativeModule?.getItem) {
       // Use native implementation when available
-      return await nativeModule.getItem(key, {
+      const result = await nativeModule.getItem(key, {
         service,
         ...options,
       });
+      // Extract the value field from the native result object
+      return result?.value ?? null;
     }
 
     // Development/example fallback

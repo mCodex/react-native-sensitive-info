@@ -1,6 +1,20 @@
 package com.sensitiveinfo.internal.util
 
 import android.content.Context
+import androidx.biometric.BiometricManager.Authenticators
+
+/**
+ * Maps enum access control identifiers to stored preference strings.
+ */
+private fun accessControlPreferenceName(policy: AccessControl): String {
+    return when (policy) {
+        AccessControl.SECUREENCLAVEBIOMETRY -> "secureEnclaveBiometry"
+        AccessControl.BIOMETRYCURRENTSET -> "biometryCurrentSet"
+        AccessControl.BIOMETRYANY -> "biometryAny"
+        AccessControl.DEVICEPASSCODE -> "devicePasscode"
+        AccessControl.NONE -> "none"
+    }
+}
 
 /**
  * Resolves service names consistently across the platform.
@@ -64,35 +78,62 @@ object AccessControlResolver {
     fun resolve(preference: String?): AccessControlConfig {
         return when (preference) {
             "secureEnclaveBiometry" -> AccessControlConfig(
+                policy = AccessControl.SECUREENCLAVEBIOMETRY,
                 requireBiometric = true,
-                requireDeviceCredential = true,  // Fallback
-                useStrongBox = true
+                requireDeviceCredential = true,
+                allowedAuthenticators = Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL,
+                useStrongBox = true,
+                invalidateOnEnrollment = true,
+                securityLevel = SecurityLevel.STRONGBOX
             )
             "biometryCurrentSet" -> AccessControlConfig(
+                policy = AccessControl.BIOMETRYCURRENTSET,
                 requireBiometric = true,
                 requireDeviceCredential = false,
-                useStrongBox = false
+                allowedAuthenticators = Authenticators.BIOMETRIC_STRONG,
+                useStrongBox = false,
+                invalidateOnEnrollment = true,
+                securityLevel = SecurityLevel.BIOMETRY
             )
             "biometryAny" -> AccessControlConfig(
+                policy = AccessControl.BIOMETRYANY,
                 requireBiometric = true,
                 requireDeviceCredential = false,
-                useStrongBox = false
+                allowedAuthenticators = Authenticators.BIOMETRIC_WEAK,
+                useStrongBox = false,
+                invalidateOnEnrollment = false,
+                securityLevel = SecurityLevel.BIOMETRY
             )
             "devicePasscode" -> AccessControlConfig(
+                policy = AccessControl.DEVICEPASSCODE,
                 requireBiometric = false,
                 requireDeviceCredential = true,
-                useStrongBox = true
+                allowedAuthenticators = Authenticators.DEVICE_CREDENTIAL,
+                useStrongBox = true,
+                invalidateOnEnrollment = false,
+                securityLevel = SecurityLevel.DEVICECREDENTIAL
             )
             "none" -> AccessControlConfig(
+                policy = AccessControl.NONE,
                 requireBiometric = false,
                 requireDeviceCredential = false,
-                useStrongBox = false
+                allowedAuthenticators = 0,
+                useStrongBox = false,
+                invalidateOnEnrollment = false,
+                securityLevel = SecurityLevel.SOFTWARE
             )
-            else -> AccessControlConfig(  // Default to strongest
-                requireBiometric = true,
-                requireDeviceCredential = true,
-                useStrongBox = true
-            )
+            else -> {
+                // Default to strongest configuration available
+                AccessControlConfig(
+                    policy = AccessControl.SECUREENCLAVEBIOMETRY,
+                    requireBiometric = true,
+                    requireDeviceCredential = true,
+                    allowedAuthenticators = Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL,
+                    useStrongBox = true,
+                    invalidateOnEnrollment = true,
+                    securityLevel = SecurityLevel.STRONGBOX
+                )
+            }
         }
     }
 }
@@ -101,10 +142,36 @@ object AccessControlResolver {
  * Access control configuration resolved from user preference.
  */
 data class AccessControlConfig(
+    val policy: AccessControl,
     val requireBiometric: Boolean,
     val requireDeviceCredential: Boolean,
-    val useStrongBox: Boolean
-)
+    val allowedAuthenticators: Int,
+    val useStrongBox: Boolean,
+    val invalidateOnEnrollment: Boolean,
+    val securityLevel: SecurityLevel
+) {
+    val requiresAuthentication: Boolean
+        get() = requireBiometric || requireDeviceCredential
+
+    fun withStrongBoxPreference(enabled: Boolean): AccessControlConfig {
+        val newUseStrongBox = useStrongBox && enabled
+        val newSecurityLevel = if (newUseStrongBox) {
+            securityLevel
+        } else {
+            when (policy) {
+                AccessControl.SECUREENCLAVEBIOMETRY -> SecurityLevel.BIOMETRY
+                else -> securityLevel
+            }
+        }
+
+        return copy(
+            useStrongBox = newUseStrongBox,
+            securityLevel = newSecurityLevel
+        )
+    }
+
+    fun preferenceName(): String = accessControlPreferenceName(policy)
+}
 
 /**
  * Detects available security features on the current device.

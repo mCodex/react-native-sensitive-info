@@ -1,269 +1,410 @@
 package com.sensitiveinfo.internal.crypto
 
 import android.os.Build
+import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
+import android.security.keystore.KeyProperties
+import android.security.keystore.StrongBoxUnavailableException
+import androidx.biometric.BiometricManager.Authenticators
+import com.sensitiveinfo.internal.auth.BiometricAuthenticator
+import com.sensitiveinfo.internal.auth.AuthenticationPrompt
 import com.sensitiveinfo.internal.util.SensitiveInfoException
-import java.security.InvalidKeyException
-import java.util.concurrent.TimeUnit
+import java.security.KeyStore
+import java.security.UnrecoverableKeyException
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/**
- * Orchestrates AES-GCM encryption and decryption operations.
- *
- * **Security Workflow**:
- * 1. Generate random IV for each operation
- * 2. Get key from AndroidKeyStore (may trigger biometric)
- * 3. Initialize GCM cipher with key and IV
- * 4. Encrypt/decrypt data
- * 5. Return ciphertext+IV (or plaintext)
- *
- * **AES-GCM Properties**:
- * - Authenticated encryption: Detects tampering
- * - Authentication tag (16 bytes) automatically appended to ciphertext
- * - If tag doesn't match during decryption, operation FAILS (protects against corruption)
- * - Random IV per operation (semantic security)
- *
- * **Error Handling**:
- * - KeyPermanentlyInvalidatedException: Biometric enrollment changed
- * - UserNotAuthenticatedException: Biometric/passcode required but not done
- * - InvalidKeyException: Key corrupted or inaccessible
- *
- * @property keyAlias Name of the key in AndroidKeyStore (e.g., "app_aes_key_123")
- *
- * @see IVManager For IV generation
- * @see KeyGenerator For key management
- * @see https://csrc.nist.gov/publications/detail/sp/800-38d/final for GCM spec
- */
-class CryptoManager(
-    private val keyAlias: String
-) {
+private const val ANDROID_KEY_STORE = "AndroidKeyStore"
+private const val TRANSFORMATION = "AES/GCM/NoPadding"
+private const val GCM_TAG_LENGTH_BITS = 128
 
-    companion object {
-        private const val CIPHER_ALGORITHM = "AES/GCM/NoPadding"
-        private const val GCM_TAG_LENGTH_BITS = 128  // 16 bytes, standard for GCM
-        private const val TIMEOUT_SECONDS = 10L
-    }
+/**
+ * Manages AES-256-GCM encryption/decryption with AndroidKeyStore.
+ *
+ * **Design Principles:**
+ * 1. **Single Encryption Path**: Encrypt works the same for all Android versions
+ * 2. **Single Decryption Path**: Decrypt works the same for all Android versions
+ * 3. **Consistent IV Handling**: GCMParameterSpec ALWAYS used, never IvParameterSpec
+ * 4. **Metadata Drives Decryption**: Persisted metadata fully describes how to decrypt
+ * 5. **API-Level Decisions Centralized**: KeyAuthenticationStrategy handles all version differences
+ *
+ * **Architecture:**
+ * - encrypt() → create/get key → init cipher → authenticate if needed → encrypt
+ * - decrypt() → get existing key → init cipher → authenticate if needed → decrypt
+ * - Both paths use GCMParameterSpec with stored IV
+ * - BiometricAuthenticator handles only prompt UI, not key management
+ */
+internal class CryptoManager(
+    private val authenticator: BiometricAuthenticator?
+) {
+    private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
 
     /**
-     * Encrypts plaintext using AES-256-GCM with a randomly generated IV.
+     * Encrypts plaintext and returns ciphertext + IV.
      *
-     * **Critical Security Decisions**:
-     * 1. NEW random IV generated for EVERY call (fixes v5 fixed IV vulnerability)
-     * 2. Semantic security: Same plaintext → Different ciphertext
-     * 3. Authentication tag included (tampering detection)
+     * **Workflow:**
+     * 1. Get or create key using the resolution
+     * 2. Initialize AES-GCM cipher (generates random IV)
+     * 3. If authentication required, show BiometricPrompt
+     * 4. Encrypt data
+     * 5. Return ciphertext + IV
      *
-     * **Workflow**:
-     * 1. Generate random 12-byte IV
-     * 2. Retrieve AES-256 key from AndroidKeyStore
-     * 3. Initialize GCM cipher with key and IV
-     * 4. Encrypt plaintext → ciphertext + auth tag
-     * 5. Return (ciphertext+tag, IV)
+     * @param alias Unique key identifier
+     * @param plaintext Data to encrypt (UTF-8 string converted to bytes)
+     * @param resolution Access control configuration (biometric, StrongBox, etc.)
+     * @param prompt Optional biometric prompt configuration
+     * @return EncryptionResult with ciphertext and IV
      *
-     * **Storage Pattern**:
-     * Store both IV and ciphertext together (IV is not secret):
-     * ```json
-     * {
-     *   "iv": "Base64EncodedIV",
-     *   "ciphertext": "Base64EncodedCiphertext"
-     * }
-     * ```
-     *
-     * @param plaintext String to encrypt (will be UTF-8 encoded)
-     * @return EncryptionResult containing ciphertext + IV
-     *
-     * @throws SensitiveInfoException.KeyInvalidated If biometric enrollment changed
-     * @throws SensitiveInfoException.EncryptionFailed If encryption fails
-     * @throws SensitiveInfoException.KeystoreUnavailable If key not accessible
-     *
-     * @example
-     * ```kotlin
-     * val crypto = CryptoManager("auth_token_key")
-     *
-     * val plaintext = "secret-jwt-token-abc123xyz"
-     * val result = crypto.encrypt(plaintext)
-     *
-     * // Store both for later decryption
-     * storage.save(
-     *     key = "token",
-     *     iv = IVManager.encodeToBase64(result.iv),
-     *     ciphertext = Base64.encodeToString(result.ciphertext, Base64.NO_WRAP)
-     * )
-     * ```
+     * @throws SensitiveInfoException.EncryptionFailed if encryption fails
+     * @throws SensitiveInfoException.KeyInvalidated if biometric enrollment changed
      */
-    @Throws(SensitiveInfoException::class)
-    fun encrypt(plaintext: String): EncryptionResult {
+    suspend fun encrypt(
+        alias: String,
+        plaintext: ByteArray,
+        resolution: AccessResolution,
+        prompt: AuthenticationPrompt?
+    ): EncryptionResult {
         return try {
-            // Step 1: Generate random IV for this operation
-            val iv = IVManager.generateRandomIV()
+            // Step 1: Get or create key with proper authentication configuration
+            val key = getOrCreateKey(alias, resolution)
 
-            // Step 2: Retrieve key (may trigger biometric authentication automatically)
-            val key = KeyGenerator.getKey(keyAlias)
+            // Step 2: Initialize cipher (generates random IV automatically)
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, key)
 
-            // Step 3: Initialize GCM cipher
-            val cipher = Cipher.getInstance(CIPHER_ALGORITHM)
-            val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
-            cipher.init(Cipher.ENCRYPT_MODE, key, spec)
+            // Step 3: Get the IV that was generated
+            val iv = cipher.iv
+                ?: throw SensitiveInfoException.EncryptionFailed(
+                    "Cipher did not generate IV",
+                    Exception("cipher.iv returned null")
+                )
 
-            // Step 4: Encrypt plaintext
-            val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
-            val ciphertext = cipher.doFinal(plaintextBytes)
+            // Step 4: If authentication is required, show biometric prompt
+            val readyCipher = if (resolution.requiresAuthentication) {
+                val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
+                val deviceCredentialAllowed =
+                    (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
+                authenticator?.authenticate(
+                    prompt = resolvedPrompt,
+                    cipher = cipher,
+                    allowDeviceCredential = deviceCredentialAllowed
+                ) ?: throw SensitiveInfoException.EncryptionFailed(
+                    "Biometric authenticator unavailable",
+                    IllegalStateException("No authenticator configured")
+                )
+            } else {
+                cipher
+            }
 
-            // Step 5: Return result with IV
-            // Note: Ciphertext already includes authentication tag (last 16 bytes)
-            EncryptionResult(
-                ciphertext = ciphertext,
-                iv = iv
-            )
+            // Step 5: Encrypt the plaintext
+            val ciphertext = readyCipher.doFinal(plaintext)
+
+            EncryptionResult(ciphertext = ciphertext, iv = iv)
         } catch (e: SensitiveInfoException) {
             throw e
         } catch (e: KeyPermanentlyInvalidatedException) {
-            // Biometric enrollment changed - key is invalidated
-            throw SensitiveInfoException.KeyInvalidated(keyAlias)
+            // Key was invalidated (e.g., biometric enrollment changed)
+            deleteKey(alias)
+            throw SensitiveInfoException.KeyInvalidated(alias)
         } catch (e: Exception) {
-            when {
-                e.message?.contains("User not authenticated") == true -> {
-                    throw SensitiveInfoException.EncryptionFailed(
-                        "Authentication required but not completed: ${e.message}",
-                        e
-                    )
-                }
-                e is InvalidKeyException -> {
-                    throw SensitiveInfoException.EncryptionFailed(
-                        "Invalid key: ${e.message}",
-                        e
-                    )
-                }
-                else -> {
-                    throw SensitiveInfoException.EncryptionFailed(
-                        "Encryption failed: ${e.message}",
-                        e
-                    )
-                }
-            }
+            throw SensitiveInfoException.EncryptionFailed(
+                "Encryption failed: ${e.message}",
+                e
+            )
         }
     }
 
     /**
-     * Decrypts ciphertext that was encrypted with [encrypt].
-     *
-     * **Decryption Workflow**:
-     * 1. Validate IV size (must be 12 bytes for GCM)
-     * 2. Retrieve AES-256 key from AndroidKeyStore
-     * 3. Initialize GCM cipher with key and IV
-     * 4. Decrypt ciphertext → plaintext
-     * 5. Verify authentication tag (automatically by GCM)
-     *
-     * **Automatic Security Checks**:
-     * - If authentication tag doesn't match, decryption FAILS
-     * - This detects tampering, corruption, or wrong key
-     * - If tag fails, you get DecryptionFailed exception (not corrupted plaintext)
-     *
-     * **Retrieved IV Usage**:
-     * The IV used here MUST be the same IV that was generated during encryption.
-     * If a different IV is used, decryption will FAIL (auth tag won't verify).
-     *
-     * @param ciphertext Encrypted data (includes 16-byte authentication tag at end)
-     * @param iv Initialization vector (12 bytes) from encryption operation
-     * @return Decrypted plaintext string
-     *
-     * @throws SensitiveInfoException.KeyInvalidated If biometric enrollment changed
-     * @throws SensitiveInfoException.DecryptionFailed If decryption fails or tag doesn't match
-     * @throws SensitiveInfoException.KeystoreUnavailable If key not accessible
-     *
-     * @example
-     * ```kotlin
-     * val crypto = CryptoManager("auth_token_key")
-     *
-     * // Retrieve stored data
-     * val stored = storage.load()  // Contains iv + ciphertext
-     * val iv = IVManager.decodeFromBase64(stored.iv)
-     * val ciphertext = Base64.decode(stored.ciphertext, Base64.NO_WRAP)
-     *
-     * // Decrypt
-     * val plaintext = crypto.decrypt(ciphertext, iv)
-     * // plaintext: "secret-jwt-token-abc123xyz"
-     *
-     * // If ciphertext was tampered with:
-     * val tamperedCiphertext = ciphertext.copyOf().apply { this[0] = this[0].inc() }
-     * try {
-     *   crypto.decrypt(tamperedCiphertext, iv)  // FAILS - auth tag doesn't match
-     * } catch (e: SensitiveInfoException.DecryptionFailed) {
-     *   println("Tampering detected!")
-     * }
-     * ```
+     * Ensures a key exists for the provided alias and access resolution without performing any
+     * cryptographic operations. Useful for pre-provisioning keys ahead of time.
      */
     @Throws(SensitiveInfoException::class)
-    fun decrypt(ciphertext: ByteArray, iv: ByteArray): String {
+    fun ensureKey(
+        alias: String,
+        resolution: AccessResolution
+    ) {
+        getOrCreateKey(alias, resolution)
+    }
+
+    /**
+     * Decrypts ciphertext using stored IV and key from alias.
+     *
+     * **Workflow:**
+     * 1. Get existing key from keystore
+     * 2. Initialize AES-GCM cipher with stored IV
+     * 3. If authentication required, show BiometricPrompt
+     * 4. Decrypt data (automatically verifies GCM auth tag)
+     * 5. Return plaintext
+     *
+     * @param alias Unique key identifier (must match encryption)
+     * @param ciphertext Encrypted data (includes 16-byte GCM auth tag)
+     * @param iv Initialization vector (12 bytes, from encryption)
+     * @param resolution Access control configuration (must match what was stored)
+     * @param prompt Optional biometric prompt configuration
+     * @return Decrypted plaintext as bytes
+     *
+     * @throws SensitiveInfoException.DecryptionFailed if decryption fails
+     * @throws SensitiveInfoException.KeyInvalidated if key was invalidated
+     * @throws SensitiveInfoException.KeystoreUnavailable if key not found
+     */
+    suspend fun decrypt(
+        alias: String,
+        ciphertext: ByteArray,
+        iv: ByteArray,
+        resolution: AccessResolution,
+        prompt: AuthenticationPrompt?
+    ): ByteArray {
         return try {
-            // Step 1: Validate IV
-            if (!IVManager.isValidIV(iv)) {
+            // Step 1: Validate IV size
+            if (iv.size != 12) {
                 throw SensitiveInfoException.DecryptionFailed(
-                    "Invalid IV size: expected ${12}, got ${iv.size}"
+                    "Invalid IV size: expected 12 bytes, got ${iv.size}"
                 )
             }
 
-            // Step 2: Retrieve key
-            val key = KeyGenerator.getKey(keyAlias)
+            // Step 2: Get existing key (must exist, don't create new one)
+            val key = try {
+                getKey(alias)
+            } catch (e: Exception) {
+                throw SensitiveInfoException.KeystoreUnavailable(
+                    "Decryption key not found: $alias",
+                    e
+                )
+            }
 
-            // Step 3: Initialize GCM cipher with SAME IV from encryption
-            val cipher = Cipher.getInstance(CIPHER_ALGORITHM)
+            // Step 3: Initialize cipher with stored IV
+            val cipher = Cipher.getInstance(TRANSFORMATION)
             val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
             cipher.init(Cipher.DECRYPT_MODE, key, spec)
 
-            // Step 4: Decrypt ciphertext
-            // If tag doesn't match, this will throw an exception
-            val plaintextBytes = cipher.doFinal(ciphertext)
+            // Step 4: If authentication is required, show biometric prompt
+            val readyCipher = if (resolution.requiresAuthentication) {
+                val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
+                val deviceCredentialAllowed =
+                    (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
+                authenticator?.authenticate(
+                    prompt = resolvedPrompt,
+                    cipher = cipher,
+                    allowDeviceCredential = deviceCredentialAllowed
+                ) ?: throw SensitiveInfoException.DecryptionFailed(
+                    "Biometric authenticator unavailable",
+                    IllegalStateException("No authenticator configured")
+                )
+            } else {
+                cipher
+            }
 
-            // Step 5: Convert back to string
-            String(plaintextBytes, Charsets.UTF_8)
+            // Step 5: Decrypt and verify auth tag (fails if tag doesn't match)
+            readyCipher.doFinal(ciphertext)
         } catch (e: SensitiveInfoException) {
             throw e
         } catch (e: KeyPermanentlyInvalidatedException) {
-            // Biometric enrollment changed
-            throw SensitiveInfoException.KeyInvalidated(keyAlias)
+            // Key was invalidated (e.g., biometric enrollment changed)
+            deleteKey(alias)
+            throw SensitiveInfoException.KeyInvalidated(alias)
+        } catch (e: UnrecoverableKeyException) {
+            throw SensitiveInfoException.DecryptionFailed(
+                "Key is unrecoverable (wrong password or key corrupted)",
+                e
+            )
         } catch (e: Exception) {
             when {
-                e.message?.contains("User not authenticated") == true -> {
+                e.message?.contains("Tag verification failed") == true ->
                     throw SensitiveInfoException.DecryptionFailed(
-                        "Authentication required but not completed: ${e.message}",
+                        "GCM tag verification failed (tampering or wrong IV)",
                         e
                     )
-                }
-                e.message?.contains("Tag verification failed") == true -> {
-                    throw SensitiveInfoException.DecryptionFailed(
-                        "Authentication tag verification failed (tampering or wrong IV)",
+                e.message?.contains("not found") == true ->
+                    throw SensitiveInfoException.KeystoreUnavailable(
+                        "Key $alias not found in keystore",
                         e
                     )
-                }
-                e is InvalidKeyException -> {
-                    throw SensitiveInfoException.DecryptionFailed(
-                        "Invalid key: ${e.message}",
-                        e
-                    )
-                }
-                else -> {
+                else ->
                     throw SensitiveInfoException.DecryptionFailed(
                         "Decryption failed: ${e.message}",
                         e
                     )
-                }
             }
         }
     }
 
     /**
-     * Invalidates the key associated with this CryptoManager.
+     * Reconstructs AccessResolution from persisted metadata.
      *
-     * Used when the user wants to clear sensitive data or rotate keys.
+     * **Purpose:**
+     * When decrypting a stored entry, we need to know exactly how it was encrypted
+     * (what authentication was required, StrongBox settings, etc.).
+     * This information is stored in persisted metadata.
      *
-     * **Warning**: This is irreversible. All ciphertexts encrypted with this key
-     * will become inaccessible.
-     *
-     * @throws SensitiveInfoException.KeystoreUnavailable If deletion fails
+     * @param accessControl The access control policy that was used
+     * @param securityLevel The security tier that was applied
+     * @param authenticators Bitmap of allowed authenticators
+     * @param requiresAuth Whether authentication is required
+     * @param invalidateOnEnrollment Whether to invalidate on biometric enrollment change
+     * @param useStrongBox Whether StrongBox was used
+     * @return AccessResolution that matches how the key was created
      */
-    @Throws(SensitiveInfoException::class)
-    fun invalidateKey() {
-        KeyGenerator.deleteKey(keyAlias)
+    fun buildResolutionForPersisted(
+        accessControl: com.sensitiveinfo.internal.util.AccessControl,
+        securityLevel: com.sensitiveinfo.internal.util.SecurityLevel,
+        authenticators: Int,
+        requiresAuth: Boolean,
+        invalidateOnEnrollment: Boolean,
+        useStrongBox: Boolean
+    ): AccessResolution {
+        return AccessResolution(
+            accessControl = accessControl,
+            securityLevel = securityLevel,
+            requiresAuthentication = requiresAuth,
+            allowedAuthenticators = authenticators,
+            useStrongBox = useStrongBox,
+            invalidateOnEnrollment = invalidateOnEnrollment
+        )
+    }
+
+    /**
+     * Deletes a key from AndroidKeyStore.
+     *
+     * Once deleted, all ciphertexts encrypted with this key become inaccessible.
+     * This is permanent and irreversible.
+     *
+     * @param alias Key to delete
+     */
+    fun deleteKey(alias: String) {
+        try {
+            keyStore.deleteEntry(alias)
+        } catch (_: Throwable) {
+            // Best effort - even if deletion fails, continue
+        }
+    }
+
+    // ============================================================================
+    // PRIVATE HELPERS
+    // ============================================================================
+
+    /**
+     * Gets existing key or creates new one if doesn't exist.
+     *
+     * @param alias Unique key identifier
+     * @param resolution Determines key creation parameters
+     * @return SecretKey, newly created or retrieved from keystore
+     */
+    private fun getOrCreateKey(
+        alias: String,
+        resolution: AccessResolution
+    ): SecretKey {
+        synchronized(keyStore) {
+            // Check if key already exists
+            val existing = try {
+                val entry = keyStore.getEntry(alias, null)
+                when (entry) {
+                    is KeyStore.SecretKeyEntry -> entry.secretKey as? SecretKey
+                    else -> null
+                }
+            } catch (_: Throwable) {
+                null
+            }
+
+            if (existing != null) {
+                return existing
+            }
+
+            // Create new key
+            return generateKey(alias, resolution)
+        }
+    }
+
+    /**
+     * Gets existing key from keystore (doesn't create).
+     *
+     * @param alias Key identifier
+     * @return SecretKey if found
+     * @throws UnrecoverableKeyException if not found
+     */
+    private fun getKey(alias: String): SecretKey {
+        return try {
+            val entry = keyStore.getEntry(alias, null)
+            when (entry) {
+                is KeyStore.SecretKeyEntry -> entry.secretKey as? SecretKey
+                    ?: throw UnrecoverableKeyException("Entry is not a SecretKeyEntry")
+                else -> throw UnrecoverableKeyException("No entry found for alias: $alias")
+            }
+        } catch (e: UnrecoverableKeyException) {
+            throw e
+        } catch (e: Exception) {
+            throw UnrecoverableKeyException("Failed to retrieve key: ${e.message}")
+        }
+    }
+
+    /**
+     * Generates new AES-256 key in AndroidKeyStore.
+     *
+     * **Security properties:**
+     * - 256-bit AES key (maximum security)
+     * - AES/GCM mode (authenticated encryption)
+     * - Random IV per operation (semantic security)
+     * - Hardware-backed via AndroidKeyStore
+     * - Optional StrongBox (dedicated security processor on API 28+)
+     * - Optional biometric/credential gating via KeyAuthenticationStrategy
+     *
+     * @param alias Unique key identifier (will be stored with this name)
+     * @param resolution Specifies authentication, StrongBox, etc.
+     * @return Newly generated SecretKey
+     * @throws SensitiveInfoException if generation fails
+     */
+    private fun generateKey(
+        alias: String,
+        resolution: AccessResolution
+    ): SecretKey {
+        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEY_STORE)
+        val purposes = KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+
+        val builder = KeyGenParameterSpec.Builder(alias, purposes)
+            .setKeySize(256)
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setRandomizedEncryptionRequired(true)
+
+        // Apply API-level-appropriate authentication configuration
+        try {
+            KeyAuthenticationStrategy.applyToKeyGeneration(builder, resolution)
+        } catch (e: SensitiveInfoException) {
+            throw e
+        }
+
+        // Use StrongBox if available and requested
+        if (resolution.useStrongBox && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                builder.setIsStrongBoxBacked(true)
+            } catch (e: StrongBoxUnavailableException) {
+                // StrongBox not available, continue without it
+                // This is not a fatal error - the key will just be software-backed
+            } catch (_: Throwable) {
+                // Silently continue on other errors
+            }
+        }
+
+        // Invalidate key on biometric enrollment change (if requested)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.setInvalidatedByBiometricEnrollment(resolution.invalidateOnEnrollment)
+        }
+
+        // Generate the key
+        return try {
+            keyGenerator.init(builder.build())
+            keyGenerator.generateKey()
+        } catch (e: StrongBoxUnavailableException) {
+            throw SensitiveInfoException.EncryptionFailed(
+                "StrongBox unavailable for this key",
+                e
+            )
+        } catch (e: Exception) {
+            throw SensitiveInfoException.EncryptionFailed(
+                "Key generation failed: ${e.message}",
+                e
+            )
+        }
     }
 }

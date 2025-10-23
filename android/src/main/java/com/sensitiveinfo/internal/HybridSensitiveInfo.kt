@@ -5,6 +5,8 @@ import com.sensitiveinfo.internal.storage.SecureStorage
 import com.sensitiveinfo.internal.storage.StorageResult
 import com.sensitiveinfo.internal.storage.StorageMetadata
 import com.sensitiveinfo.internal.util.SensitiveInfoException
+import com.sensitiveinfo.internal.util.ActivityContextHolder
+import com.sensitiveinfo.internal.auth.AuthenticationPrompt
 
 /**
  * HybridSensitiveInfo.kt
@@ -57,7 +59,10 @@ import com.sensitiveinfo.internal.util.SensitiveInfoException
  */
 class HybridSensitiveInfo(private val context: Context) {
     
-    private val storage = SecureStorage(context)
+    private val storage = SecureStorage(
+        context = context,
+        activity = ActivityContextHolder.getActivity()
+    )
 
     /**
      * Stores a secret in secure storage with optional biometric protection.
@@ -125,7 +130,8 @@ class HybridSensitiveInfo(private val context: Context) {
         key: String,
         value: String,
         service: String? = null,
-        accessControl: String? = null
+        accessControl: String? = null,
+        authenticationPrompt: AuthenticationPrompt? = null
     ): StorageResult {
         // Validate inputs
         if (key.isEmpty()) {
@@ -136,14 +142,13 @@ class HybridSensitiveInfo(private val context: Context) {
         }
 
         try {
-            // Simply delegate to storage
-            // The biometric prompt will be shown automatically by AndroidKeyStore
-            // when the key is used during encryption
+            // Delegate to storage and await the suspend function
             val storageMetadata = storage.setItem(
                 key = key,
                 value = value,
                 service = service,
-                accessControl = accessControl
+                accessControl = accessControl,
+                prompt = authenticationPrompt
             )
 
             return StorageResult(
@@ -197,7 +202,7 @@ class HybridSensitiveInfo(private val context: Context) {
      * @throws SensitiveInfoException.UserCancelled if user cancels biometric prompt
      * @throws SensitiveInfoException.KeystoreUnavailable if key not accessible
      */
-    fun getItem(key: String, service: String? = null): StorageResult? {
+    suspend fun getItem(key: String, service: String? = null): StorageResult? {
         if (key.isEmpty()) {
             throw SensitiveInfoException.InvalidConfiguration("key", "Cannot be empty")
         }
