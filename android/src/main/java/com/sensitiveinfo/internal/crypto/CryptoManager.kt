@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
+import android.security.keystore.UserNotAuthenticatedException
 import androidx.biometric.BiometricManager.Authenticators
 import com.sensitiveinfo.internal.auth.BiometricAuthenticator
 import com.sensitiveinfo.internal.auth.AuthenticationPrompt
@@ -19,6 +20,7 @@ import javax.crypto.spec.GCMParameterSpec
 private const val ANDROID_KEY_STORE = "AndroidKeyStore"
 private const val TRANSFORMATION = "AES/GCM/NoPadding"
 private const val GCM_TAG_LENGTH_BITS = 128
+private const val TAG = "CryptoManager"
 
 /**
  * Manages AES-256-GCM encryption/decryption with AndroidKeyStore.
@@ -82,8 +84,6 @@ internal class CryptoManager(
             val cipher = Cipher.getInstance(TRANSFORMATION)
             val requiresAuth = resolution.requiresAuthentication
             val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            val deviceCredentialAllowed =
-                (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
             val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
 
             val workingCipher = when {
@@ -92,24 +92,23 @@ internal class CryptoManager(
                     cipher
                 }
                 supportsKeystoreAuth -> {
-                    val auth = authenticator ?: throw SensitiveInfoException.EncryptionFailed(
-                        "Biometric authenticator unavailable",
-                        IllegalStateException("No authenticator configured")
-                    )
-                    cipher.init(Cipher.ENCRYPT_MODE, key)
-                    val authenticatedCipher = auth.authenticate(
-                        prompt = resolvedPrompt,
+                    // Android 10+: Authenticate WITH cipher (keystore-gated auth)
+                    authenticateAndEncrypt(
                         cipher = cipher,
-                        allowDeviceCredential = deviceCredentialAllowed
-                    ) ?: cipher
-                    authenticatedCipher
+                        key = key,
+                        prompt = resolvedPrompt,
+                        mode = Cipher.ENCRYPT_MODE,
+                        resolution = resolution
+                    )
                 }
                 else -> {
+                    // Android 7-9: Authenticate BEFORE cipher init (app-gated auth)
                     val auth = authenticator ?: throw SensitiveInfoException.EncryptionFailed(
                         "Biometric authenticator unavailable",
                         IllegalStateException("No authenticator configured")
                     )
-                    // Android 7-9: authenticate first (no CryptoObject), then proceed
+                    val deviceCredentialAllowed =
+                        (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
                     auth.authenticate(
                         prompt = resolvedPrompt,
                         cipher = null,
@@ -134,9 +133,43 @@ internal class CryptoManager(
             // Key was invalidated (e.g., biometric enrollment changed)
             deleteKey(alias)
             throw SensitiveInfoException.KeyInvalidated(alias)
-        } catch (e: Exception) {
+        } catch (e: UserNotAuthenticatedException) {
+            // Android 13+: User must authenticate before key can be used
+            // This often happens if cipher was initialized but auth timed out
             throw SensitiveInfoException.EncryptionFailed(
-                "Encryption failed: ${e.message}",
+                "Authentication required but not completed: Device credential or biometric needed",
+                e
+            )
+        } catch (e: Exception) {
+            // Check if this is the "Key user not authenticated" error from old key format
+            // The error can appear at various levels in the cause chain
+            val isBadKeyError = e.message?.contains("Key user not authenticated") == true ||
+                    checkCauseChainForKeyError(e)
+            
+            if (isBadKeyError && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13+: Old key format (with AUTH_DEVICE_CREDENTIAL) is incompatible
+                // Delete it so a new key gets created with correct format
+
+                deleteKey(alias)
+                
+                // Retry with new key
+                return try {
+                    encrypt(alias, plaintext, resolution, prompt)
+                } catch (retryError: Exception) {
+    
+                    throw SensitiveInfoException.EncryptionFailed(
+                        "Encryption failed after key recreation: ${retryError.message}",
+                        retryError
+                    )
+                }
+            }
+            
+        
+            val exceptionType = e::class.simpleName ?: "Unknown"
+            val causeChain = buildCauseChain(e)
+            
+            throw SensitiveInfoException.EncryptionFailed(
+                "Encryption failed: $exceptionType - ${e.message ?: "Unknown error"}\n$causeChain",
                 e
             )
         }
@@ -211,8 +244,6 @@ internal class CryptoManager(
             val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
             val requiresAuth = resolution.requiresAuthentication
             val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            val deviceCredentialAllowed =
-                (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
             val resolvedPrompt = prompt ?: AuthenticationPrompt(title = "Authenticate")
 
             val workingCipher = when {
@@ -221,23 +252,24 @@ internal class CryptoManager(
                     cipher
                 }
                 supportsKeystoreAuth -> {
-                    val auth = authenticator ?: throw SensitiveInfoException.DecryptionFailed(
-                        "Biometric authenticator unavailable",
-                        IllegalStateException("No authenticator configured")
-                    )
-                    cipher.init(Cipher.DECRYPT_MODE, key, spec)
-                    val authenticatedCipher = auth.authenticate(
-                        prompt = resolvedPrompt,
+                    // Android 10+: Authenticate WITH cipher (keystore-gated auth)
+                    authenticateAndDecrypt(
                         cipher = cipher,
-                        allowDeviceCredential = deviceCredentialAllowed
-                    ) ?: cipher
-                    authenticatedCipher
+                        key = key,
+                        spec = spec,
+                        prompt = resolvedPrompt,
+                        mode = Cipher.DECRYPT_MODE,
+                        resolution = resolution
+                    )
                 }
                 else -> {
+                    // Android 7-9: Authenticate BEFORE cipher init (app-gated auth)
                     val auth = authenticator ?: throw SensitiveInfoException.DecryptionFailed(
                         "Biometric authenticator unavailable",
                         IllegalStateException("No authenticator configured")
                     )
+                    val deviceCredentialAllowed =
+                        (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0
                     auth.authenticate(
                         prompt = resolvedPrompt,
                         cipher = null,
@@ -256,12 +288,39 @@ internal class CryptoManager(
             // Key was invalidated (e.g., biometric enrollment changed)
             deleteKey(alias)
             throw SensitiveInfoException.KeyInvalidated(alias)
+        } catch (e: UserNotAuthenticatedException) {
+            // Android 13+: User must authenticate before key can be used
+            throw SensitiveInfoException.DecryptionFailed(
+                "Authentication required but not completed: Device credential or biometric needed",
+                e
+            )
         } catch (e: UnrecoverableKeyException) {
             throw SensitiveInfoException.DecryptionFailed(
                 "Key is unrecoverable (wrong password or key corrupted)",
                 e
             )
         } catch (e: Exception) {
+            // Check if this is the "Key user not authenticated" error from old key format
+            val isBadKeyError = e.message?.contains("Key user not authenticated") == true ||
+                    (e.cause?.message?.contains("No operation auth token received") == true)
+            
+            if (isBadKeyError && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13+: Old key format (with AUTH_DEVICE_CREDENTIAL) is incompatible
+                // Delete it so a new key gets created with correct format
+
+                deleteKey(alias)
+                
+                // Cannot retry decrypt - we don't have the plaintext anymore
+                throw SensitiveInfoException.DecryptionFailed(
+                    "Key was incompatible with Android 13+ authentication model and has been deleted. " +
+                    "Please re-encrypt data with new key format.",
+                    e
+                )
+            }
+            
+            val exceptionType = e::class.simpleName ?: "Unknown"
+            val causeChain = buildCauseChain(e)
+            
             when {
                 e.message?.contains("Tag verification failed") == true ->
                     throw SensitiveInfoException.DecryptionFailed(
@@ -275,7 +334,7 @@ internal class CryptoManager(
                     )
                 else ->
                     throw SensitiveInfoException.DecryptionFailed(
-                        "Decryption failed: ${e.message}",
+                        "Decryption failed: $exceptionType - ${e.message ?: "Unknown error"}\n$causeChain",
                         e
                     )
             }
@@ -335,6 +394,136 @@ internal class CryptoManager(
     // ============================================================================
     // PRIVATE HELPERS
     // ============================================================================
+
+    /**
+     * Authenticates and encrypts using keystore-gated authentication (Android 10+).
+     *
+     * **Why separate method**:
+     * - DRY: Avoids repeating cipher/a
+     * - SRP: Single responsibility—handle keystore auth ceremony
+     * - Testability: Can mock/test authentication flow independently
+     *
+     * **Workflow**:
+     * 1. Initialize cipher (puts it in a pre-authenticated state)
+     * 2. Authenticate WITH the cipher as CryptoObject (keystore validates the prompt)
+     * 3. Return the authenticated cipher ready for encryption
+     *
+     * **Key insight**: The cipher must be initialized BEFORE authentication on Android 10+,
+     * so the keystore can wrap it with authentication. This is the opposite of Android 9.
+     */
+    private suspend fun authenticateAndEncrypt(
+        cipher: Cipher,
+        key: SecretKey,
+        prompt: AuthenticationPrompt,
+        mode: Int,
+        resolution: AccessResolution
+    ): Cipher {
+        val auth = authenticator ?: throw SensitiveInfoException.EncryptionFailed(
+            "Biometric authenticator unavailable",
+            IllegalStateException("No authenticator configured")
+        )
+    
+        return try {
+            // Initialize cipher for the keystore-gated auth flow
+            cipher.init(mode, key)
+            
+            // On Android 13+, device credential is excluded from the key itself,
+            // so we should NOT allow it in BiometricPrompt (only biometric).
+            // On Android 10-12, device credential is in the key, so we can allow it.
+            val deviceCredentialAllowed =
+                (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0 &&
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            
+            // Pass cipher as CryptoObject so keystore can generate auth token
+            val authenticatedCipher = auth.authenticate(
+                prompt = prompt,
+                cipher = cipher,
+                allowDeviceCredential = deviceCredentialAllowed
+            )
+            authenticatedCipher ?: cipher
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    /**
+     * Authenticates and decrypts using keystore-gated authentication (Android 10+).
+     *
+     * **Why separate method**:
+     * - DRY: Avoids repeating cipher/a
+     * - SRP: Single responsibility—handle keystore auth ceremony
+     * - Testability: Can mock/test authentication flow independently
+     *
+     * **Workflow**:
+     * 1. Initialize cipher with IV spec (puts it in a pre-authenticated state)
+     * 2. Authenticate WITH the cipher as CryptoObject (keystore validates the prompt)
+     * 3. Return the authenticated cipher ready for decryption
+     *
+     * **Key insight**: Same as encrypt() but with IV spec for GCM mode.
+     */
+    private suspend fun authenticateAndDecrypt(
+        cipher: Cipher,
+        key: SecretKey,
+        spec: GCMParameterSpec,
+        prompt: AuthenticationPrompt,
+        mode: Int,
+        resolution: AccessResolution
+    ): Cipher {
+        val auth = authenticator ?: throw SensitiveInfoException.DecryptionFailed(
+            "Biometric authenticator unavailable",
+            IllegalStateException("No authenticator configured")
+        )
+    
+        return try {
+            // Initialize cipher with GCM spec for the keystore-gated auth flow
+            cipher.init(mode, key, spec)
+            
+            // On Android 13+, device credential is excluded from the key itself,
+            // so we should NOT allow it in BiometricPrompt (only biometric).
+            // On Android 10-12, device credential is in the key, so we can allow it.
+            val deviceCredentialAllowed =
+                (resolution.allowedAuthenticators and Authenticators.DEVICE_CREDENTIAL) != 0 &&
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            
+            // Pass cipher as CryptoObject so keystore can generate auth token
+            val authenticatedCipher = auth.authenticate(
+                prompt = prompt,
+                cipher = cipher,
+                allowDeviceCredential = deviceCredentialAllowed
+            )
+            authenticatedCipher ?: cipher
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    /**
+     * Authenticates using app-gated authentication (Android 7-9).
+     *
+     * **Why separate method**:
+     * - DRY: Avoids repeating a
+     * - SRP: Single responsibility—handle app-level auth ceremony
+     * - Clarity: Name signals "we auth BEFORE crypto, not with crypto"
+     *
+     * **Workflow**:
+     * 1. Show BiometricPrompt WITHOUT cipher (app manages the UI)
+     * 2. User authenticates via biometric or device credential
+     * 3. Return (cipher init happens after this returns)
+     */
+    private suspend fun authenticateAppGated(
+        prompt: AuthenticationPrompt,
+        allowDeviceCredential: Boolean
+    ) {
+        val auth = authenticator ?: throw SensitiveInfoException.EncryptionFailed(
+            "Biometric authenticator unavailable",
+            IllegalStateException("No authenticator configured")
+        )
+        auth.authenticate(
+            prompt = prompt,
+            cipher = null,
+            allowDeviceCredential = allowDeviceCredential
+        )
+    }
 
     /**
      * Gets existing key or creates new one if doesn't exist.
@@ -462,5 +651,54 @@ internal class CryptoManager(
                 e
             )
         }
+    }
+
+    /**
+     * Helper function to build a detailed exception cause chain for debugging.
+     *
+     * @param throwable The exception to analyze
+     * @return A formatted string showing the exception class names and messages in chain
+     */
+    private fun buildCauseChain(throwable: Throwable): String {
+        val chain = mutableListOf<String>()
+        var current: Throwable? = throwable
+        var depth = 0
+        val maxDepth = 5  // Limit depth to avoid overly long strings
+
+        while (current != null && depth < maxDepth) {
+            val className = current::class.simpleName ?: "Unknown"
+            val message = current.message?.take(100) ?: "(no message)"
+            chain.add("  [$depth] $className: $message")
+            current = current.cause
+            depth++
+        }
+
+        return if (chain.isEmpty()) "(empty cause chain)" else chain.joinToString("\n")
+    }
+
+    /**
+     * Helper function to detect "Key user not authenticated" error in exception cause chain.
+     *
+     * On Android 13+, this error can be wrapped in multiple layers:
+     * IllegalBlockSizeException → KeyStoreException → (underlying error)
+     *
+     * @param throwable The exception to check
+     * @return true if "Key user not authenticated" is found anywhere in the cause chain
+     */
+    private fun checkCauseChainForKeyError(throwable: Throwable): Boolean {
+        var current: Throwable? = throwable
+        var depth = 0
+        val maxDepth = 10  // Check up to 10 levels deep
+
+        while (current != null && depth < maxDepth) {
+            if (current.message?.contains("Key user not authenticated") == true ||
+                current.message?.contains("No operation auth token received") == true) {
+                return true
+            }
+            current = current.cause
+            depth++
+        }
+
+        return false
     }
 }
