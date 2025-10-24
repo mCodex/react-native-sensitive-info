@@ -176,7 +176,11 @@ function ToggleRow({ label, helper, value, onValueChange }: ToggleRowProps) {
         onValueChange={onValueChange}
         trackColor={{ false: '#d1d5db', true: '#bfdbfe' }}
         thumbColor={
-          Platform.OS === 'android' ? (value ? '#2563eb' : '#f9fafb') : undefined
+          Platform.OS === 'android'
+            ? value
+              ? '#2563eb'
+              : '#f9fafb'
+            : undefined
         }
         ios_backgroundColor="#d1d5db"
       />
@@ -193,8 +197,6 @@ function App(): React.JSX.Element {
   const [includeValues, setIncludeValues] = useState(true);
   const [includeValueOnGet, setIncludeValueOnGet] = useState(true);
   const [iosSynchronizable, setIosSynchronizable] = useState(false);
-  const [androidBiometricsStrongOnly, setAndroidBiometricsStrongOnly] =
-    useState(false);
   const [usePrompt, setUsePrompt] = useState(true);
   const [keychainGroup, setKeychainGroup] = useState('');
   const [availability, setAvailability] = useState<SecurityAvailability | null>(
@@ -222,9 +224,6 @@ function App(): React.JSX.Element {
       accessControl: selectedAccessControl,
       iosSynchronizable: iosSynchronizable ? true : undefined,
       keychainGroup: normalizedKeychainGroup,
-      androidBiometricsStrongOnly: androidBiometricsStrongOnly
-        ? true
-        : undefined,
       authenticationPrompt: usePrompt
         ? {
             title: 'Authenticate to continue',
@@ -236,7 +235,6 @@ function App(): React.JSX.Element {
         : undefined,
     }),
     [
-      androidBiometricsStrongOnly,
       iosSynchronizable,
       normalizedKeychainGroup,
       normalizedService,
@@ -401,9 +399,9 @@ function App(): React.JSX.Element {
         <View style={styles.banner}>
           <Text style={styles.bannerTitle}>Tip for hardware testing</Text>
           <Text style={styles.bannerText}>
-            Simulators rarely expose Secure Enclave, StrongBox, or full biometric
-            flows. Validate critical journeys on a physical device to mirror
-            production behaviour.
+            Simulators rarely expose Secure Enclave, StrongBox, or full
+            biometric flows. Validate critical journeys on a physical device to
+            mirror production behaviour.
           </Text>
         </View>
 
@@ -507,7 +505,7 @@ function App(): React.JSX.Element {
           subtitle="Tune access control, prompts, and cross-platform behaviour"
         >
           <View style={styles.accessOptionsContainer}>
-            {ACCESS_CONTROL_OPTIONS.map((option) => {
+            {ACCESS_CONTROL_OPTIONS.map(option => {
               const selected = option.value === selectedAccessControl;
               return (
                 <Pressable
@@ -560,12 +558,6 @@ function App(): React.JSX.Element {
             helper="Available on Apple platforms that support keychain synchronisation."
             value={iosSynchronizable}
             onValueChange={setIosSynchronizable}
-          />
-          <ToggleRow
-            label="Require strong biometrics (Android)"
-            helper="Limits authentication to Class 3 credentials where available."
-            value={androidBiometricsStrongOnly}
-            onValueChange={setAndroidBiometricsStrongOnly}
           />
 
           <Field
@@ -631,7 +623,7 @@ function App(): React.JSX.Element {
               Nothing stored yet. Save a secret to see it appear here.
             </Text>
           ) : (
-            items.map((item) => (
+            items.map(item => (
               <View key={`${item.service}-${item.key}`} style={styles.itemCard}>
                 <Text style={styles.itemTitle}>{item.key}</Text>
                 <Text style={styles.itemMeta}>Service · {item.service}</Text>
@@ -649,7 +641,8 @@ function App(): React.JSX.Element {
                     Backend · {item.metadata.backend}
                   </Text>
                   <Text style={styles.itemRow}>
-                    Stored at · {new Date(item.metadata.timestamp * 1000).toLocaleString()}
+                    Stored at ·{' '}
+                    {new Date(item.metadata.timestamp * 1000).toLocaleString()}
                   </Text>
                 </View>
               </View>

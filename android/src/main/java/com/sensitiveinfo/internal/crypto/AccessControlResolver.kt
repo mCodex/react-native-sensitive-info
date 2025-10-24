@@ -1,5 +1,6 @@
 package com.sensitiveinfo.internal.crypto
 
+import android.os.Build
 import androidx.biometric.BiometricManager.Authenticators
 import com.margelo.nitro.sensitiveinfo.AccessControl
 import com.margelo.nitro.sensitiveinfo.SecurityLevel
@@ -23,12 +24,12 @@ internal class AccessControlResolver(
   )
 
   /** Chooses the best available policy given the caller preference and hardware capabilities. */
-  fun resolve(preferred: AccessControl?, strongBiometricsOnly: Boolean): AccessResolution {
+  fun resolve(preferred: AccessControl?): AccessResolution {
     val availability = availabilityResolver.resolve()
     val ordered = orderPreferences(preferred)
 
     for (candidate in ordered) {
-      val resolution = tryResolve(candidate, availability, strongBiometricsOnly)
+      val resolution = tryResolve(candidate, availability)
       if (resolution != null) {
         return resolution
       }
@@ -57,12 +58,11 @@ internal class AccessControlResolver(
 
   private fun tryResolve(
     accessControl: AccessControl,
-    availability: SecurityAvailabilitySnapshot,
-    strongBiometricsOnly: Boolean
+    availability: SecurityAvailabilitySnapshot
   ): AccessResolution? {
     return when (accessControl) {
       AccessControl.SECUREENCLAVEBIOMETRY -> {
-        if (!availability.biometry || !availability.strongBox) return null
+        if (!availability.biometry || !availability.strongBiometrics || !availability.strongBox) return null
         AccessResolution(
           accessControl = AccessControl.SECUREENCLAVEBIOMETRY,
           securityLevel = SecurityLevel.STRONGBOX,
@@ -73,31 +73,23 @@ internal class AccessControlResolver(
         )
       }
       AccessControl.BIOMETRYCURRENTSET -> {
-        if (!availability.biometry) return null
+        val allowedAuthenticators = allowedBiometricAuthenticators(availability) ?: return null
         AccessResolution(
           accessControl = AccessControl.BIOMETRYCURRENTSET,
           securityLevel = SecurityLevel.BIOMETRY,
           requiresAuthentication = true,
-          allowedAuthenticators = if (strongBiometricsOnly) {
-            Authenticators.BIOMETRIC_STRONG
-          } else {
-            Authenticators.BIOMETRIC_STRONG or Authenticators.BIOMETRIC_WEAK
-          },
+          allowedAuthenticators = allowedAuthenticators,
           useStrongBox = false,
           invalidateOnEnrollment = true
         )
       }
       AccessControl.BIOMETRYANY -> {
-        if (!availability.biometry) return null
+        val allowedAuthenticators = allowedBiometricAuthenticators(availability) ?: return null
         AccessResolution(
           accessControl = AccessControl.BIOMETRYANY,
           securityLevel = SecurityLevel.BIOMETRY,
           requiresAuthentication = true,
-          allowedAuthenticators = if (strongBiometricsOnly) {
-            Authenticators.BIOMETRIC_STRONG
-          } else {
-            Authenticators.BIOMETRIC_STRONG or Authenticators.BIOMETRIC_WEAK
-          },
+          allowedAuthenticators = allowedAuthenticators,
           useStrongBox = false,
           invalidateOnEnrollment = false
         )
@@ -121,6 +113,22 @@ internal class AccessControlResolver(
         useStrongBox = false,
         invalidateOnEnrollment = false
       )
+    }
+  }
+
+  private fun allowedBiometricAuthenticators(availability: SecurityAvailabilitySnapshot): Int? {
+    if (!availability.biometry) {
+      return null
+    }
+
+    if (availability.strongBiometrics) {
+      return Authenticators.BIOMETRIC_STRONG
+    }
+
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      Authenticators.BIOMETRIC_WEAK
+    } else {
+      Authenticators.BIOMETRIC_STRONG
     }
   }
 }

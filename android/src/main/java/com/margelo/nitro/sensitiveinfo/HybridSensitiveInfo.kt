@@ -77,8 +77,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     override fun setItem(request: SensitiveInfoSetRequest): Promise<MutationResult> {
         return Promise.async {
             val service = resolveService(request.service)
-            val strongOnly = request.androidBiometricsStrongOnly == true
-            val resolution = accessControlResolver.resolve(request.accessControl, strongOnly)
+            val resolution = accessControlResolver.resolve(request.accessControl)
             val alias = AliasGenerator.create(service, resolution.signature)
 
             val previousEntry = readEntry(service, request.key)

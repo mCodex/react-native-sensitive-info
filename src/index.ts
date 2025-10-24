@@ -47,7 +47,6 @@ function resolveOptions(options?: SensitiveInfoOptions): SensitiveInfoOptions {
     accessControl: options.accessControl ?? DEFAULT_ACCESS_CONTROL,
     iosSynchronizable: options.iosSynchronizable,
     keychainGroup: options.keychainGroup,
-    androidBiometricsStrongOnly: options.androidBiometricsStrongOnly,
     authenticationPrompt: options.authenticationPrompt,
   }
 }

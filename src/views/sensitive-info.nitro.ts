@@ -56,7 +56,8 @@ export interface AuthenticationPrompt {
  *
  * `iosSynchronizable`, `keychainGroup`, and the access-control options apply to every Apple
  * platform (iOS, macOS, visionOS, watchOS) even if the field name still mentions iOS for
- * backwards compatibility.
+ * backwards compatibility. On Android, strong (Class 3) biometrics are enforced automatically
+ * whenever the hardware supports them, gracefully falling back to the strongest available guard.
  */
 export interface SensitiveInfoOptions {
   /** Namespaces the stored entry. Defaults to the bundle identifier (when available) or `default`. */
@@ -70,8 +71,6 @@ export interface SensitiveInfoOptions {
    * strongest supported strategy (Secure Enclave ➝ Biometry ➝ Device Credential ➝ None).
    */
   readonly accessControl?: AccessControl
-  /** Android: opt-in to strict hardware-backed biometrics (skips weak face unlock for example). */
-  readonly androidBiometricsStrongOnly?: boolean
   /** Optional prompt strings displayed when user presence is required to open the key. */
   readonly authenticationPrompt?: AuthenticationPrompt
 }

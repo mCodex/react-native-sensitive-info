@@ -159,7 +159,8 @@ All functions live at the top level export and return Promises.
 - `authenticationPrompt` — localized strings for biometric/device credential prompts.
 - `iosSynchronizable` — enable iCloud Keychain sync.
 - `keychainGroup` — custom Keychain access group.
-- `androidBiometricsStrongOnly` — require Class 3 biometrics when generating keys.
+
+Android automatically enforces Class 3 biometrics whenever the hardware supports them, falling back to the strongest available authenticator on older devices.
 
 See `src/views/sensitive-info.nitro.ts` for full TypeScript definitions.
 

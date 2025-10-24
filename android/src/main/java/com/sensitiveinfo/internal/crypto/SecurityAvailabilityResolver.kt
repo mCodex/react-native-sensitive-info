@@ -13,6 +13,7 @@ internal data class SecurityAvailabilitySnapshot(
   val secureEnclave: Boolean,
   val strongBox: Boolean,
   val biometry: Boolean,
+  val strongBiometrics: Boolean,
   val deviceCredential: Boolean
 )
 
@@ -35,10 +36,9 @@ internal class SecurityAvailabilityResolver(private val context: Context) {
       }
 
       val biometricManager = BiometricManager.from(context)
-      val hasBiometry = when (biometricManager.canAuthenticate(Authenticators.BIOMETRIC_STRONG)) {
-        BiometricManager.BIOMETRIC_SUCCESS -> true
-        else -> biometricManager.canAuthenticate(Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
-      }
+      val hasStrongBiometrics = biometricManager.canAuthenticate(Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
+      val hasWeakBiometrics = biometricManager.canAuthenticate(Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
+      val hasBiometry = hasStrongBiometrics || hasWeakBiometrics
 
       val keyguard = context.getSystemService<KeyguardManager>()
       val deviceCredential = keyguard?.isDeviceSecure == true
@@ -50,6 +50,7 @@ internal class SecurityAvailabilityResolver(private val context: Context) {
         secureEnclave = hasStrongBox,
         strongBox = hasStrongBox,
         biometry = hasBiometry,
+        strongBiometrics = hasStrongBiometrics,
         deviceCredential = deviceCredential
       )
       cached = snapshot
