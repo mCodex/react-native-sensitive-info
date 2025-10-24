@@ -42,11 +42,11 @@
   "workspaces": [
     "example"
   ],
-  "repository": "https://github.com/mateusandrade/react-native-sensitive-info.git",
+  "repository": "https://github.com/mcodex/react-native-sensitive-info.git",
   "author": "Mateus Andrade",
   "license": "MIT",
-  "bugs": "https://github.com/mateusandrade/react-native-sensitive-info/issues",
-  "homepage": "https://github.com/mateusandrade/react-native-sensitive-info#readme",
+  "bugs": "https://github.com/mcodex/react-native-sensitive-info/issues",
+  "homepage": "https://github.com/mcodex/react-native-sensitive-info#readme",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
