@@ -208,6 +208,28 @@ function App(): React.JSX.Element {
   );
   const [pending, setPending] = useState(false);
 
+  const isOptionAvailable = useCallback(
+    (value: AccessControl) => {
+      if (!availability) {
+        return true;
+      }
+
+      switch (value) {
+        case 'secureEnclaveBiometry':
+          return availability.secureEnclave || availability.strongBox;
+        case 'biometryCurrentSet':
+        case 'biometryAny':
+          return availability.biometry;
+        case 'devicePasscode':
+          return availability.deviceCredential;
+        case 'none':
+        default:
+          return true;
+      }
+    },
+    [availability],
+  );
+
   const normalizedService = useMemo(() => {
     const trimmed = service.trim();
     return trimmed.length > 0 ? trimmed : DEFAULT_SERVICE;
@@ -279,6 +301,24 @@ function App(): React.JSX.Element {
     void refreshAvailability();
     void refreshItems();
   }, [refreshAvailability, refreshItems]);
+
+  useEffect(() => {
+    if (!availability) {
+      return;
+    }
+
+    if (isOptionAvailable(selectedAccessControl)) {
+      return;
+    }
+
+    const fallback = ACCESS_CONTROL_OPTIONS.find(option =>
+      isOptionAvailable(option.value),
+    );
+
+    if (fallback) {
+      setSelectedAccessControl(fallback.value);
+    }
+  }, [availability, isOptionAvailable, selectedAccessControl]);
 
   const execute = useCallback(
     async (task: () => Promise<void>) => {
@@ -504,32 +544,56 @@ function App(): React.JSX.Element {
           title="Security & authentication"
           subtitle="Tune access control, prompts, and cross-platform behaviour"
         >
+          <Text style={styles.infoNote}>
+            The native layer automatically upgrades to the strongest guard this
+            device supports. Options shown in grey are unavailable on the
+            current hardware.
+          </Text>
           <View style={styles.accessOptionsContainer}>
             {ACCESS_CONTROL_OPTIONS.map(option => {
               const selected = option.value === selectedAccessControl;
+              const available = isOptionAvailable(option.value);
+              const disabled = !available;
               return (
                 <Pressable
                   key={option.value}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  onPress={() => setSelectedAccessControl(option.value)}
+                  accessibilityState={{ selected, disabled }}
+                  onPress={() => {
+                    if (!available) {
+                      return;
+                    }
+                    setSelectedAccessControl(option.value);
+                  }}
                   style={({ pressed }) => [
                     styles.accessOption,
                     selected && styles.accessOptionSelected,
-                    pressed && styles.accessOptionPressed,
+                    pressed && !disabled && styles.accessOptionPressed,
+                    disabled && styles.accessOptionDisabled,
                   ]}
                 >
                   <Text
                     style={[
                       styles.accessOptionLabel,
                       selected && styles.accessOptionLabelSelected,
+                      disabled && styles.accessOptionLabelDisabled,
                     ]}
                   >
                     {option.label}
                   </Text>
-                  <Text style={styles.accessOptionDescription}>
+                  <Text
+                    style={[
+                      styles.accessOptionDescription,
+                      disabled && styles.accessOptionDescriptionDisabled,
+                    ]}
+                  >
                     {option.description}
                   </Text>
+                  {disabled ? (
+                    <Text style={styles.accessOptionUnavailable}>
+                      Unavailable on this device
+                    </Text>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -774,6 +838,18 @@ const styles = StyleSheet.create({
     color: '#4b5563',
     fontSize: 15,
   },
+  infoNote: {
+    color: '#1e3a8a',
+    fontSize: 13,
+    lineHeight: 18,
+    backgroundColor: '#e0f2fe',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
   field: {
     marginBottom: 20,
   },
@@ -823,6 +899,10 @@ const styles = StyleSheet.create({
   accessOptionPressed: {
     opacity: 0.9,
   },
+  accessOptionDisabled: {
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f1f5f9',
+  },
   accessOptionLabel: {
     color: '#1f2937',
     fontSize: 15,
@@ -831,11 +911,24 @@ const styles = StyleSheet.create({
   accessOptionLabelSelected: {
     color: '#1d4ed8',
   },
+  accessOptionLabelDisabled: {
+    color: '#9ca3af',
+  },
   accessOptionDescription: {
     color: '#6b7280',
     fontSize: 13,
     lineHeight: 19,
     marginTop: 6,
+  },
+  accessOptionDescriptionDisabled: {
+    color: '#9ca3af',
+  },
+  accessOptionUnavailable: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 8,
+    letterSpacing: 0.2,
   },
   toggleCard: {
     flexDirection: 'row',

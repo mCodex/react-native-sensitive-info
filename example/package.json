@@ -13,13 +13,13 @@
   "dependencies": {
     "@react-native/new-app-screen": "0.82.1",
     "react": "19.1.1",
-    "react-native": "0.82.0",
-    "react-native-nitro-modules": "0.31.1",
+    "react-native": "0.82.1",
+    "react-native-nitro-modules": "0.31.2",
     "react-native-safe-area-context": "^5.6.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.4",
-    "@babel/preset-env": "^7.28.3",
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
     "@babel/runtime": "^7.28.4",
     "@react-native-community/cli": "20.0.2",
     "@react-native-community/cli-platform-android": "20.0.2",

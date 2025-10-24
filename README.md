@@ -34,7 +34,7 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 ## 🚀 Highlights
 
 - Headless Nitro hybrid object with a simple Promise-based API (`setItem`, `getItem`, `hasItem`, `getAllItems`, `clearService`).
-- Automatic security negotiation: prefers Secure Enclave (iOS) or StrongBox/biometric-protected keys (Android) with graceful fallbacks.
+- Automatic security negotiation: locks onto Secure Enclave (iOS) or Class 3 / StrongBox biometrics (Android) with graceful fallbacks when hardware is limited.
 - Unified metadata reporting (security level, backend, access control, timestamp) for every stored secret.
 - Friendly example app showcasing prompts, metadata inspection, and per-platform capability detection.
 - First-class TypeScript definitions and tree-shakeable distribution via `react-native-builder-bob`.
@@ -49,14 +49,6 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 | iOS | 13.0 | Requires Face ID usage string when biometrics are enabled. |
 | Android | API 23 (Marshmallow) | StrongBox detection requires API 28+; biometrics fall back to device credential when unavailable. |
 | Windows | ❌ | Removed in v6. Earlier versions may still work but are no longer maintained. |
-
-**Runtime requirements**
-- React Native `0.82` or newer (Nitro Modules baseline).
-- Node.js `18` or newer.
-- `react-native-nitro-modules` `>=0.30.0`.
-
-> [!TIP]
-> Pair this module with [`react-native-quick-crypto`](https://github.com/mCodex/react-native-quick-crypto) when you need high-performance hashing alongside secure storage.
 
 ## ⚙️ Installation
 
@@ -192,6 +184,9 @@ Always validate security behavior on the physical devices you ship to customers.
 ## 🎮 Example application
 
 Explore the full feature set with the bundled example app. It showcases capability detection, metadata inspection, and error surface normalization for every API call.
+
+- The access-control selector now projects live device capabilities, greying out policies that require unavailable hardware and auto-picking the strongest viable guard.
+- Android Class 3 biometrics are applied automatically—no more manual toggle—while older devices fall back to the most secure authenticator they expose.
 
 > [!TIP]
 > Prefer Expo? The same Nitro module works inside bare Expo projects—just install via `expo install` and run the commands below from `example/`.
