@@ -1,5 +1,6 @@
-package com.sensitiveinfo
+package com.margelo.nitro.sensitiveinfo
 
+import androidx.annotation.Keep
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.sensitiveinfo.AccessControl
 import com.margelo.nitro.sensitiveinfo.AuthenticationPrompt
@@ -47,6 +48,7 @@ import kotlin.text.Charsets
  * The class resolves the appropriate storage backend, encrypts values with the Android Keystore,
  * and keeps metadata so JavaScript consumers always know which security tier saved an entry.
  */
+@Keep
 class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     private val applicationContext get() = ReactContextHolder.requireContext()
 
@@ -57,6 +59,16 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     private val authenticator by lazy { BiometricAuthenticator() }
     private val cryptoManager by lazy { CryptoManager(authenticator) }
 
+    private fun resolveService(service: String?): String = serviceResolver.resolve(service)
+
+    /** Dispatches a block to the IO dispatcher while keeping call-sites succinct. */
+    private suspend fun <T> io(block: suspend () -> T): T = withContext(Dispatchers.IO) { block() }
+
+    /** Wrapper that fetches an entry from disk using the canonical dispatcher. */
+    private suspend fun readEntry(service: String, key: String): PersistedEntry? = io {
+        storage.read(service, key)
+    }
+
     /**
      * Encrypts and stores a secret for the requested service/key pair.
      *
@@ -64,14 +76,12 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
      */
     override fun setItem(request: SensitiveInfoSetRequest): Promise<MutationResult> {
         return Promise.async {
-            val service = serviceResolver.resolve(request.service)
+            val service = resolveService(request.service)
             val strongOnly = request.androidBiometricsStrongOnly == true
             val resolution = accessControlResolver.resolve(request.accessControl, strongOnly)
             val alias = AliasGenerator.create(service, resolution.signature)
 
-            val previousEntry = withContext(Dispatchers.IO) {
-                storage.read(service, request.key)
-            }
+            val previousEntry = readEntry(service, request.key)
 
             val metadata = StorageMetadata(
                 securityLevel = resolution.securityLevel,
@@ -98,9 +108,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
                 useStrongBox = resolution.useStrongBox
             )
 
-            withContext(Dispatchers.IO) {
-                storage.save(service, request.key, persisted)
-            }
+            io { storage.save(service, request.key, persisted) }
 
             if (previousEntry != null && previousEntry.alias != alias) {
                 maybeDeleteAlias(service, previousEntry.alias)
@@ -116,9 +124,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     override fun getItem(request: SensitiveInfoGetRequest): Promise<SensitiveInfoItem?> {
         return Promise.async {
             val includeValue = request.includeValue ?: true
-            val service = serviceResolver.resolve(request.service)
-                        val entry = withContext(Dispatchers.IO) { storage.read(service, request.key) }
-                            ?: throw SensitiveInfoException.NotFound(request.key, service)
+            val service = resolveService(request.service)
+            val entry = readEntry(service, request.key)
+                ?: throw SensitiveInfoException.NotFound(request.key, service)
 
             val metadata = entry.metadata.toStorageMetadata() ?: fallbackMetadata(entry)
 
@@ -142,9 +150,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
      */
     override fun deleteItem(request: SensitiveInfoDeleteRequest): Promise<Boolean> {
         return Promise.async {
-            val service = serviceResolver.resolve(request.service)
-            val existing = withContext(Dispatchers.IO) { storage.read(service, request.key) }
-            val removed = withContext(Dispatchers.IO) { storage.delete(service, request.key) }
+            val service = resolveService(request.service)
+            val existing = readEntry(service, request.key)
+            val removed = io { storage.delete(service, request.key) }
             if (removed && existing != null) {
                 maybeDeleteAlias(service, existing.alias)
             }
@@ -157,21 +165,23 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
      */
     override fun hasItem(request: SensitiveInfoHasRequest): Promise<Boolean> {
         return Promise.async {
-            val service = serviceResolver.resolve(request.service)
-            withContext(Dispatchers.IO) {
-                storage.contains(service, request.key)
-            }
+            val service = resolveService(request.service)
+            io { storage.contains(service, request.key) }
         }
     }
 
     /**
-     * Enumerates every entry in a service. When `includeValues` is false the secrets stay encrypted.
+        * Enumerates every entry in a service. When `includeValues` is false the secrets stay encrypted.
+        *
+        * ```ts
+        * const items = await SensitiveInfo.getAllItems({ service: 'vault', includeValues: true })
+        * ```
      */
     override fun getAllItems(request: SensitiveInfoEnumerateRequest?): Promise<Array<SensitiveInfoItem>> {
         return Promise.async {
             val includeValues = request?.includeValues == true
-            val service = serviceResolver.resolve(request?.service)
-            val items = withContext(Dispatchers.IO) { storage.readAll(service) }
+            val service = resolveService(request?.service)
+            val items = io { storage.readAll(service) }
 
             val result = items.mapNotNull { (key, entry) ->
                 val metadata = entry.metadata.toStorageMetadata() ?: fallbackMetadata(entry)
@@ -198,11 +208,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
      */
     override fun clearService(request: SensitiveInfoOptions?): Promise<Unit> {
         return Promise.async {
-            val service = serviceResolver.resolve(request?.service)
-            val existing = withContext(Dispatchers.IO) { storage.readAll(service) }
-            withContext(Dispatchers.IO) {
-                storage.clear(service)
-            }
+            val service = resolveService(request?.service)
+            val existing = io { storage.readAll(service) }
+            io { storage.clear(service) }
             existing.map { it.second.alias }
                 .distinct()
                 .forEach { alias -> cryptoManager.deleteKey(alias) }
@@ -220,6 +228,10 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         return Promise.resolved(snapshot)
     }
 
+    /**
+     * Rehydrates a ciphertext/IV pair using the alias captured in the persisted metadata. When the
+     * item requires user presence the associated biometric/device-credential prompt is displayed.
+     */
     private suspend fun decryptValue(
         entry: PersistedEntry,
         metadata: StorageMetadata,
@@ -247,6 +259,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         return String(decrypted, Charsets.UTF_8)
     }
 
+    /** Fallback metadata path used when a legacy record predates the richer JSON payload. */
     private fun fallbackMetadata(entry: PersistedEntry): StorageMetadata {
         val accessControl = accessControlFromPersisted(entry.metadata.accessControl) ?: AccessControl.NONE
         val backend = storageBackendFromPersisted(entry.metadata.backend) ?: StorageBackend.ANDROIDKEYSTORE
@@ -270,8 +283,13 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
 
     private fun nowSeconds(): Double = System.currentTimeMillis() / 1000.0
 
+    /**
+     * Deletes the keystore alias once there are no persisted entries referencing it anymore. We
+     * keep this work off the main thread as SharedPreferences iteration can be slow on older
+     * devices.
+     */
     private suspend fun maybeDeleteAlias(service: String, alias: String) {
-        val remaining = withContext(Dispatchers.IO) { storage.readAll(service) }
+        val remaining = io { storage.readAll(service) }
         val stillReferenced = remaining.any { (_, entry) -> entry.alias == alias }
         if (!stillReferenced) {
             cryptoManager.deleteKey(alias)

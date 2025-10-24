@@ -9,7 +9,8 @@ final class SecurityAvailabilityResolver {
   /**
    Detects which secure hardware features are currently available.
    Simulators typically report limited support (for example, no Secure Enclave), so callers should
-   always rely on this method rather than assuming capabilities.
+   always rely on this method rather than assuming capabilities. The snapshot is reused across
+   Apple platforms (iOS, macOS, visionOS, watchOS).
    */
   func resolve() -> (secureEnclave: Bool, strongBox: Bool, biometry: Bool, deviceCredential: Bool) {
     lock.lock()

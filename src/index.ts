@@ -55,6 +55,14 @@ function resolveOptions(options?: SensitiveInfoOptions): SensitiveInfoOptions {
 /**
  * Persist a secret value in the platform secure storage.
  * When possible, the native side elevates the access control to hardware-backed storage such as Secure Enclave or StrongBox.
+ *
+ * ```ts
+ * await setItem('refreshToken', token, {
+ *   service: 'com.mcodex.session',
+ *   accessControl: 'secureEnclaveBiometry',
+ *   authenticationPrompt: { title: 'Authorize to update your session' },
+ * })
+ * ```
  */
 export async function setItem(
   key: string,

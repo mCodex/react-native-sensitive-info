@@ -10,7 +10,7 @@ private struct ResolvedAccessControl {
   let accessControlRef: SecAccessControl?
 }
 
-/// iOS implementation of the SensitiveInfo Nitro module.
+/// Apple platforms implementation of the SensitiveInfo Nitro module.
 ///
 /// Consumers interact with the generated JS API:
 /// ```ts
@@ -19,7 +19,8 @@ private struct ResolvedAccessControl {
 /// ```
 ///
 /// The Swift bridge runs keychain queries on a dedicated queue, encodes consistent metadata, and
-/// returns results that mirror the TypeScript types shipped in the package.
+/// returns results that mirror the TypeScript types shipped in the package across iOS, macOS,
+/// visionOS, and watchOS.
 final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   private let workQueue = DispatchQueue(label: "com.mcodex.sensitiveinfo.keychain", qos: .userInitiated)
   private let encoder: JSONEncoder = {
@@ -171,6 +172,10 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Enumerates every item matching the provided service and inclusion options.
+  ///
+  /// ```ts
+  /// const items = await SensitiveInfo.getAllItems({ service: 'vault', includeValues: true })
+  /// ```
   func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
     Promise.parallel(workQueue) { [self] in
       let includeValues = request?.includeValues ?? false
@@ -322,6 +327,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   // MARK: - Access control resolution
 
+  /// Maps the JS access-control request to the closest policy supported by the current device.
   private func resolveAccessControl(preferred: AccessControl?) throws -> ResolvedAccessControl {
     let preferredPolicy = preferred.flatMap { AccessPolicy(rawValue: $0.stringValue) }
     let context = try accessControlResolver.resolve(preferred: preferredPolicy)
@@ -350,6 +356,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   // MARK: - Utilities
 
+  /// Mirrors Android's namespace resolution so metadata stays comparable across platforms.
   private func normalizedService(_ service: String?) -> String {
     service?.isEmpty == false ? service! : defaultService
   }

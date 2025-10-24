@@ -1,7 +1,11 @@
 import type { HybridObject } from 'react-native-nitro-modules'
 
 /**
- * Enumerates the highest security tier that was effectively applied while storing a value.
+ * Captures how strong the effective protection was when a value got persisted.
+ *
+ * The native layer continuously downgrades to the strongest policy supported by the device. A
+ * policy requested as `secureEnclaveBiometry` may therefore resolve to `biometry` or even
+ * `software` on simulators and low-end hardware.
  */
 export type SecurityLevel =
   | 'secureEnclave'
@@ -11,16 +15,15 @@ export type SecurityLevel =
   | 'software'
 
 /**
- * Enumerates the native storage backend used to persist sensitive data.
+ * Enumerates which native database held the encrypted record. This is useful for auditing mixed
+ * environments (for example, Android devices that fall back to `encryptedSharedPreferences`).
  */
 export type StorageBackend =
   | 'keychain'
   | 'androidKeystore'
   | 'encryptedSharedPreferences'
 
-/**
- * Enumerates the access-control policy enforced by the underlying secure storage.
- */
+/** @see SensitiveInfoOptions.accessControl */
 export type AccessControl =
   | 'secureEnclaveBiometry'
   | 'biometryCurrentSet'
@@ -29,7 +32,17 @@ export type AccessControl =
   | 'none'
 
 /**
- * Configuration for the biometric/device credential prompt shown when a protected item is accessed.
+ * Human-friendly strings that will be rendered on biometric/device credential prompts.
+ *
+ * ```ts
+ * await SensitiveInfo.getItem('pin', {
+ *   authenticationPrompt: {
+ *     title: 'Unlock Secure Notes',
+ *     description: 'Authenticate to decrypt your note',
+ *     cancel: 'Use another key',
+ *   },
+ * })
+ * ```
  */
 export interface AuthenticationPrompt {
   readonly title: string
@@ -39,23 +52,27 @@ export interface AuthenticationPrompt {
 }
 
 /**
- * Options that influence how data is written or retrieved from the secure store.
+ * Tunables shared by both the read and write APIs.
+ *
+ * `iosSynchronizable`, `keychainGroup`, and the access-control options apply to every Apple
+ * platform (iOS, macOS, visionOS, watchOS) even if the field name still mentions iOS for
+ * backwards compatibility.
  */
 export interface SensitiveInfoOptions {
   /** Namespaces the stored entry. Defaults to the bundle identifier (when available) or `default`. */
   readonly service?: string
-  /** iOS: Enable keychain item synchronization via iCloud. */
+  /** Apple platforms: Enables Keychain sync through iCloud. */
   readonly iosSynchronizable?: boolean
-  /** iOS: Custom keychain access group. */
+  /** Apple platforms: Custom Keychain access group. */
   readonly keychainGroup?: string
   /**
-   * Desired access-control policy. The native implementation will automatically fall back to the
-   * strongest supported policy for the current device (Secure Enclave ➝ Biometry ➝ Device Credential ➝ None).
+   * Desired access-control policy. The native implementation automatically downgrades to the
+   * strongest supported strategy (Secure Enclave ➝ Biometry ➝ Device Credential ➝ None).
    */
   readonly accessControl?: AccessControl
-  /** Android: fine tune whether the hardware-authenticated key should require biometrics only. */
+  /** Android: opt-in to strict hardware-backed biometrics (skips weak face unlock for example). */
   readonly androidBiometricsStrongOnly?: boolean
-  /** Optional prompt configuration that will be shown when protected keys require user presence. */
+  /** Optional prompt strings displayed when user presence is required to open the key. */
   readonly authenticationPrompt?: AuthenticationPrompt
 }
 
@@ -90,6 +107,10 @@ export interface StorageMetadata {
   readonly timestamp: number
 }
 
+/**
+ * Envelope returned by the read APIs. `value` is omitted when the consumer opted out of
+ * decryption or when the key is still hardware-gated (for example, prior to biometric verification).
+ */
 export interface SensitiveInfoItem {
   readonly key: string
   readonly service: string
@@ -97,10 +118,19 @@ export interface SensitiveInfoItem {
   readonly metadata: StorageMetadata
 }
 
+/**
+ * Metadata snapshot returned by `setItem`, allowing clients to audit which security tier ended up
+ * protecting the freshly written entry.
+ */
 export interface MutationResult {
   readonly metadata: StorageMetadata
 }
 
+/**
+ * Snapshot of the secure hardware capabilities currently exposed to the runtime. On Apple
+ * platforms `secureEnclave` mirrors the device's Secure Enclave availability; on Android it maps to
+ * StrongBox support. This mirrors the format returned by `getSupportedSecurityLevels()`.
+ */
 export interface SecurityAvailability {
   readonly secureEnclave: boolean
   readonly strongBox: boolean

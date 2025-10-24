@@ -10,7 +10,12 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => min_ios_version_supported, :visionos => 1.0 }
+  s.platforms    = {
+    :ios => min_ios_version_supported,
+    :osx => '11.0',
+    :watchos => '7.0',
+    :visionos => '1.0'
+  }
   s.source       = { :git => "https://github.com/mateusandrade/react-native-sensitive-info.git", :tag => "#{s.version}" }
 
   s.source_files = [
@@ -27,5 +32,6 @@ Pod::Spec.new do |s|
 
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
+  s.frameworks = ['LocalAuthentication', 'Security']
   install_modules_dependencies(s)
 end

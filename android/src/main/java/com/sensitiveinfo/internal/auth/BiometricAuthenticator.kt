@@ -11,6 +11,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import com.sensitiveinfo.internal.util.ReactContextHolder
 import javax.crypto.Cipher
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -22,55 +23,107 @@ import kotlin.coroutines.resumeWithException
  * the surface used by the Nitro Promise bridge.
  */
 internal class BiometricAuthenticator {
+  private val applicationContext get() = ReactContextHolder.requireContext()
+
+  /**
+   * Prompts the user for biometric/device-credential authentication and returns the cipher once it
+   * can be used. The coroutine cooperatively cancels when the caller abandons the operation.
+   */
   suspend fun authenticate(
     prompt: AuthenticationPrompt?,
     allowedAuthenticators: Int,
-    cipher: Cipher
-  ): Cipher {
+    cipher: Cipher?
+  ): Cipher? {
     val activity = currentFragmentActivity()
-    return withContext(Dispatchers.Main) {
-      suspendCancellableCoroutine { continuation ->
-        val executor = ContextCompat.getMainExecutor(activity)
-        val promptInfo = buildPromptInfo(prompt, allowedAuthenticators)
-        val biometricPrompt = BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
-          override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-            val authCipher = result.cryptoObject?.cipher
-              ?: return continuation.resumeWithException(IllegalStateException("Missing cipher from authentication result."))
-            continuation.resume(authCipher)
-          }
+    val effectivePrompt = prompt ?: AuthenticationPrompt(DEFAULT_TITLE, null, null, DEFAULT_CANCEL)
+    val allowDeviceCredential = allowedAuthenticators and BiometricManager.Authenticators.DEVICE_CREDENTIAL != 0
+    val supportsInlineDeviceCredential = allowDeviceCredential && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    val allowLegacyDeviceCredential = allowDeviceCredential && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
 
-          override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-            if (errorCode == BiometricPrompt.ERROR_CANCELED ||
-              errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
-              errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON
-            ) {
-              continuation.cancel()
-            } else {
-              continuation.resumeWithException(IllegalStateException(errString.toString()))
+    return withContext(Dispatchers.Main) {
+      if (cipher == null && allowLegacyDeviceCredential && !canUseBiometric()) {
+        if (DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)) {
+          cipher
+        } else {
+          throw IllegalStateException("Device credential authentication canceled.")
+        }
+      } else {
+        try {
+          authenticateWithBiometricPrompt(
+            activity = activity,
+            prompt = effectivePrompt,
+            allowedAuthenticators = allowedAuthenticators,
+            supportsInlineDeviceCredential = supportsInlineDeviceCredential,
+            cipher = cipher
+          )
+        } catch (error: Throwable) {
+          if (error is CancellationException) throw error
+          if (allowLegacyDeviceCredential) {
+            if (DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)) {
+              return@withContext cipher
             }
           }
-
-          override fun onAuthenticationFailed() {
-            // Keep waiting for a successful attempt.
-          }
-        })
-
-        continuation.invokeOnCancellation {
-          biometricPrompt.cancelAuthentication()
+          throw error
         }
-
-        val cryptoObject = BiometricPrompt.CryptoObject(cipher)
-        biometricPrompt.authenticate(promptInfo, cryptoObject)
       }
     }
   }
 
-  private fun buildPromptInfo(prompt: AuthenticationPrompt?, allowedAuthenticators: Int): BiometricPrompt.PromptInfo {
-    val builder = BiometricPrompt.PromptInfo.Builder()
-      .setTitle(prompt?.title ?: DEFAULT_TITLE)
+  private suspend fun authenticateWithBiometricPrompt(
+    activity: FragmentActivity,
+    prompt: AuthenticationPrompt,
+    allowedAuthenticators: Int,
+    supportsInlineDeviceCredential: Boolean,
+    cipher: Cipher?
+  ): Cipher? {
+    return suspendCancellableCoroutine { continuation ->
+      val executor = ContextCompat.getMainExecutor(activity)
+      val promptInfo = buildPromptInfo(prompt, allowedAuthenticators, supportsInlineDeviceCredential)
+      val biometricPrompt = BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
+        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+          val authCipher = result.cryptoObject?.cipher ?: cipher
+          continuation.resume(authCipher)
+        }
 
-    prompt?.subtitle?.let(builder::setSubtitle)
-    prompt?.description?.let(builder::setDescription)
+        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+          if (errorCode == BiometricPrompt.ERROR_CANCELED ||
+            errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
+            errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON
+          ) {
+            continuation.cancel()
+          } else {
+            continuation.resumeWithException(IllegalStateException(errString.toString()))
+          }
+        }
+
+        override fun onAuthenticationFailed() {
+          // Keep waiting for another attempt.
+        }
+      })
+
+      continuation.invokeOnCancellation {
+        biometricPrompt.cancelAuthentication()
+      }
+
+      if (cipher != null) {
+        val cryptoObject = BiometricPrompt.CryptoObject(cipher)
+        biometricPrompt.authenticate(promptInfo, cryptoObject)
+      } else {
+        biometricPrompt.authenticate(promptInfo)
+      }
+    }
+  }
+
+  private fun buildPromptInfo(
+    prompt: AuthenticationPrompt,
+    allowedAuthenticators: Int,
+    supportsInlineDeviceCredential: Boolean
+  ): BiometricPrompt.PromptInfo {
+    val builder = BiometricPrompt.PromptInfo.Builder()
+      .setTitle(prompt.title)
+
+    prompt.subtitle?.let(builder::setSubtitle)
+    prompt.description?.let(builder::setDescription)
 
     var promptAuthenticators = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       allowedAuthenticators
@@ -87,18 +140,33 @@ internal class BiometricAuthenticator {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       builder.setAllowedAuthenticators(promptAuthenticators)
       if (!allowsDeviceCredential) {
-        builder.setNegativeButtonText(prompt?.cancel ?: DEFAULT_CANCEL)
+        builder.setNegativeButtonText(prompt.cancel ?: DEFAULT_CANCEL)
       }
     } else {
-      if (allowsDeviceCredential) {
+      if (allowsDeviceCredential && supportsInlineDeviceCredential && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         @Suppress("DEPRECATION")
         builder.setDeviceCredentialAllowed(true)
       } else {
-        builder.setNegativeButtonText(prompt?.cancel ?: DEFAULT_CANCEL)
+        builder.setNegativeButtonText(prompt.cancel ?: DEFAULT_CANCEL)
       }
     }
 
     return builder.build()
+  }
+
+  private fun canUseBiometric(): Boolean {
+    val biometricManager = BiometricManager.from(applicationContext)
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      val strong = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+      if (strong == BiometricManager.BIOMETRIC_SUCCESS) {
+        true
+      } else {
+        biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
+      }
+    } else {
+      @Suppress("DEPRECATION")
+      biometricManager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS
+    }
   }
 
   private fun currentFragmentActivity(): FragmentActivity {

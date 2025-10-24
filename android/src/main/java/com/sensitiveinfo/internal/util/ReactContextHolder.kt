@@ -2,6 +2,7 @@ package com.sensitiveinfo.internal.util
 
 import android.app.Activity
 import com.facebook.react.bridge.ReactApplicationContext
+import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -13,10 +14,15 @@ import java.util.concurrent.atomic.AtomicReference
  * need to launch a biometric prompt.
  */
 internal object ReactContextHolder {
-  private val contextRef = AtomicReference<ReactApplicationContext?>()
+  // Keep only a weak reference so the React instance can be GC'd after teardown.
+  private val contextRef = AtomicReference<WeakReference<ReactApplicationContext>?>(null)
 
   fun install(context: ReactApplicationContext) {
-    contextRef.set(context)
+    val current = contextRef.get()?.get()
+    if (current === context) {
+      return
+    }
+    contextRef.set(WeakReference(context))
   }
 
   fun clear() {
@@ -24,9 +30,9 @@ internal object ReactContextHolder {
   }
 
   fun requireContext(): ReactApplicationContext {
-    return contextRef.get()
+    return contextRef.get()?.get()
       ?: throw IllegalStateException("ReactApplicationContext not yet available for SensitiveInfo.")
   }
 
-  fun currentActivity(): Activity? = contextRef.get()?.currentActivity
+  fun currentActivity(): Activity? = contextRef.get()?.get()?.currentActivity
 }

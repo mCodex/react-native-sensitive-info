@@ -16,6 +16,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import kotlin.coroutines.cancellation.CancellationException
 
 private const val ANDROID_KEY_STORE = "AndroidKeyStore"
 private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -42,18 +43,35 @@ internal class CryptoManager(
   ): EncryptionResult {
     val key = getOrCreateKey(alias, resolution)
     val cipher = Cipher.getInstance(TRANSFORMATION)
+    val requiresAuth = resolution.requiresAuthentication
+    val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
-    try {
-      cipher.init(Cipher.ENCRYPT_MODE, key)
-    } catch (invalidated: KeyPermanentlyInvalidatedException) {
-      deleteKey(alias)
-      throw IllegalStateException("Encryption key invalidated. Item must be recreated.", invalidated)
-    }
+    val readyCipher = try {
+      if (!requiresAuth) {
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        cipher
+      } else if (supportsKeystoreAuth) {
+        try {
+          cipher.init(Cipher.ENCRYPT_MODE, key)
+        } catch (invalidated: KeyPermanentlyInvalidatedException) {
+          deleteKey(alias)
+          throw IllegalStateException("Encryption key invalidated. Item must be recreated.", invalidated)
+        }
 
-    val readyCipher = if (resolution.requiresAuthentication) {
-      authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
-    } else {
-      cipher
+        val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
+        (authenticated ?: cipher)
+      } else {
+        authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
+        try {
+          cipher.init(Cipher.ENCRYPT_MODE, key)
+        } catch (invalidated: KeyPermanentlyInvalidatedException) {
+          deleteKey(alias)
+          throw IllegalStateException("Encryption key invalidated. Item must be recreated.", invalidated)
+        }
+        cipher
+      }
+    } catch (error: CancellationException) {
+      throw error
     }
 
     val ciphertext = readyCipher.doFinal(plaintext)
@@ -70,22 +88,50 @@ internal class CryptoManager(
   ): ByteArray {
     val key = getOrCreateKey(alias, resolution)
     val cipher = Cipher.getInstance(TRANSFORMATION)
+    val spec = GCMParameterSpec(128, iv)
+    val requiresAuth = resolution.requiresAuthentication
+    val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
-    try {
-      val spec = GCMParameterSpec(128, iv)
-      cipher.init(Cipher.DECRYPT_MODE, key, spec)
-    } catch (invalidated: KeyPermanentlyInvalidatedException) {
-      deleteKey(alias)
-      throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
-    } catch (unrecoverable: UnrecoverableKeyException) {
-      deleteKey(alias)
-      throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
-    }
+    val readyCipher = try {
+      if (!requiresAuth) {
+        try {
+          cipher.init(Cipher.DECRYPT_MODE, key, spec)
+        } catch (invalidated: KeyPermanentlyInvalidatedException) {
+          deleteKey(alias)
+          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
+        } catch (unrecoverable: UnrecoverableKeyException) {
+          deleteKey(alias)
+          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
+        }
+        cipher
+      } else if (supportsKeystoreAuth) {
+        try {
+          cipher.init(Cipher.DECRYPT_MODE, key, spec)
+        } catch (invalidated: KeyPermanentlyInvalidatedException) {
+          deleteKey(alias)
+          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
+        } catch (unrecoverable: UnrecoverableKeyException) {
+          deleteKey(alias)
+          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
+        }
 
-    val readyCipher = if (resolution.requiresAuthentication) {
-      authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
-    } else {
-      cipher
+        val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
+        (authenticated ?: cipher)
+      } else {
+        authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
+        try {
+          cipher.init(Cipher.DECRYPT_MODE, key, spec)
+        } catch (invalidated: KeyPermanentlyInvalidatedException) {
+          deleteKey(alias)
+          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
+        } catch (unrecoverable: UnrecoverableKeyException) {
+          deleteKey(alias)
+          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
+        }
+        cipher
+      }
+    } catch (error: CancellationException) {
+      throw error
     }
 
     return readyCipher.doFinal(ciphertext)
