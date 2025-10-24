@@ -172,9 +172,6 @@ internal class BiometricAuthenticator {
   private fun currentFragmentActivity(): FragmentActivity {
     val activity = ReactContextHolder.currentActivity()
       ?: throw IllegalStateException("Unable to show authentication prompt: no active React activity.")
-    if (activity !is FragmentActivity) {
-      throw IllegalStateException("Current activity does not support FragmentManager required for biometric prompts.")
-    }
     return activity
   }
 

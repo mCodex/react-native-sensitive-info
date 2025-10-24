@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -9,6 +15,7 @@ import {
   Pressable,
   Switch,
   Platform,
+  StatusBar,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -107,6 +114,76 @@ function ActionButton({ label, onPress, disabled, style }: ActionButtonProps) {
   );
 }
 
+interface SectionProps {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
+function Section({ title, subtitle, actions, children, style }: SectionProps) {
+  return (
+    <View style={[styles.sectionContainer, style]}>
+      <View style={styles.section}>
+        <View style={styles.sectionHeading}>
+          <View style={styles.sectionHeadingText}>
+            <Text style={styles.sectionTitle}>{title}</Text>
+            {subtitle ? (
+              <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+            ) : null}
+          </View>
+          {actions}
+        </View>
+        <View style={styles.sectionBody}>{children}</View>
+      </View>
+    </View>
+  );
+}
+
+interface FieldProps {
+  label: string;
+  helper?: string;
+  children: ReactNode;
+}
+
+function Field({ label, helper, children }: FieldProps) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {helper ? <Text style={styles.fieldHelper}>{helper}</Text> : null}
+      <View style={styles.fieldControl}>{children}</View>
+    </View>
+  );
+}
+
+interface ToggleRowProps {
+  label: string;
+  helper?: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+}
+
+function ToggleRow({ label, helper, value, onValueChange }: ToggleRowProps) {
+  return (
+    <View style={styles.toggleCard}>
+      <View style={styles.toggleTextBlock}>
+        <Text style={styles.toggleLabel}>{label}</Text>
+        {helper ? <Text style={styles.toggleHelper}>{helper}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#d1d5db', true: '#bfdbfe' }}
+        thumbColor={
+          Platform.OS === 'android' ? (value ? '#2563eb' : '#f9fafb') : undefined
+        }
+        ios_backgroundColor="#d1d5db"
+      />
+    </View>
+  );
+}
+
 function App(): React.JSX.Element {
   const [service, setService] = useState(DEFAULT_SERVICE);
   const [keyName, setKeyName] = useState(DEFAULT_KEY);
@@ -128,7 +205,6 @@ function App(): React.JSX.Element {
     'Ready to interact with the secure store.',
   );
   const [pending, setPending] = useState(false);
-  const [lastSavedKey, setLastSavedKey] = useState<string | null>(null);
 
   const normalizedService = useMemo(() => {
     const trimmed = service.trim();
@@ -301,94 +377,137 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>react-native-sensitive-info demo</Text>
-        <Text style={styles.subtitle}>
-          Demonstrates secure storage operations, metadata, and platform
-          capability detection.
-        </Text>
+      <StatusBar barStyle="dark-content" backgroundColor="#f6f7fb" />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Sensitive Info Playground</Text>
+          <Text style={styles.subtitle}>
+            Explore secure storage flows, test authentication policies, and
+            inspect metadata in a refined light experience.
+          </Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>Light theme</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>Biometric ready</Text>
+            </View>
+          </View>
+        </View>
 
-        <View style={[styles.banner, styles.blockSpacing]}>
-          <Text style={styles.bannerTitle}>Simulators & emulators</Text>
+        <View style={styles.banner}>
+          <Text style={styles.bannerTitle}>Tip for hardware testing</Text>
           <Text style={styles.bannerText}>
-            Virtual devices often report limited security hardware. Expect
-            Secure Enclave / StrongBox to be unavailable and biometric prompts
-            to fall back to passcode screens.
+            Simulators rarely expose Secure Enclave, StrongBox, or full biometric
+            flows. Validate critical journeys on a physical device to mirror
+            production behaviour.
           </Text>
         </View>
 
-        <View style={[styles.section, styles.blockSpacing]}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Security capabilities</Text>
+        <Section
+          title="Security snapshot"
+          subtitle="Live capabilities reported by the native layer"
+          actions={
             <ActionButton
               label="Refresh"
               onPress={handleRefresh}
               disabled={pending}
-              style={styles.compactButton}
+              style={styles.sectionActionButton}
             />
-          </View>
+          }
+        >
           {availability ? (
-            <View style={styles.card}>
-              <Text style={styles.cardRow}>
-                Secure Enclave: {availability.secureEnclave ? 'yes' : 'no'}
-              </Text>
-              <Text style={styles.cardRow}>
-                StrongBox: {availability.strongBox ? 'yes' : 'no'}
-              </Text>
-              <Text style={styles.cardRow}>
-                Biometry: {availability.biometry ? 'yes' : 'no'}
-              </Text>
-              <Text style={styles.cardRow}>
-                Device credential:{' '}
-                {availability.deviceCredential ? 'yes' : 'no'}
-              </Text>
+            <View style={styles.metricsGrid}>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Secure Enclave</Text>
+                <Text style={styles.metricValue}>
+                  {availability.secureEnclave ? 'Available' : 'Unavailable'}
+                </Text>
+              </View>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>StrongBox</Text>
+                <Text style={styles.metricValue}>
+                  {availability.strongBox ? 'Available' : 'Unavailable'}
+                </Text>
+              </View>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Biometry</Text>
+                <Text style={styles.metricValue}>
+                  {availability.biometry ? 'Available' : 'Unavailable'}
+                </Text>
+              </View>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Device credential</Text>
+                <Text style={styles.metricValue}>
+                  {availability.deviceCredential ? 'Available' : 'Unavailable'}
+                </Text>
+              </View>
             </View>
           ) : (
             <Text style={styles.bodyText}>
-              Tap refresh to query native capabilities.
+              Tap refresh to fetch the security profile for this device.
             </Text>
           )}
-        </View>
+        </Section>
 
-        <View style={[styles.section, styles.blockSpacing]}>
-          <Text style={styles.sectionTitle}>Request configuration</Text>
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>Service</Text>
-          <TextInput
-            value={service}
-            onChangeText={setService}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={[styles.input, styles.sectionSpacingSmall]}
-            placeholder={DEFAULT_SERVICE}
-          />
+        <Section
+          title="Secret blueprint"
+          subtitle="Define the identifiers and payload for your secure entry"
+        >
+          <Field
+            label="Service"
+            helper="Defaults to demo-service when left blank."
+          >
+            <TextInput
+              value={service}
+              onChangeText={setService}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              placeholder={DEFAULT_SERVICE}
+              placeholderTextColor="#9ca3af"
+            />
+          </Field>
+          <Field
+            label="Key"
+            helper="Acts as the lookup identifier within the service."
+          >
+            <TextInput
+              value={keyName}
+              onChangeText={setKeyName}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              placeholder={DEFAULT_KEY}
+              placeholderTextColor="#9ca3af"
+            />
+          </Field>
+          <Field
+            label="Secret value"
+            helper="Stored exactly as provided. Avoid personal data in demos."
+          >
+            <TextInput
+              value={secret}
+              onChangeText={setSecret}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[styles.input, styles.multiLineInput]}
+              placeholder={DEFAULT_VALUE}
+              placeholderTextColor="#9ca3af"
+              multiline
+            />
+          </Field>
+        </Section>
 
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>Key</Text>
-          <TextInput
-            value={keyName}
-            onChangeText={setKeyName}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={[styles.input, styles.sectionSpacingSmall]}
-            placeholder={DEFAULT_KEY}
-          />
-
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>
-            Secret value
-          </Text>
-          <TextInput
-            value={secret}
-            onChangeText={setSecret}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={[styles.input, styles.sectionSpacingSmall]}
-            placeholder={DEFAULT_VALUE}
-          />
-
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>
-            Access control
-          </Text>
+        <Section
+          title="Security & authentication"
+          subtitle="Tune access control, prompts, and cross-platform behaviour"
+        >
           <View style={styles.accessOptionsContainer}>
-            {ACCESS_CONTROL_OPTIONS.map((option, index) => {
+            {ACCESS_CONTROL_OPTIONS.map((option) => {
               const selected = option.value === selectedAccessControl;
               return (
                 <Pressable
@@ -396,10 +515,10 @@ function App(): React.JSX.Element {
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   onPress={() => setSelectedAccessControl(option.value)}
-                  style={[
+                  style={({ pressed }) => [
                     styles.accessOption,
                     selected && styles.accessOptionSelected,
-                    index > 0 && styles.accessOptionSpacing,
+                    pressed && styles.accessOptionPressed,
                   ]}
                 >
                   <Text
@@ -418,57 +537,57 @@ function App(): React.JSX.Element {
             })}
           </View>
 
-          <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>Include values when enumerating</Text>
-            <Switch value={includeValues} onValueChange={setIncludeValues} />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>
-              Include value when fetching a key
-            </Text>
-            <Switch
-              value={includeValueOnGet}
-              onValueChange={setIncludeValueOnGet}
-            />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>
-              Use biometrics prompt (if required)
-            </Text>
-            <Switch value={usePrompt} onValueChange={setUsePrompt} />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>iCloud keychain sync (iOS)</Text>
-            <Switch
-              value={iosSynchronizable}
-              onValueChange={setIosSynchronizable}
-            />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.bodyText}>
-              Android biometrics must be strong
-            </Text>
-            <Switch
-              value={androidBiometricsStrongOnly}
-              onValueChange={setAndroidBiometricsStrongOnly}
-            />
-          </View>
-
-          <Text style={[styles.bodyText, styles.sectionSpacing]}>
-            Custom keychain access group (optional)
-          </Text>
-          <TextInput
-            value={keychainGroup}
-            onChangeText={setKeychainGroup}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={[styles.input, styles.sectionSpacingSmall]}
-            placeholder="com.example.shared"
+          <ToggleRow
+            label="Include values when listing"
+            helper="Disabling hides the secret content in the inventory view."
+            value={includeValues}
+            onValueChange={setIncludeValues}
           />
-        </View>
+          <ToggleRow
+            label="Return value on direct fetch"
+            helper="Applies to the Get action when retrieving a single key."
+            value={includeValueOnGet}
+            onValueChange={setIncludeValueOnGet}
+          />
+          <ToggleRow
+            label="Show authentication prompt"
+            helper="Custom prompt copy helps users understand why authentication is required."
+            value={usePrompt}
+            onValueChange={setUsePrompt}
+          />
+          <ToggleRow
+            label="Sync with iCloud keychain"
+            helper="Available on Apple platforms that support keychain synchronisation."
+            value={iosSynchronizable}
+            onValueChange={setIosSynchronizable}
+          />
+          <ToggleRow
+            label="Require strong biometrics (Android)"
+            helper="Limits authentication to Class 3 credentials where available."
+            value={androidBiometricsStrongOnly}
+            onValueChange={setAndroidBiometricsStrongOnly}
+          />
 
-        <View style={[styles.section, styles.blockSpacing]}>
-          <Text style={styles.sectionTitle}>Actions</Text>
+          <Field
+            label="Shared keychain access group"
+            helper="Optional. Use to share credentials across bundle identifiers."
+          >
+            <TextInput
+              value={keychainGroup}
+              onChangeText={setKeychainGroup}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              placeholder="com.example.shared"
+              placeholderTextColor="#9ca3af"
+            />
+          </Field>
+        </Section>
+
+        <Section
+          title="Quick actions"
+          subtitle="Execute common storage operations"
+        >
           <View style={styles.buttonGrid}>
             <ActionButton
               label="Save"
@@ -501,49 +620,52 @@ function App(): React.JSX.Element {
               disabled={pending}
             />
           </View>
-        </View>
+        </Section>
 
-        <View style={[styles.section, styles.blockSpacing]}>
-          <Text style={styles.sectionTitle}>Stored items</Text>
+        <Section
+          title="Secrets inventory"
+          subtitle={`Currently tracking ${items.length} entr${items.length === 1 ? 'y' : 'ies'} for ${baseOptions.service}`}
+        >
           {items.length === 0 ? (
-            <Text style={styles.bodyText}>
-              No secrets stored for service "{baseOptions.service}".
+            <Text style={styles.emptyState}>
+              Nothing stored yet. Save a secret to see it appear here.
             </Text>
           ) : (
-            items.map((item, index) => (
-              <View
-                key={`${item.service}-${item.key}`}
-                style={[styles.card, index > 0 && styles.cardSpacing]}
-              >
-                <Text style={styles.cardTitle}>{item.key}</Text>
-                <Text style={styles.cardRow}>Service: {item.service}</Text>
-                {includeValues && item.value != null && (
-                  <Text style={styles.cardRow}>Value: {item.value}</Text>
-                )}
-                <Text style={styles.cardRow}>
-                  Security level: {item.metadata.securityLevel}
-                </Text>
-                <Text style={styles.cardRow}>
-                  Access control: {item.metadata.accessControl}
-                </Text>
-                <Text style={styles.cardRow}>
-                  Backend: {item.metadata.backend}
-                </Text>
-                <Text style={styles.cardRow}>
-                  Stored at:{' '}
-                  {new Date(item.metadata.timestamp * 1000).toLocaleString()}
-                </Text>
+            items.map((item) => (
+              <View key={`${item.service}-${item.key}`} style={styles.itemCard}>
+                <Text style={styles.itemTitle}>{item.key}</Text>
+                <Text style={styles.itemMeta}>Service · {item.service}</Text>
+                {includeValues && item.value != null ? (
+                  <Text style={styles.itemValue}>{item.value}</Text>
+                ) : null}
+                <View style={styles.itemRowGroup}>
+                  <Text style={styles.itemRow}>
+                    Security level · {item.metadata.securityLevel}
+                  </Text>
+                  <Text style={styles.itemRow}>
+                    Access control · {item.metadata.accessControl}
+                  </Text>
+                  <Text style={styles.itemRow}>
+                    Backend · {item.metadata.backend}
+                  </Text>
+                  <Text style={styles.itemRow}>
+                    Stored at · {new Date(item.metadata.timestamp * 1000).toLocaleString()}
+                  </Text>
+                </View>
               </View>
             ))
           )}
-        </View>
+        </Section>
 
-        <View style={[styles.section, styles.blockSpacing]}>
-          <Text style={styles.sectionTitle}>Last result</Text>
+        <Section
+          title="Activity log"
+          subtitle="Latest operation outcome"
+          style={styles.logSection}
+        >
           <View style={styles.logContainer}>
             <Text style={styles.logText}>{lastResult}</Text>
           </View>
-        </View>
+        </Section>
       </ScrollView>
     </SafeAreaView>
   );
@@ -552,179 +674,310 @@ function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#101418',
+    backgroundColor: '#f6f7fb',
   },
-  container: {
+  scrollContent: {
     paddingHorizontal: 24,
     paddingVertical: 24,
+    paddingBottom: 48,
+  },
+  header: {
+    marginBottom: 24,
   },
   title: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '600',
+    color: '#111827',
+    fontSize: 28,
+    fontWeight: '700',
   },
   subtitle: {
-    color: '#9ca3af',
+    color: '#4b5563',
     fontSize: 16,
-  },
-  banner: {
-    backgroundColor: '#1f2933',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#273341',
-  },
-  bannerTitle: {
-    color: '#fbbf24',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  bannerText: {
-    color: '#d1d5db',
-    fontSize: 14,
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  section: {
-    backgroundColor: '#111827',
-    padding: 18,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#1f2937',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    color: '#e5e7eb',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  bodyText: {
-    color: '#d1d5db',
-    fontSize: 15,
-  },
-  sectionSpacing: {
-    marginTop: 12,
-  },
-  sectionSpacingSmall: {
+    lineHeight: 24,
     marginTop: 8,
   },
-  input: {
-    backgroundColor: '#0f172a',
-    color: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    borderRadius: 10,
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 16,
+  },
+  badge: {
+    backgroundColor: '#ede9fe',
     paddingHorizontal: 12,
-    paddingVertical: Platform.select({ ios: 10, default: 8 }),
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  badgeText: {
+    color: '#5b21b6',
+    fontWeight: '600',
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  banner: {
+    backgroundColor: '#e0f2fe',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#c7e0f5',
+    padding: 18,
+    marginBottom: 24,
+  },
+  bannerTitle: {
+    color: '#0f172a',
+    fontWeight: '700',
     fontSize: 15,
   },
-  accessOptionsContainer: {
-    marginTop: 12,
+  bannerText: {
+    color: '#1e3a8a',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
   },
-  accessOption: {
-    padding: 12,
-    borderRadius: 10,
+  sectionContainer: {
+    marginTop: 24,
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#313c4a',
-    backgroundColor: '#0b1220',
+    borderColor: '#e6ecf5',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
-  accessOptionSpacing: {
-    marginTop: 12,
+  sectionHeading: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  accessOptionSelected: {
-    borderColor: '#4f46e5',
-    backgroundColor: '#1c2540',
+  sectionHeadingText: {
+    flex: 1,
+    paddingRight: 12,
   },
-  accessOptionLabel: {
-    color: '#e0e7ff',
+  sectionTitle: {
+    color: '#111827',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  sectionSubtitle: {
+    color: '#6b7280',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+  },
+  sectionBody: {
+    marginTop: 20,
+  },
+  sectionActionButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: -4,
+  },
+  bodyText: {
+    color: '#4b5563',
+    fontSize: 15,
+  },
+  field: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    color: '#1f2937',
+    fontSize: 15,
     fontWeight: '600',
   },
-  accessOptionLabelSelected: {
-    color: '#c7d2fe',
-  },
-  accessOptionDescription: {
-    color: '#94a3b8',
+  fieldHelper: {
+    color: '#6b7280',
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
   },
-  toggleRow: {
+  fieldControl: {
+    marginTop: 10,
+  },
+  input: {
+    backgroundColor: '#f9fafb',
+    color: '#111827',
+    borderWidth: 1,
+    borderColor: '#dbe2f1',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.select({ ios: 12, default: 10 }),
+    fontSize: 15,
+  },
+  multiLineInput: {
+    minHeight: 72,
+    textAlignVertical: 'top',
+  },
+  accessOptionsContainer: {
+    marginBottom: 12,
+  },
+  accessOption: {
+    borderWidth: 1,
+    borderColor: '#e5e7ff',
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: '#f8faff',
+    marginBottom: 12,
+  },
+  accessOptionSelected: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eef2ff',
+  },
+  accessOptionPressed: {
+    opacity: 0.9,
+  },
+  accessOptionLabel: {
+    color: '#1f2937',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  accessOptionLabelSelected: {
+    color: '#1d4ed8',
+  },
+  accessOptionDescription: {
+    color: '#6b7280',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  toggleCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    justifyContent: 'space-between',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fdfefe',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  toggleTextBlock: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  toggleLabel: {
+    color: '#1f2937',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  toggleHelper: {
+    color: '#6b7280',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -8,
+  },
+  metricCard: {
+    minWidth: 140,
+    flexGrow: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafc',
+    padding: 16,
+    margin: 8,
+  },
+  metricLabel: {
+    color: '#4b5563',
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  metricValue: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 8,
   },
   buttonGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 12,
+    marginHorizontal: -8,
   },
   button: {
-    backgroundColor: '#4338ca',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    backgroundColor: '#2563eb',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 999,
-    marginRight: 12,
-    marginBottom: 12,
-  },
-  compactButton: {
-    marginRight: 0,
-    marginBottom: 0,
+    marginHorizontal: 8,
+    marginBottom: 16,
   },
   buttonPressed: {
-    backgroundColor: '#3730a3',
+    backgroundColor: '#1d4ed8',
   },
   buttonDisabled: {
-    backgroundColor: '#312e81',
-    opacity: 0.7,
+    backgroundColor: '#93c5fd',
   },
   buttonLabel: {
-    color: '#e0e7ff',
+    color: '#ffffff',
     fontWeight: '600',
+    fontSize: 15,
   },
-  card: {
-    backgroundColor: '#0f172a',
-    borderRadius: 10,
+  itemCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1f2937',
-    padding: 14,
+    borderColor: '#e5e7eb',
+    padding: 18,
+    marginBottom: 16,
   },
-  cardSpacing: {
-    marginTop: 12,
-  },
-  cardTitle: {
-    color: '#f9fafb',
+  itemTitle: {
+    color: '#111827',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  cardRow: {
-    color: '#cbd5f5',
-    fontSize: 14,
+  itemMeta: {
+    color: '#6b7280',
+    fontSize: 13,
     marginTop: 4,
   },
-  logContainer: {
-    backgroundColor: '#0f172a',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#1f2937',
-    padding: 14,
+  itemValue: {
+    color: '#111827',
+    fontSize: 15,
+    fontWeight: '500',
+    marginTop: 10,
+  },
+  itemRowGroup: {
     marginTop: 12,
   },
+  itemRow: {
+    color: '#4b5563',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  emptyState: {
+    color: '#6b7280',
+    fontSize: 14,
+  },
+  logSection: {
+    marginBottom: 12,
+  },
+  logContainer: {
+    backgroundColor: '#11182708',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#dbe2f1',
+    padding: 16,
+  },
   logText: {
-    color: '#f3f4f6',
+    color: '#1f2937',
     fontFamily: Platform.select({
       ios: 'Menlo',
       android: 'monospace',
       default: 'Courier',
     }),
     fontSize: 13,
-  },
-  blockSpacing: {
-    marginTop: 24,
+    lineHeight: 18,
   },
 });
 
