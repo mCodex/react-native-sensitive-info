@@ -9,6 +9,7 @@
 const path = require('node:path')
 const { writeFile, readFile } = require('node:fs/promises')
 const { readdir } = require('node:fs/promises')
+const { stat } = require('node:fs/promises')
 
 const updateViewManagerFiles = async (file) => {
   const viewManagerFile = path.join(
@@ -34,24 +35,33 @@ const androidWorkaround = async () => {
     'SensitiveInfoOnLoad.cpp'
   )
 
-  const viewManagerDir = await readdir(
-    path.join(
-      process.cwd(),
-      'nitrogen/generated/android/kotlin/com/margelo/nitro/sensitiveinfo/views'
-    )
-  )
-  const viewManagerFiles = viewManagerDir.filter((file) =>
-    file.endsWith('Manager.kt')
-  )
-  const res = await Promise.allSettled(
-    viewManagerFiles.map(updateViewManagerFiles)
+  const viewManagerDirPath = path.join(
+    process.cwd(),
+    'nitrogen/generated/android/kotlin/com/margelo/nitro/sensitiveinfo/views'
   )
 
-  if (res.some((r) => r.status === 'rejected')) {
-    throw new Error(`Error updating view manager files: ${res}`)
+  // Check if views directory exists (only for modules with views)
+  try {
+    await stat(viewManagerDirPath)
+    // Views directory exists, process view manager files
+    const viewManagerDir = await readdir(viewManagerDirPath)
+    const viewManagerFiles = viewManagerDir.filter((file) =>
+      file.endsWith('Manager.kt')
+    )
+    const res = await Promise.allSettled(
+      viewManagerFiles.map(updateViewManagerFiles)
+    )
+
+    if (res.some((r) => r.status === 'rejected')) {
+      throw new Error(`Error updating view manager files: ${res}`)
+    }
+  } catch (error) {
+    // Views directory doesn't exist, skip view manager processing
+    console.log('No views directory found, skipping view manager updates')
   }
 
   const str = await readFile(androidOnLoadFile, { encoding: 'utf8' })
   await writeFile(androidOnLoadFile, str.replace(/margelo\/nitro\//g, ''))
 }
+
 androidWorkaround()
