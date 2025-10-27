@@ -20,15 +20,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
-  clearService,
-  deleteItem,
-  getAllItems,
-  getItem,
-  getSupportedSecurityLevels,
-  hasItem,
-  setItem,
+  useSecureStorage,
+  useSecurityAvailability,
+  useSecretItem,
   type AccessControl,
-  type SecurityAvailability,
   type SensitiveInfoItem,
 } from 'react-native-sensitive-info';
 
@@ -189,6 +184,7 @@ function ToggleRow({ label, helper, value, onValueChange }: ToggleRowProps) {
 }
 
 function App(): React.JSX.Element {
+  // Configuration state
   const [service, setService] = useState(DEFAULT_SERVICE);
   const [keyName, setKeyName] = useState(DEFAULT_KEY);
   const [secret, setSecret] = useState(DEFAULT_VALUE);
@@ -199,35 +195,51 @@ function App(): React.JSX.Element {
   const [iosSynchronizable, setIosSynchronizable] = useState(false);
   const [usePrompt, setUsePrompt] = useState(true);
   const [keychainGroup, setKeychainGroup] = useState('');
-  const [availability, setAvailability] = useState<SecurityAvailability | null>(
-    null,
-  );
-  const [items, setItems] = useState<SensitiveInfoItem[]>([]);
   const [lastResult, setLastResult] = useState(
     'Ready to interact with the secure store.',
   );
   const [pending, setPending] = useState(false);
 
+  // Use hooks for reactive data management
+  const {
+    data: capabilities,
+    isLoading: capabilitiesLoading,
+    refetch: refetchCapabilities,
+  } = useSecurityAvailability();
+
+  const {
+    items,
+    isLoading: itemsLoading,
+    error: storageError,
+    saveSecret: hookSaveSecret,
+    removeSecret: hookRemoveSecret,
+    clearAll: hookClearAll,
+    refreshItems,
+  } = useSecureStorage({
+    service: normalizedService,
+    includeValues,
+  });
+
   const isOptionAvailable = useCallback(
     (value: AccessControl) => {
-      if (!availability) {
+      if (!capabilities) {
         return true;
       }
 
       switch (value) {
         case 'secureEnclaveBiometry':
-          return availability.secureEnclave || availability.strongBox;
+          return capabilities.secureEnclave || capabilities.strongBox;
         case 'biometryCurrentSet':
         case 'biometryAny':
-          return availability.biometry;
+          return capabilities.biometry;
         case 'devicePasscode':
-          return availability.deviceCredential;
+          return capabilities.deviceCredential;
         case 'none':
         default:
           return true;
       }
     },
-    [availability],
+    [capabilities],
   );
 
   const normalizedService = useMemo(() => {
@@ -265,45 +277,8 @@ function App(): React.JSX.Element {
     ],
   );
 
-  const refreshAvailability = useCallback(async () => {
-    try {
-      const result = await getSupportedSecurityLevels();
-      setAvailability(result);
-      setLastResult(
-        `Security capabilities refreshed at ${new Date().toLocaleTimeString()}`,
-      );
-    } catch (error) {
-      setLastResult(formatError(error));
-    }
-  }, []);
-
-  const refreshItems = useCallback(
-    async (opts?: { suppressSensitiveValues?: boolean }) => {
-      try {
-        const shouldIncludeValues =
-          includeValues && !opts?.suppressSensitiveValues;
-        const entries = await getAllItems({
-          ...baseOptions,
-          includeValues: shouldIncludeValues,
-          authenticationPrompt: shouldIncludeValues
-            ? baseOptions.authenticationPrompt
-            : undefined,
-        });
-        setItems(entries);
-      } catch (error) {
-        setLastResult(formatError(error));
-      }
-    },
-    [baseOptions, includeValues],
-  );
-
   useEffect(() => {
-    void refreshAvailability();
-    void refreshItems();
-  }, [refreshAvailability, refreshItems]);
-
-  useEffect(() => {
-    if (!availability) {
+    if (!capabilities) {
       return;
     }
 
@@ -318,7 +293,7 @@ function App(): React.JSX.Element {
     if (fallback) {
       setSelectedAccessControl(fallback.value);
     }
-  }, [availability, isOptionAvailable, selectedAccessControl]);
+  }, [capabilities, isOptionAvailable, selectedAccessControl]);
 
   const execute = useCallback(
     async (task: () => Promise<void>) => {
@@ -338,21 +313,32 @@ function App(): React.JSX.Element {
   const handleSetItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const result = await setItem(keyName, secret, baseOptions);
-        setLastResult(
-          `Saved secret with policy=${result.metadata.accessControl}, level=${result.metadata.securityLevel}`,
-        );
-        await refreshItems({ suppressSensitiveValues: true });
+        const { success, error } = await hookSaveSecret(keyName, secret);
+        if (success) {
+          setLastResult(
+            `Saved secret with access control policy: ${selectedAccessControl}`,
+          );
+          await refreshItems();
+        } else {
+          setLastResult(`Error: ${error?.message || 'Failed to save'}`);
+        }
       } catch (error) {
         setLastResult(formatError(error));
       }
     });
-  }, [baseOptions, execute, keyName, refreshItems, secret]);
+  }, [
+    keyName,
+    secret,
+    selectedAccessControl,
+    hookSaveSecret,
+    refreshItems,
+    execute,
+  ]);
 
   const handleGetItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const item = await getItem(keyName, {
+        const item = await useSecretItem(keyName, {
           ...baseOptions,
           includeValue: includeValueOnGet,
         });
@@ -365,53 +351,44 @@ function App(): React.JSX.Element {
         setLastResult(formatError(error));
       }
     });
-  }, [baseOptions, execute, includeValueOnGet, keyName]);
-
-  const handleHasItem = useCallback(async () => {
-    await execute(async () => {
-      try {
-        const exists = await hasItem(keyName, baseOptions);
-        setLastResult(
-          `Key "${keyName}" ${exists ? 'exists' : 'does not exist'} in service "${baseOptions.service}"`,
-        );
-      } catch (error) {
-        setLastResult(formatError(error));
-      }
-    });
-  }, [baseOptions, execute, keyName]);
+  }, [keyName, baseOptions, includeValueOnGet, execute]);
 
   const handleDeleteItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const deleted = await deleteItem(keyName, baseOptions);
-        setLastResult(
-          deleted ? 'Secret deleted.' : 'Nothing deleted (key was absent).',
-        );
-        await refreshItems();
+        const { success } = await hookRemoveSecret(keyName);
+        if (success) {
+          setLastResult('Secret deleted.');
+          await refreshItems();
+        } else {
+          setLastResult('Nothing deleted (key was absent).');
+        }
       } catch (error) {
         setLastResult(formatError(error));
       }
     });
-  }, [baseOptions, execute, keyName, refreshItems]);
+  }, [keyName, hookRemoveSecret, refreshItems, execute]);
 
   const handleClearService = useCallback(async () => {
     await execute(async () => {
       try {
-        await clearService(baseOptions);
-        setLastResult(`Cleared service "${baseOptions.service}"`);
-        await refreshItems();
+        const { success } = await hookClearAll();
+        if (success) {
+          setLastResult(`Cleared service "${baseOptions.service}"`);
+          await refreshItems();
+        }
       } catch (error) {
         setLastResult(formatError(error));
       }
     });
-  }, [baseOptions, execute, refreshItems]);
+  }, [baseOptions.service, hookClearAll, refreshItems, execute]);
 
   const handleRefresh = useCallback(async () => {
     await execute(async () => {
-      await refreshAvailability();
+      await refetchCapabilities();
       await refreshItems();
     });
-  }, [execute, refreshAvailability, refreshItems]);
+  }, [execute, refetchCapabilities, refreshItems]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -457,30 +434,32 @@ function App(): React.JSX.Element {
             />
           }
         >
-          {availability ? (
+          {capabilitiesLoading ? (
+            <Text style={styles.bodyText}>Detecting capabilities...</Text>
+          ) : capabilities ? (
             <View style={styles.metricsGrid}>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>Secure Enclave</Text>
                 <Text style={styles.metricValue}>
-                  {availability.secureEnclave ? 'Available' : 'Unavailable'}
+                  {capabilities.secureEnclave ? 'Available' : 'Unavailable'}
                 </Text>
               </View>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>StrongBox</Text>
                 <Text style={styles.metricValue}>
-                  {availability.strongBox ? 'Available' : 'Unavailable'}
+                  {capabilities.strongBox ? 'Available' : 'Unavailable'}
                 </Text>
               </View>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>Biometry</Text>
                 <Text style={styles.metricValue}>
-                  {availability.biometry ? 'Available' : 'Unavailable'}
+                  {capabilities.biometry ? 'Available' : 'Unavailable'}
                 </Text>
               </View>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>Device credential</Text>
                 <Text style={styles.metricValue}>
-                  {availability.deviceCredential ? 'Available' : 'Unavailable'}
+                  {capabilities.deviceCredential ? 'Available' : 'Unavailable'}
                 </Text>
               </View>
             </View>
@@ -653,11 +632,6 @@ function App(): React.JSX.Element {
             <ActionButton
               label="Get"
               onPress={handleGetItem}
-              disabled={pending}
-            />
-            <ActionButton
-              label="Has"
-              onPress={handleHasItem}
               disabled={pending}
             />
             <ActionButton

@@ -1,9 +1,6 @@
-import { getHybridObjectConstructor } from 'react-native-nitro-modules'
 import type {
-  AccessControl,
   MutationResult,
   SecurityAvailability,
-  SensitiveInfo as SensitiveInfoNativeHandle,
   SensitiveInfoDeleteRequest,
   SensitiveInfoEnumerateRequest,
   SensitiveInfoGetRequest,
@@ -11,45 +8,10 @@ import type {
   SensitiveInfoItem,
   SensitiveInfoOptions,
   SensitiveInfoSetRequest,
-} from './views/sensitive-info.nitro'
-
-const SensitiveInfoCtor =
-  getHybridObjectConstructor<SensitiveInfoNativeHandle>('SensitiveInfo')
-
-let cachedInstance: SensitiveInfoNativeHandle | null = null
-
-const DEFAULT_SERVICE = 'default'
-const DEFAULT_ACCESS_CONTROL: AccessControl = 'secureEnclaveBiometry'
-
-/**
- * Lazily instantiates the underlying Nitro hybrid object.
- * Nitro guarantees this object is shared across the app lifecycle, so we cache it on the JS side as well.
- */
-function ensureInstance(): SensitiveInfoNativeHandle {
-  if (cachedInstance == null) {
-    cachedInstance = new SensitiveInfoCtor()
-  }
-  return cachedInstance
-}
-
-/**
- * Normalizes user provided options by applying sensible defaults and pruning `undefined` values.
- */
-function resolveOptions(options?: SensitiveInfoOptions): SensitiveInfoOptions {
-  if (options == null) {
-    return {
-      service: DEFAULT_SERVICE,
-      accessControl: DEFAULT_ACCESS_CONTROL,
-    }
-  }
-  return {
-    service: options.service ?? DEFAULT_SERVICE,
-    accessControl: options.accessControl ?? DEFAULT_ACCESS_CONTROL,
-    iosSynchronizable: options.iosSynchronizable,
-    keychainGroup: options.keychainGroup,
-    authenticationPrompt: options.authenticationPrompt,
-  }
-}
+} from './sensitive-info.nitro'
+import getNativeInstance from './native'
+import { normalizeOptions } from './options'
+import { isNotFoundError } from './errors'
 
 /**
  * Persist a secret value in the platform secure storage.
@@ -68,23 +30,13 @@ export async function setItem(
   value: string,
   options?: SensitiveInfoOptions
 ): Promise<MutationResult> {
-  const native = ensureInstance()
+  const native = getNativeInstance()
   const payload: SensitiveInfoSetRequest = {
     key,
     value,
-    ...resolveOptions(options),
+    ...normalizeOptions(options),
   }
   return native.setItem(payload)
-}
-
-function isNotFoundError(error: unknown): boolean {
-  if (error instanceof Error) {
-    return error.message?.includes('[E_NOT_FOUND]') ?? false
-  }
-  if (typeof error === 'string') {
-    return error.includes('[E_NOT_FOUND]')
-  }
-  return false
 }
 
 /**
@@ -95,11 +47,11 @@ export async function getItem(
   key: string,
   options?: SensitiveInfoOptions & { includeValue?: boolean }
 ): Promise<SensitiveInfoItem | null> {
-  const native = ensureInstance()
+  const native = getNativeInstance()
   const payload: SensitiveInfoGetRequest = {
     key,
     includeValue: options?.includeValue ?? true,
-    ...resolveOptions(options),
+    ...normalizeOptions(options),
   }
   try {
     return await native.getItem(payload)
@@ -118,10 +70,10 @@ export async function hasItem(
   key: string,
   options?: SensitiveInfoOptions
 ): Promise<boolean> {
-  const native = ensureInstance()
+  const native = getNativeInstance()
   const payload: SensitiveInfoHasRequest = {
     key,
-    ...resolveOptions(options),
+    ...normalizeOptions(options),
   }
   return native.hasItem(payload)
 }
@@ -133,10 +85,10 @@ export async function deleteItem(
   key: string,
   options?: SensitiveInfoOptions
 ): Promise<boolean> {
-  const native = ensureInstance()
+  const native = getNativeInstance()
   const payload: SensitiveInfoDeleteRequest = {
     key,
-    ...resolveOptions(options),
+    ...normalizeOptions(options),
   }
   return native.deleteItem(payload)
 }
@@ -147,10 +99,10 @@ export async function deleteItem(
 export async function getAllItems(
   options?: SensitiveInfoEnumerateRequest
 ): Promise<SensitiveInfoItem[]> {
-  const native = ensureInstance()
+  const native = getNativeInstance()
   const payload: SensitiveInfoEnumerateRequest = {
     includeValues: options?.includeValues ?? false,
-    ...resolveOptions(options),
+    ...normalizeOptions(options),
   }
   return native.getAllItems(payload)
 }
@@ -161,15 +113,15 @@ export async function getAllItems(
 export async function clearService(
   options?: SensitiveInfoOptions
 ): Promise<void> {
-  const native = ensureInstance()
-  return native.clearService(resolveOptions(options))
+  const native = getNativeInstance()
+  return native.clearService(normalizeOptions(options))
 }
 
 /**
  * Inspect which security primitives are available on the current device.
  */
 export function getSupportedSecurityLevels(): Promise<SecurityAvailability> {
-  const native = ensureInstance()
+  const native = getNativeInstance()
   return native.getSupportedSecurityLevels()
 }
 
@@ -187,16 +139,3 @@ export const SensitiveInfo = {
 } as const
 
 export default SensitiveInfo
-
-export type {
-  AccessControl,
-  MutationResult,
-  SecurityAvailability,
-  SensitiveInfoDeleteRequest,
-  SensitiveInfoEnumerateRequest,
-  SensitiveInfoGetRequest,
-  SensitiveInfoHasRequest,
-  SensitiveInfoItem,
-  SensitiveInfoOptions,
-  SensitiveInfoSetRequest,
-} from './views/sensitive-info.nitro'
