@@ -54,6 +54,10 @@ internal object ReactContextHolder {
       ?: throw IllegalStateException("ReactApplicationContext not yet available for SensitiveInfo.")
   }
 
+  fun getReactApplicationContext(): ReactApplicationContext {
+    return requireContext()
+  }
+
   fun currentActivity(): FragmentActivity? {
     val active = activityRef.get()?.get()
     if (active != null && !active.isFinishing && !active.isDestroyed) {

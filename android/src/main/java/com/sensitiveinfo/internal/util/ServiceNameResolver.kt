@@ -18,6 +18,10 @@ internal class ServiceNameResolver(private val context: Context) {
     return if (trimmed.isNullOrEmpty()) defaultService else trimmed
   }
 
+  fun normalizeService(requested: String?): String {
+    return resolve(requested)
+  }
+
   fun preferencesFileFor(service: String): String {
     val normalized = resolve(service)
     val digest = MessageDigest.getInstance("SHA-256").digest(normalized.toByteArray())
