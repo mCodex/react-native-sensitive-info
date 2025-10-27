@@ -103,6 +103,41 @@ No manual linking is required. Nitro handles platform registration via autolinki
 
 - If you rely on hardware-backed keystores, verify the device/emulator supports the biometrics you request.
 
+### 🧪 Expo setup
+
+> [!WARNING]
+> The Expo Go client does not ship native Nitro modules. Use a custom dev client (`expo run:*`) or an EAS build instead.
+
+1. Add the plugin to your `app.json`/`app.config.js` so prebuild toggles the new architecture for both platforms:
+
+  ```json
+  {
+    "expo": {
+      "plugins": [
+        "react-native-sensitive-info",
+        "react-native-nitro-modules"
+      ]
+    }
+  }
+  ```
+
+2. Regenerate the native projects after updating the config:
+
+  ```bash
+  npx expo prebuild --clean
+  ```
+
+3. Create a development client or production build that bundles the native module:
+
+  ```bash
+  npx expo run:android
+  npx expo run:ios
+  # or via EAS
+  eas build --profile development --platform android
+  ```
+
+The plugin enables React Native's new architecture on both platforms, ensuring the `HybridSensitiveInfo` Nitro class is included during compilation.
+
 > [!TIP]
 > Use `includeValue: false` during reads when you only care about metadata—this keeps plaintext out of memory and speeds up list views.
 
