@@ -1,7 +1,7 @@
 const {
   createRunOncePlugin,
-  withAndroidGradleProperties,
-  withIosPodfileProperties,
+  withGradleProperties,
+  withPodfileProperties,
 } = require('@expo/config-plugins')
 
 const pkg = require('./package.json')
@@ -16,7 +16,7 @@ function ensureGradleProperty(gradleProperties, name, value) {
 }
 
 function withAndroidNewArchitecture(config) {
-  return withAndroidGradleProperties(config, (modConfig) => {
+  return withGradleProperties(config, (modConfig) => {
     ensureGradleProperty(modConfig.modResults, 'newArchEnabled', 'true')
     ensureGradleProperty(modConfig.modResults, 'expo.jsEngine', 'hermes')
     return modConfig
@@ -24,7 +24,7 @@ function withAndroidNewArchitecture(config) {
 }
 
 function withIosNewArchitecture(config) {
-  return withIosPodfileProperties(config, (modConfig) => {
+  return withPodfileProperties(config, (modConfig) => {
     modConfig.modResults.new_arch_enabled = 'true'
     modConfig.modResults.RCT_NEW_ARCH_ENABLED = '1'
     return modConfig
