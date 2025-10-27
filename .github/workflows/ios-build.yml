@@ -17,7 +17,7 @@ on:
       - 'cpp/**'
       - 'ios/**'
       - '**/Podfile.lock'
-      - '**/bun.lock'
+      - '**/yarn.lock'
       - '**/*.podspec'
       - '**/react-native.config.js'
       - '**/nitro.json'
@@ -32,7 +32,7 @@ on:
       - 'cpp/**'
       - 'ios/**'
       - '**/Podfile.lock'
-      - '**/bun.lock'
+      - '**/yarn.lock'
       - '**/*.podspec'
       - '**/react-native.config.js'
       - '**/nitro.json'
@@ -55,18 +55,20 @@ jobs:
         arch: [new, old]
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: 16.4
 
-      - name: Install dependencies (bun)
-        run: bun install
+      - name: Install dependencies (yarn)
+        run: yarn install --frozen-lockfile
 
       - name: Generate Nitro modules (codegen)
-        run: |
-          npm run codegen
+        run: yarn codegen
 
       - name: Disable new architecture in Podfile
         if: matrix.arch == 'old'
