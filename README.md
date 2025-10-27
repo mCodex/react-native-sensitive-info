@@ -114,8 +114,7 @@ No manual linking is required. Nitro handles platform registration via autolinki
   {
     "expo": {
       "plugins": [
-        "react-native-sensitive-info",
-        "react-native-nitro-modules"
+        "react-native-sensitive-info"
       ]
     }
   }
