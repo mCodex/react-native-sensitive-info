@@ -21,6 +21,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 internal class DeviceCredentialPromptFragment : Fragment() {
   private var continuation: CancellableContinuation<Boolean>? = null
 
+  @Suppress("DEPRECATION")
   fun launch(prompt: AuthenticationPrompt, cont: CancellableContinuation<Boolean>) {
     continuation = cont
 
@@ -46,7 +47,7 @@ internal class DeviceCredentialPromptFragment : Fragment() {
     }
   }
 
-  @Suppress("OVERRIDE_DEPRECATION")
+  @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode != REQUEST_CODE) return
