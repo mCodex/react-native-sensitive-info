@@ -82,7 +82,7 @@
     "nitrogen": "0.31.2",
     "prettier": "^3.6.2",
     "react": "19.1.1",
-    "react-dom": "19.1.1",
+    "react-dom": "19.2.0",
     "react-native": "0.82",
     "react-native-builder-bob": "^0.40.13",
     "react-native-nitro-modules": "0.31.2",
