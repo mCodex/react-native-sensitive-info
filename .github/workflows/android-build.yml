@@ -38,7 +38,6 @@ jobs:
   build:
     name: Build Android Example App (New Architecture)
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -62,85 +61,6 @@ jobs:
           distribution: zulu
           java-version: '17'
           cache: gradle
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Run Gradle build
-        working-directory: example/android
-        run: ./gradlew assembleDebug --no-daemon --build-cache
-
-      - name: Stop Gradle daemon
-        working-directory: example/android
-        run: ./gradlew --stopname: Build Android
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    name: Build Android Example App (New Architecture)
-    runs-on: ubuntu-latest
-      - 'nitrogen/generated/android/**'
-      - 'cpp/**'
-      - 'android/**'
-      - '**/yarn.lock'
-      - '**/react-native.config.js'
-      - '**/nitro.json'
-  pull_request:
-    paths:
-      - '.github/workflows/android-build.yml'
-      - 'example/android/**'
-      - '**/nitrogen/generated/shared/**'
-      - '**/nitrogen/generated/android/**'
-      - 'cpp/**'
-      - 'android/**'
-      - '**/yarn.lock'
-      - '**/react-native.config.js'
-      - '**/nitro.json'
-  workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  build:
-    name: Build Android Example App (${{ matrix.arch }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [new, old]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'yarn'
-
-      - name: Install dependencies (yarn)
-        run: yarn install --frozen-lockfile
-
-      - name: Install example dependencies (yarn)
-        run: cd example && yarn install --frozen-lockfile
-
-      - name: Generate Nitro modules (codegen)
-        run: yarn codegen
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'gradle'
 
       - name: Cache Gradle
         uses: actions/cache@v4

@@ -63,6 +63,9 @@ jobs:
       - name: Install dependencies (yarn)
         run: yarn install --frozen-lockfile
 
+      - name: Install example dependencies (yarn)
+        run: cd example && yarn install --frozen-lockfile
+
       - name: Generate Nitro modules (codegen)
         run: yarn codegen
 
