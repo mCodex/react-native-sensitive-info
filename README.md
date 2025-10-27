@@ -101,7 +101,86 @@ No manual linking is required. Nitro handles platform registration via autolinki
 > [!TIP]
 > Use `includeValue: false` during reads when you only care about metadata—this keeps plaintext out of memory and speeds up list views.
 
-## ⚡️ Quick start
+## ⚛️ React Hooks API (Recommended)
+
+For a modern, reactive approach with automatic memory management and loading states, use the dedicated hooks:
+
+```tsx
+import { Text, View, ActivityIndicator } from 'react-native'
+import {
+  useSecureStorage,
+  useSecurityAvailability,
+} from 'react-native-sensitive-info'
+
+// Use hooks directly in any component - no provider needed!
+function YourComponent() {
+  // Fetch and manage all secrets in a service (with CRUD)
+  const {
+    items,
+    isLoading,
+    error,
+    saveSecret,
+    removeSecret,
+  } = useSecureStorage({ service: 'myapp', includeValues: true })
+
+  // Query device security capabilities (cached automatically)
+  const { data: capabilities } = useSecurityAvailability()
+
+  if (isLoading) return <ActivityIndicator />
+  if (error) return <Text>Error: {error.message}</Text>
+
+  return (
+    <View>
+      {items.map(item => (
+        <Text key={item.key}>
+          {item.key}: {item.value} ({item.metadata.securityLevel})
+        </Text>
+      ))}
+      <Text>
+        Biometry available: {capabilities?.biometry ? 'Yes' : 'No'}
+      </Text>
+    </View>
+  )
+}
+```
+
+### Key hooks
+
+| Hook | Use Case | Returns |
+| --- | --- | --- |
+| `useSecureStorage()` | Manage all secrets in a service (list, add, remove) | `{ items, isLoading, error, saveSecret, removeSecret, clearAll, refreshItems }` |
+| `useSecretItem()` | Fetch a single secret | `{ data, isLoading, error, refetch }` |
+| `useSecret()` | Single secret + mutations | `{ data, isLoading, error, saveSecret, deleteSecret, refetch }` |
+| `useHasSecret()` | Check if secret exists (lightweight) | `{ data (boolean), isLoading, error, refetch }` |
+| `useSecurityAvailability()` | Query device capabilities (cached) | `{ data, isLoading, error, refetch }` |
+
+### Best practices
+
+- **Memory leak prevention** — All hooks automatically cancel requests and clean up resources on unmount.
+- **Conditional fetching** — Use `skip: true` to prevent unnecessary operations:
+
+  ```tsx
+  const { data } = useSecretItem('token', { skip: !isAuthenticated })
+  ```
+
+- **Optimize list views** — Fetch metadata only to avoid decryption overhead:
+
+  ```tsx
+  const { items } = useSecureStorage({ includeValues: false })
+  ```
+
+- **Share capabilities** — Query independently and results are cached automatically:
+
+  ```tsx
+  // Each component queries independently (results cached automatically)
+  const { data: capabilities1 } = useSecurityAvailability()
+  const { data: capabilities2 } = useSecurityAvailability()
+  // Same cached result, no duplicate native calls
+  ```
+
+For comprehensive examples and advanced patterns, see [`HOOKS.md`](./HOOKS.md).
+
+## Imperative API
 
 ```tsx
 import React, { useEffect } from 'react'
@@ -137,8 +216,6 @@ export function SecureTokenExample() {
 void SensitiveInfo.clearService({ service: 'auth' })
 ```
 
-## 📚 API reference
-
 All functions live at the top level export and return Promises.
 
 | Method | Signature | Description |
@@ -161,7 +238,7 @@ All functions live at the top level export and return Promises.
 
 Android automatically enforces Class 3 biometrics whenever the hardware supports them, falling back to the strongest available authenticator on older devices.
 
-See `src/views/sensitive-info.nitro.ts` for full TypeScript definitions.
+See `src/sensitive-info.nitro.ts` for full TypeScript definitions.
 
 ## 🔐 Access control & metadata
 

@@ -14,7 +14,7 @@ on:
       - 'nitrogen/generated/android/**'
       - 'cpp/**'
       - 'android/**'
-      - '**/bun.lock'
+      - '**/yarn.lock'
       - '**/react-native.config.js'
       - '**/nitro.json'
   pull_request:
@@ -25,7 +25,7 @@ on:
       - '**/nitrogen/generated/android/**'
       - 'cpp/**'
       - 'android/**'
-      - '**/bun.lock'
+      - '**/yarn.lock'
       - '**/react-native.config.js'
       - '**/nitro.json'
   workflow_dispatch:
@@ -44,14 +44,19 @@ jobs:
         arch: [new, old]
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
 
-      - name: Install dependencies (bun)
-        run: bun install
+      - name: Install dependencies (yarn)
+        run: yarn install --frozen-lockfile
+
+      - name: Install example dependencies (yarn)
+        run: cd example && yarn install --frozen-lockfile
 
       - name: Generate Nitro modules (codegen)
-        run: |
-          npm run codegen
+        run: yarn codegen
 
       - name: Disable new architecture in gradle.properties
         if: matrix.arch == 'old'

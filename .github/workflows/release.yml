@@ -24,24 +24,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Setup Bun.js
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - name: Cache bun dependencies
-        id: bun-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
+          node-version: '22'
+          cache: 'yarn'
 
-      - name: Install npm dependencies (bun)
-        run: bun install
+      - name: Install npm dependencies (yarn)
+        run: yarn install --frozen-lockfile
 
       - name: Build lib
-        run: bun run build
+        run: yarn build
 
       - name: Release
         env:
@@ -52,4 +45,4 @@ jobs:
           GIT_AUTHOR_EMAIL: '${{ github.actor }}@users.noreply.github.com'
           GIT_COMMITTER_NAME: ${{ github.actor }}
           GIT_COMMITTER_EMAIL: '${{ github.actor }}@users.noreply.github.com'
-        run: bun release
+        run: yarn release
