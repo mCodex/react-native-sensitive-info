@@ -47,6 +47,27 @@ export interface VoidAsyncState {
 }
 
 /**
+ * Successful outcome produced by hook mutation helpers.
+ */
+export interface HookSuccessResult {
+  readonly success: true
+  readonly error?: undefined
+}
+
+/**
+ * Failure outcome produced by hook mutation helpers.
+ */
+export interface HookFailureResult {
+  readonly success: false
+  readonly error: HookError
+}
+
+/**
+ * Combined type returned by hook mutation helpers (`saveSecret`, `clearAll`, ...).
+ */
+export type HookMutationResult = HookSuccessResult | HookFailureResult
+
+/**
  * Factory used to initialise {@link AsyncState} values.
  */
 export function createInitialAsyncState<T>(): AsyncState<T> {
@@ -67,4 +88,18 @@ export function createInitialVoidState(): VoidAsyncState {
     isLoading: false,
     isPending: false,
   }
+}
+
+/**
+ * Helper used to return a canonical success result from mutation helpers.
+ */
+export function createHookSuccessResult(): HookSuccessResult {
+  return { success: true }
+}
+
+/**
+ * Helper used to return a canonical failure result from mutation helpers.
+ */
+export function createHookFailureResult(error: HookError): HookFailureResult {
+  return { success: false, error }
 }

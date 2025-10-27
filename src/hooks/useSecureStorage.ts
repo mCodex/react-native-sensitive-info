@@ -4,7 +4,12 @@ import type {
   SensitiveInfoOptions,
 } from '../sensitive-info.nitro'
 import { clearService, deleteItem, getAllItems, setItem } from '../core/storage'
-import { HookError } from './types'
+import {
+  HookError,
+  createHookFailureResult,
+  createHookSuccessResult,
+  type HookMutationResult,
+} from './types'
 import useAsyncLifecycle from './useAsyncLifecycle'
 import useStableOptions from './useStableOptions'
 import createHookError from './error-utils'
@@ -32,10 +37,8 @@ const DEFAULTS: Required<
 const extractCoreOptions = (
   options: UseSecureStorageOptions
 ): SensitiveInfoOptions => {
-  const sanitized = { ...options } as Record<string, unknown>
-  delete sanitized.skip
-  delete sanitized.includeValues
-  return sanitized as SensitiveInfoOptions
+  const { skip: _skip, includeValues: _includeValues, ...core } = options
+  return core as SensitiveInfoOptions
 }
 
 /**
@@ -48,11 +51,9 @@ export interface UseSecureStorageResult {
   readonly saveSecret: (
     key: string,
     value: string
-  ) => Promise<{ success: boolean; error?: HookError }>
-  readonly removeSecret: (
-    key: string
-  ) => Promise<{ success: boolean; error?: HookError }>
-  readonly clearAll: () => Promise<{ success: boolean; error?: HookError }>
+  ) => Promise<HookMutationResult>
+  readonly removeSecret: (key: string) => Promise<HookMutationResult>
+  readonly clearAll: () => Promise<HookMutationResult>
   readonly refreshItems: () => Promise<void>
 }
 
@@ -134,7 +135,7 @@ export function useSecureStorage(
         if (mountedRef.current) {
           await fetchItems()
         }
-        return { success: true } as const
+        return createHookSuccessResult()
       } catch (errorLike) {
         const hookError = createHookError(
           'useSecureStorage.saveSecret',
@@ -144,7 +145,7 @@ export function useSecureStorage(
         if (mountedRef.current) {
           setError(hookError)
         }
-        return { success: false, error: hookError } as const
+        return createHookFailureResult(hookError)
       }
     },
     [fetchItems, mountedRef, stableOptions]
@@ -157,7 +158,7 @@ export function useSecureStorage(
         if (mountedRef.current) {
           setItems((prev) => prev.filter((item) => item.key !== key))
         }
-        return { success: true } as const
+        return createHookSuccessResult()
       } catch (errorLike) {
         const hookError = createHookError(
           'useSecureStorage.removeSecret',
@@ -167,7 +168,7 @@ export function useSecureStorage(
         if (mountedRef.current) {
           setError(hookError)
         }
-        return { success: false, error: hookError } as const
+        return createHookFailureResult(hookError)
       }
     },
     [mountedRef, stableOptions]
@@ -180,7 +181,7 @@ export function useSecureStorage(
         setItems([])
         setError(null)
       }
-      return { success: true } as const
+      return createHookSuccessResult()
     } catch (errorLike) {
       const hookError = createHookError(
         'useSecureStorage.clearAll',
@@ -190,7 +191,7 @@ export function useSecureStorage(
       if (mountedRef.current) {
         setError(hookError)
       }
-      return { success: false, error: hookError } as const
+      return createHookFailureResult(hookError)
     }
   }, [mountedRef, stableOptions])
 

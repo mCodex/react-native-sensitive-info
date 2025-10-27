@@ -3,6 +3,11 @@ export {
   type HookErrorOptions,
   type AsyncState,
   type VoidAsyncState,
+  type HookMutationResult,
+  type HookSuccessResult,
+  type HookFailureResult,
+  createHookSuccessResult,
+  createHookFailureResult,
 } from './types'
 export {
   useSecretItem,

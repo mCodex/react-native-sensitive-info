@@ -1,5 +1,24 @@
 /* eslint-disable no-restricted-exports -- Preserve the default export for backwards compatibility. */
 
+export type {
+  AccessControl,
+  AuthenticationPrompt,
+  MutationResult,
+  SecurityAvailability,
+  SecurityLevel,
+  SensitiveInfo as SensitiveInfoModule,
+  SensitiveInfoSpec,
+  SensitiveInfoDeleteRequest,
+  SensitiveInfoEnumerateRequest,
+  SensitiveInfoGetRequest,
+  SensitiveInfoHasRequest,
+  SensitiveInfoItem,
+  SensitiveInfoOptions,
+  SensitiveInfoSetRequest,
+  StorageBackend,
+  StorageMetadata,
+} from './sensitive-info.nitro'
+
 /**
  * Core storage helpers that mirror the native Nitro surface.
  */
@@ -22,12 +41,17 @@ export { default } from './core/storage'
  */
 export {
   HookError,
+  createHookFailureResult,
+  createHookSuccessResult,
   useHasSecret,
   useSecret,
   useSecretItem,
   useSecureOperation,
   useSecureStorage,
   useSecurityAvailability,
+  type HookFailureResult,
+  type HookMutationResult,
+  type HookSuccessResult,
   type UseHasSecretOptions,
   type UseHasSecretResult,
   type UseSecretItemOptions,
