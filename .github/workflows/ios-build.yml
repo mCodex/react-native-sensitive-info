@@ -64,6 +64,10 @@ jobs:
       - name: Install dependencies (bun)
         run: bun install
 
+      - name: Generate Nitro modules (codegen)
+        run: |
+          npm run codegen
+
       - name: Disable new architecture in Podfile
         if: matrix.arch == 'old'
         run: sed -i "" "s/ENV\['RCT_NEW_ARCH_ENABLED'\] = '1'/ENV['RCT_NEW_ARCH_ENABLED'] = '0'/g" example/ios/Podfile

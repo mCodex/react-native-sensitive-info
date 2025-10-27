@@ -49,6 +49,10 @@ jobs:
       - name: Install dependencies (bun)
         run: bun install
 
+      - name: Generate Nitro modules (codegen)
+        run: |
+          npm run codegen
+
       - name: Disable new architecture in gradle.properties
         if: matrix.arch == 'old'
         run: sed -i "s/newArchEnabled=true/newArchEnabled=false/g" example/android/gradle.properties
