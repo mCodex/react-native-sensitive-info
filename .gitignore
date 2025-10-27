@@ -76,3 +76,7 @@ android/keystores/debug.keystore
 lib/
 tsconfig.tsbuildinfo
 nitrogen/
+
+
+# Testing
+coverage/

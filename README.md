@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/react-native-sensitive-info)](https://www.npmjs.com/package/react-native-sensitive-info)
 [![npm downloads](https://img.shields.io/npm/dm/react-native-sensitive-info)](https://www.npmjs.com/package/react-native-sensitive-info)
+[![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/mcodex/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Modern secure storage for React Native, powered by Nitro Modules. Version 6 ships a new headless API surface, stronger security defaults, and a fully revamped example app.
@@ -53,6 +54,7 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 
 | Platform | Minimum OS | Notes |
 | --- | --- | --- |
+| React Native | 0.76.0 | Requires `react-native-nitro-modules` for Nitro hybrid core. |
 | iOS | 13.0 | Requires Face ID usage string when biometrics are enabled. |
 | Android | API 23 (Marshmallow) | StrongBox detection requires API 28+; biometrics fall back to device credential when unavailable. |
 | Windows | ❌ | Removed in v6. Earlier versions may still work but are no longer maintained. |

@@ -1,0 +1,45 @@
+name: Test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/test.yml'
+      - 'src/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'tsconfig*.json'
+      - 'jest.config.js'
+      - 'jest.setup.ts'
+  pull_request:
+    paths:
+      - '.github/workflows/test.yml'
+      - 'src/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'tsconfig*.json'
+      - 'jest.config.js'
+      - 'jest.setup.ts'
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run Jest with coverage
+        run: yarn test:coverage
