@@ -1,14 +1,9 @@
 /**
- * @internal - Error utilities
- * Centralized error handling for DRY principle
- */
-
-/**
- * Checks if an error is a "not found" error from the native layer
+ * Shared error helpers used across infrastructure layers and hooks.
  */
 export function isNotFoundError(error: unknown): boolean {
   if (error instanceof Error) {
-    return error.message?.includes('[E_NOT_FOUND]') ?? false
+    return error.message.includes('[E_NOT_FOUND]')
   }
   if (typeof error === 'string') {
     return error.includes('[E_NOT_FOUND]')
@@ -17,7 +12,8 @@ export function isNotFoundError(error: unknown): boolean {
 }
 
 /**
- * Extracts meaningful error message from various error types
+ * Extracts a human-readable message from arbitrary error values.
+ * Falls back to a generic description when the payload is opaque.
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {

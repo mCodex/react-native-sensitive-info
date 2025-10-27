@@ -22,9 +22,8 @@ import {
 import {
   useSecureStorage,
   useSecurityAvailability,
-  useSecretItem,
   type AccessControl,
-  type SensitiveInfoItem,
+  getItem,
 } from 'react-native-sensitive-info';
 
 const DEFAULT_SERVICE = 'demo-service';
@@ -207,41 +206,6 @@ function App(): React.JSX.Element {
     refetch: refetchCapabilities,
   } = useSecurityAvailability();
 
-  const {
-    items,
-    isLoading: itemsLoading,
-    error: storageError,
-    saveSecret: hookSaveSecret,
-    removeSecret: hookRemoveSecret,
-    clearAll: hookClearAll,
-    refreshItems,
-  } = useSecureStorage({
-    service: normalizedService,
-    includeValues,
-  });
-
-  const isOptionAvailable = useCallback(
-    (value: AccessControl) => {
-      if (!capabilities) {
-        return true;
-      }
-
-      switch (value) {
-        case 'secureEnclaveBiometry':
-          return capabilities.secureEnclave || capabilities.strongBox;
-        case 'biometryCurrentSet':
-        case 'biometryAny':
-          return capabilities.biometry;
-        case 'devicePasscode':
-          return capabilities.deviceCredential;
-        case 'none':
-        default:
-          return true;
-      }
-    },
-    [capabilities],
-  );
-
   const normalizedService = useMemo(() => {
     const trimmed = service.trim();
     return trimmed.length > 0 ? trimmed : DEFAULT_SERVICE;
@@ -275,6 +239,46 @@ function App(): React.JSX.Element {
       selectedAccessControl,
       usePrompt,
     ],
+  );
+
+  const storageOptions = useMemo(
+    () => ({
+      ...baseOptions,
+      includeValues,
+    }),
+    [baseOptions, includeValues],
+  );
+
+  const {
+    items,
+    isLoading: itemsLoading,
+    error: storageError,
+    saveSecret: hookSaveSecret,
+    removeSecret: hookRemoveSecret,
+    clearAll: hookClearAll,
+    refreshItems,
+  } = useSecureStorage(storageOptions);
+
+  const isOptionAvailable = useCallback(
+    (value: AccessControl) => {
+      if (!capabilities) {
+        return true;
+      }
+
+      switch (value) {
+        case 'secureEnclaveBiometry':
+          return capabilities.secureEnclave || capabilities.strongBox;
+        case 'biometryCurrentSet':
+        case 'biometryAny':
+          return capabilities.biometry;
+        case 'devicePasscode':
+          return capabilities.deviceCredential;
+        case 'none':
+        default:
+          return true;
+      }
+    },
+    [capabilities],
   );
 
   useEffect(() => {
@@ -338,7 +342,7 @@ function App(): React.JSX.Element {
   const handleGetItem = useCallback(async () => {
     await execute(async () => {
       try {
-        const item = await useSecretItem(keyName, {
+        const item = await getItem(keyName, {
           ...baseOptions,
           includeValue: includeValueOnGet,
         });
