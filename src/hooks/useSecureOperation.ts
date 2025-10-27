@@ -54,7 +54,7 @@ export function useSecureOperation(): UseSecureOperationResult {
               'Review the async callback passed to execute() for thrown errors.'
             ),
             isLoading: false,
-            isPending: true,
+            isPending: false,
           })
         }
       }
