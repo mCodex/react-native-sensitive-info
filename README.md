@@ -11,7 +11,7 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 > Need the TL;DR? Jump to [🚀 Highlights](#-highlights) and [⚙️ Installation](#-installation) to get productive in under five minutes.
 
 > [!WARNING]
-> Version 6 drops Windows support. The module now targets iOS and Android only.
+> Version 6 drops Windows support. The module now targets Android plus the Apple platforms (iOS, macOS, visionOS, watchOS).
 
 > [!IMPORTANT]
 > This README tracks the in-progress v6 work on `master`. For the stable legacy release, switch to the `v5.x` branch.
@@ -56,6 +56,9 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 | --- | --- | --- |
 | React Native | 0.76.0 | Requires `react-native-nitro-modules` for Nitro hybrid core. |
 | iOS | 13.0 | Requires Face ID usage string when biometrics are enabled. |
+| macOS | 11.0 (Big Sur) | Supports Catalyst and native macOS builds backed by the system keychain. |
+| visionOS | 1.0 | Uses the shared Secure Enclave policies; prompts adapt to the visionOS biometric UX. |
+| watchOS | 7.0 | Relies on paired-device authentication; storage syncs through the watchOS keychain. |
 | Android | API 23 (Marshmallow) | StrongBox detection requires API 28+; biometrics fall back to device credential when unavailable. |
 | Windows | ❌ | Removed in v6. Earlier versions may still work but are no longer maintained. |
 
