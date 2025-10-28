@@ -1,1048 +1,601 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import React, { useCallback, useMemo, useState } from 'react'
 import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Pressable,
-  Switch,
-  Platform,
-  StatusBar,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+	ActivityIndicator,
+	FlatList,
+	Platform,
+	Pressable,
+	SafeAreaView,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	View,
+} from 'react-native'
 import {
-  useSecureStorage,
-  useSecurityAvailability,
-  type AccessControl,
-  getItem,
-} from 'react-native-sensitive-info';
+	getItem,
+	useSecureStorage,
+	useSecurityAvailability,
+	type AccessControl,
+} from 'react-native-sensitive-info'
 
-const DEFAULT_SERVICE = 'demo-service';
-const DEFAULT_KEY = 'demo-secret';
-const DEFAULT_VALUE = 'very-secret-value';
+type ModeKey = 'open' | 'biometric'
 
-const ACCESS_CONTROL_OPTIONS: Array<{
-  value: AccessControl;
-  label: string;
-  description: string;
+const ACCESS_MODES: Array<{
+	key: ModeKey
+	label: string
+	description: string
+	accessControl: AccessControl
 }> = [
-  {
-    value: 'secureEnclaveBiometry',
-    label: 'Secure Enclave',
-    description: 'Biometrics with hardware isolation (best effort fallback).',
-  },
-  {
-    value: 'biometryCurrentSet',
-    label: 'Biometry (current set)',
-    description: 'Requires the current biometric enrollment.',
-  },
-  {
-    value: 'biometryAny',
-    label: 'Biometry (any)',
-    description: 'Any enrolled biometric may unlock the value.',
-  },
-  {
-    value: 'devicePasscode',
-    label: 'Device credential',
-    description: 'Falls back to passcode or system credential.',
-  },
-  {
-    value: 'none',
-    label: 'None',
-    description: 'No user presence required. Least secure.',
-  },
-];
+	{
+		key: 'open',
+		label: 'No Lock',
+		description: 'Stores the value without requiring authentication.',
+		accessControl: 'none',
+	},
+	{
+		key: 'biometric',
+		label: 'Biometric Lock',
+		description: 'Requires the current biometric enrollment to unlock.',
+		accessControl: 'biometryCurrentSet',
+	},
+]
 
 function formatError(error: unknown): string {
-  if (error instanceof Error) {
-    return `${error.name}: ${error.message}`;
-  }
-  return `Unexpected error: ${JSON.stringify(error)}`;
+	if (error instanceof Error) {
+		return `${error.name}: ${error.message}`
+	}
+	return 'Something went wrong. Please try again.'
+}
+
+const DEFAULT_SERVICE = 'demo-safe'
+const DEFAULT_KEY = 'favorite-color'
+const DEFAULT_SECRET = 'ultramarine'
+
+const App: React.FC = () => {
+	const [service, setService] = useState(DEFAULT_SERVICE)
+	const [keyName, setKeyName] = useState(DEFAULT_KEY)
+	const [secret, setSecret] = useState(DEFAULT_SECRET)
+	const [mode, setMode] = useState<ModeKey>('open')
+	const [status, setStatus] = useState('Ready to tuck away a secret.')
+	const [pending, setPending] = useState(false)
+
+	const trimmedService = useMemo(() => {
+		const next = service.trim()
+		return next.length > 0 ? next : DEFAULT_SERVICE
+	}, [service])
+
+	const selectedMode = useMemo(
+		() => ACCESS_MODES.find((candidate) => candidate.key === mode) || ACCESS_MODES[0],
+		[mode]
+	)
+
+	const authenticationPrompt = useMemo(() => {
+		if (selectedMode.key !== 'biometric') {
+			return undefined
+		}
+		return {
+			title: 'Unlock your secret',
+			subtitle: 'Biometric authentication is required to continue',
+			description: 'This demo stores data behind your biometric enrollment.',
+			cancel: 'Cancel',
+		}
+	}, [selectedMode.key])
+
+	const secureOptions = useMemo(
+		() => ({
+			service: trimmedService,
+			accessControl: selectedMode.accessControl,
+			authenticationPrompt,
+			includeValues: true,
+		}),
+		[trimmedService, selectedMode.accessControl, authenticationPrompt]
+	)
+
+	const {
+		items,
+		isLoading,
+		error,
+		saveSecret,
+		removeSecret,
+		clearAll,
+		refreshItems,
+	} = useSecureStorage(secureOptions)
+
+	const { data: availability } = useSecurityAvailability()
+	const biometricAvailable = availability?.biometry ?? false
+
+	const handleSave = useCallback(async () => {
+		const normalizedKey = keyName.trim()
+		if (normalizedKey.length === 0) {
+			setStatus('Please provide a key before saving.')
+			return
+		}
+
+		setPending(true)
+		try {
+			const result = await saveSecret(normalizedKey, secret)
+			if (result.success) {
+				setStatus('Secret saved securely.')
+			} else {
+				setStatus(result.error?.message ?? 'Unable to save the secret.')
+			}
+		} catch (err) {
+			setStatus(formatError(err))
+		} finally {
+			setPending(false)
+		}
+	}, [keyName, saveSecret, secret])
+
+	const handleReveal = useCallback(async () => {
+		const normalizedKey = keyName.trim()
+		if (normalizedKey.length === 0) {
+			setStatus('Provide the key you would like to reveal.')
+			return
+		}
+
+		setPending(true)
+		try {
+			const item = await getItem(normalizedKey, {
+				service: trimmedService,
+				accessControl: selectedMode.accessControl,
+				authenticationPrompt,
+				includeValue: true,
+			})
+
+			if (item?.value) {
+				setStatus(`Secret for "${normalizedKey}" → ${item.value}`)
+			} else {
+				setStatus('That key has no stored value yet.')
+			}
+		} catch (err) {
+			setStatus(formatError(err))
+		} finally {
+			setPending(false)
+		}
+	}, [authenticationPrompt, keyName, selectedMode.accessControl, trimmedService])
+
+	const handleRemove = useCallback(async () => {
+		const normalizedKey = keyName.trim()
+		if (normalizedKey.length === 0) {
+			setStatus('Provide the key you would like to forget.')
+			return
+		}
+
+		setPending(true)
+		try {
+			const result = await removeSecret(normalizedKey)
+			setStatus(result.success ? 'Secret deleted.' : 'Secret could not be deleted.')
+		} catch (err) {
+			setStatus(formatError(err))
+		} finally {
+			setPending(false)
+		}
+	}, [keyName, removeSecret])
+
+	const handleClear = useCallback(async () => {
+		setPending(true)
+		try {
+			const result = await clearAll()
+			setStatus(result.success ? 'All secrets cleared for this service.' : 'Nothing to clear.')
+		} catch (err) {
+			setStatus(formatError(err))
+		} finally {
+			setPending(false)
+		}
+	}, [clearAll])
+
+	const handleRefresh = useCallback(async () => {
+		setPending(true)
+		try {
+			await refreshItems()
+			setStatus('Inventory refreshed.')
+		} catch (err) {
+			setStatus(formatError(err))
+		} finally {
+			setPending(false)
+		}
+	}, [refreshItems])
+
+	return (
+		<SafeAreaView style={styles.safeArea}>
+			<ScrollView
+				keyboardShouldPersistTaps="handled"
+				contentContainerStyle={styles.scrollContent}
+			>
+				<View style={styles.header}>
+					<Text style={styles.title}>Sensitive Info Playground</Text>
+					<Text style={styles.subtitle}>
+						Store a small secret, lock it with biometrics if you like, and review the
+						inventory below.
+					</Text>
+				</View>
+
+				<View style={styles.card}>
+					<Text style={styles.cardTitle}>Secret details</Text>
+					<TextInput
+						value={service}
+						onChangeText={setService}
+						placeholder={DEFAULT_SERVICE}
+						autoCapitalize="none"
+						style={styles.input}
+					/>
+					<Text style={styles.inputLabel}>Service name</Text>
+
+					<TextInput
+						value={keyName}
+						onChangeText={setKeyName}
+						placeholder={DEFAULT_KEY}
+						autoCapitalize="none"
+						style={styles.input}
+					/>
+					<Text style={styles.inputLabel}>Key</Text>
+
+					<TextInput
+						value={secret}
+						onChangeText={setSecret}
+						placeholder={DEFAULT_SECRET}
+						autoCapitalize="none"
+						style={[styles.input, styles.secretInput]}
+						multiline
+					/>
+					<Text style={styles.inputLabel}>Secret value</Text>
+				</View>
+
+				<View style={styles.card}>
+					<Text style={styles.cardTitle}>Guard it your way</Text>
+					<View style={styles.modeRow}>
+						{ACCESS_MODES.map((option) => {
+							const disabled = option.key === 'biometric' && !biometricAvailable
+							const active = option.key === selectedMode.key
+
+							return (
+								<Pressable
+									key={option.key}
+									accessibilityRole="radio"
+									accessibilityState={{ selected: active, disabled }}
+									onPress={() => {
+										if (!disabled) {
+											setMode(option.key)
+										}
+									}}
+									style={({ pressed }) => [
+										styles.modeTile,
+										active && styles.modeTileActive,
+										disabled && styles.modeTileDisabled,
+										pressed && !disabled && styles.modeTilePressed,
+									]}
+								>
+									<Text
+										style={[
+											styles.modeLabel,
+											active && styles.modeLabelActive,
+											disabled && styles.modeLabelDisabled,
+										]}
+									>
+										{option.label}
+									</Text>
+									<Text
+										style={[
+											styles.modeDescription,
+											disabled && styles.modeLabelDisabled,
+										]}
+									>
+										{option.description}
+									</Text>
+									{disabled ? (
+										<Text style={styles.modeBadge}>Biometry unavailable</Text>
+									) : null}
+								</Pressable>
+							)
+						})}
+					</View>
+					{availability ? (
+						<Text style={styles.availability}>
+							Biometry • {availability.biometry ? 'Ready' : 'Unavailable'} · Secure Enclave •{' '}
+							{availability.secureEnclave ? 'Ready' : 'Unavailable'}
+						</Text>
+					) : null}
+				</View>
+
+				<View style={styles.card}>
+					<Text style={styles.cardTitle}>Actions</Text>
+					<View style={styles.buttonRow}>
+						<ActionButton label="Save" onPress={handleSave} loading={pending} primary />
+						<ActionButton label="Reveal" onPress={handleReveal} loading={pending} />
+						<ActionButton label="Delete" onPress={handleRemove} loading={pending} />
+						<ActionButton label="Clear service" onPress={handleClear} loading={pending} />
+						<ActionButton label="Refresh" onPress={handleRefresh} loading={pending} />
+					</View>
+					{error ? <Text style={styles.errorText}>{error.message}</Text> : null}
+					<View style={styles.statusBubble}>
+						<Text style={styles.statusText}>{status}</Text>
+					</View>
+				</View>
+
+				<View style={styles.card}>
+					<Text style={styles.cardTitle}>
+						Secrets for “{trimmedService}”{' '}
+						<Text style={styles.countBadge}>{items.length}</Text>
+					</Text>
+					{isLoading ? (
+						<View style={styles.loadingRow}>
+							<ActivityIndicator color="#2563eb" />
+							<Text style={styles.loadingText}>Fetching secrets…</Text>
+						</View>
+					) : items.length === 0 ? (
+						<Text style={styles.emptyState}>Nothing stored yet. Save a secret to see it here.</Text>
+					) : (
+						<FlatList
+							data={items}
+							keyExtractor={(item) => `${item.service}-${item.key}`}
+							renderItem={({ item }) => (
+								<View style={styles.secretRow}>
+									<Text style={styles.secretKey}>{item.key}</Text>
+									{item.value ? (
+										<Text style={styles.secretValue}>{item.value}</Text>
+									) : (
+										<Text style={styles.secretValueMuted}>Locked value</Text>
+									)}
+									<Text style={styles.secretMeta}>Access · {item.metadata.accessControl}</Text>
+									<Text style={styles.secretMeta}>Stored · {new Date(item.metadata.timestamp * 1000).toLocaleString()}</Text>
+								</View>
+							)}
+							ItemSeparatorComponent={() => <View style={styles.separator} />}
+							scrollEnabled={false}
+						/>
+					)}
+				</View>
+			</ScrollView>
+		</SafeAreaView>
+	)
 }
 
 interface ActionButtonProps {
-  label: string;
-  onPress: () => void | Promise<void>;
-  disabled?: boolean;
-  style?: StyleProp<ViewStyle>;
+	label: string
+	onPress: () => void | Promise<void>
+	loading?: boolean
+	primary?: boolean
 }
 
-function ActionButton({ label, onPress, disabled, style }: ActionButtonProps) {
-  const handlePress = () => {
-    if (disabled) {
-      return;
-    }
+function ActionButton({ label, onPress, loading, primary }: ActionButtonProps) {
+	const [busy, setBusy] = useState(false)
 
-    const maybePromise = onPress();
+	const handlePress = useCallback(() => {
+		if (busy || loading) {
+			return
+		}
 
-    if (
-      maybePromise &&
-      typeof (maybePromise as Promise<void>).then === 'function'
-    ) {
-      void (maybePromise as Promise<void>);
-    }
-  };
+		const result = onPress()
+		if (result && typeof (result as Promise<void>).then === 'function') {
+			setBusy(true)
+			void (result as Promise<void>).finally(() => setBusy(false))
+		}
+	}, [busy, loading, onPress])
 
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={handlePress}
-      style={({ pressed }) => [
-        styles.button,
-        style,
-        pressed && !disabled && styles.buttonPressed,
-        disabled && styles.buttonDisabled,
-      ]}
-    >
-      <Text style={styles.buttonLabel}>{label}</Text>
-    </Pressable>
-  );
-}
+	const disabled = busy || loading
 
-interface SectionProps {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
-  children: ReactNode;
-  style?: StyleProp<ViewStyle>;
-}
-
-function Section({ title, subtitle, actions, children, style }: SectionProps) {
-  return (
-    <View style={[styles.sectionContainer, style]}>
-      <View style={styles.section}>
-        <View style={styles.sectionHeading}>
-          <View style={styles.sectionHeadingText}>
-            <Text style={styles.sectionTitle}>{title}</Text>
-            {subtitle ? (
-              <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-            ) : null}
-          </View>
-          {actions}
-        </View>
-        <View style={styles.sectionBody}>{children}</View>
-      </View>
-    </View>
-  );
-}
-
-interface FieldProps {
-  label: string;
-  helper?: string;
-  children: ReactNode;
-}
-
-function Field({ label, helper, children }: FieldProps) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {helper ? <Text style={styles.fieldHelper}>{helper}</Text> : null}
-      <View style={styles.fieldControl}>{children}</View>
-    </View>
-  );
-}
-
-interface ToggleRowProps {
-  label: string;
-  helper?: string;
-  value: boolean;
-  onValueChange: (next: boolean) => void;
-}
-
-function ToggleRow({ label, helper, value, onValueChange }: ToggleRowProps) {
-  return (
-    <View style={styles.toggleCard}>
-      <View style={styles.toggleTextBlock}>
-        <Text style={styles.toggleLabel}>{label}</Text>
-        {helper ? <Text style={styles.toggleHelper}>{helper}</Text> : null}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#d1d5db', true: '#bfdbfe' }}
-        thumbColor={
-          Platform.OS === 'android'
-            ? value
-              ? '#2563eb'
-              : '#f9fafb'
-            : undefined
-        }
-        ios_backgroundColor="#d1d5db"
-      />
-    </View>
-  );
-}
-
-function App(): React.JSX.Element {
-  // Configuration state
-  const [service, setService] = useState(DEFAULT_SERVICE);
-  const [keyName, setKeyName] = useState(DEFAULT_KEY);
-  const [secret, setSecret] = useState(DEFAULT_VALUE);
-  const [selectedAccessControl, setSelectedAccessControl] =
-    useState<AccessControl>('secureEnclaveBiometry');
-  const [includeValues, setIncludeValues] = useState(true);
-  const [includeValueOnGet, setIncludeValueOnGet] = useState(true);
-  const [iosSynchronizable, setIosSynchronizable] = useState(false);
-  const [usePrompt, setUsePrompt] = useState(true);
-  const [keychainGroup, setKeychainGroup] = useState('');
-  const [lastResult, setLastResult] = useState(
-    'Ready to interact with the secure store.',
-  );
-  const [pending, setPending] = useState(false);
-
-  // Use hooks for reactive data management
-  const {
-    data: capabilities,
-    isLoading: capabilitiesLoading,
-    refetch: refetchCapabilities,
-  } = useSecurityAvailability();
-
-  const normalizedService = useMemo(() => {
-    const trimmed = service.trim();
-    return trimmed.length > 0 ? trimmed : DEFAULT_SERVICE;
-  }, [service]);
-
-  const normalizedKeychainGroup = useMemo(() => {
-    const trimmed = keychainGroup.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-  }, [keychainGroup]);
-
-  const baseOptions = useMemo(
-    () => ({
-      service: normalizedService,
-      accessControl: selectedAccessControl,
-      iosSynchronizable: iosSynchronizable ? true : undefined,
-      keychainGroup: normalizedKeychainGroup,
-      authenticationPrompt: usePrompt
-        ? {
-            title: 'Authenticate to continue',
-            subtitle: 'Demo prompt provided by the sample app',
-            description:
-              'Sensitive data access requires local authentication on secured keys.',
-            cancel: 'Cancel',
-          }
-        : undefined,
-    }),
-    [
-      iosSynchronizable,
-      normalizedKeychainGroup,
-      normalizedService,
-      selectedAccessControl,
-      usePrompt,
-    ],
-  );
-
-  const storageOptions = useMemo(
-    () => ({
-      ...baseOptions,
-      includeValues,
-    }),
-    [baseOptions, includeValues],
-  );
-
-  const {
-    items,
-    isLoading: itemsLoading,
-    error: storageError,
-    saveSecret: hookSaveSecret,
-    removeSecret: hookRemoveSecret,
-    clearAll: hookClearAll,
-    refreshItems,
-  } = useSecureStorage(storageOptions);
-
-  const isOptionAvailable = useCallback(
-    (value: AccessControl) => {
-      if (!capabilities) {
-        return true;
-      }
-
-      switch (value) {
-        case 'secureEnclaveBiometry':
-          return capabilities.secureEnclave || capabilities.strongBox;
-        case 'biometryCurrentSet':
-        case 'biometryAny':
-          return capabilities.biometry;
-        case 'devicePasscode':
-          return capabilities.deviceCredential;
-        case 'none':
-        default:
-          return true;
-      }
-    },
-    [capabilities],
-  );
-
-  useEffect(() => {
-    if (!capabilities) {
-      return;
-    }
-
-    if (isOptionAvailable(selectedAccessControl)) {
-      return;
-    }
-
-    const fallback = ACCESS_CONTROL_OPTIONS.find(option =>
-      isOptionAvailable(option.value),
-    );
-
-    if (fallback) {
-      setSelectedAccessControl(fallback.value);
-    }
-  }, [capabilities, isOptionAvailable, selectedAccessControl]);
-
-  const execute = useCallback(
-    async (task: () => Promise<void>) => {
-      if (pending) {
-        return;
-      }
-      setPending(true);
-      try {
-        await task();
-      } finally {
-        setPending(false);
-      }
-    },
-    [pending],
-  );
-
-  const handleSetItem = useCallback(async () => {
-    await execute(async () => {
-      try {
-        const { success, error } = await hookSaveSecret(keyName, secret);
-        if (success) {
-          setLastResult(
-            `Saved secret with access control policy: ${selectedAccessControl}`,
-          );
-          await refreshItems();
-        } else {
-          setLastResult(`Error: ${error?.message || 'Failed to save'}`);
-        }
-      } catch (error) {
-        setLastResult(formatError(error));
-      }
-    });
-  }, [
-    keyName,
-    secret,
-    selectedAccessControl,
-    hookSaveSecret,
-    refreshItems,
-    execute,
-  ]);
-
-  const handleGetItem = useCallback(async () => {
-    await execute(async () => {
-      try {
-        const item = await getItem(keyName, {
-          ...baseOptions,
-          includeValue: includeValueOnGet,
-        });
-        if (item) {
-          setLastResult(`Fetched item:\n${JSON.stringify(item, null, 2)}`);
-        } else {
-          setLastResult('No entry found for the provided key.');
-        }
-      } catch (error) {
-        setLastResult(formatError(error));
-      }
-    });
-  }, [keyName, baseOptions, includeValueOnGet, execute]);
-
-  const handleDeleteItem = useCallback(async () => {
-    await execute(async () => {
-      try {
-        const { success } = await hookRemoveSecret(keyName);
-        if (success) {
-          setLastResult('Secret deleted.');
-          await refreshItems();
-        } else {
-          setLastResult('Nothing deleted (key was absent).');
-        }
-      } catch (error) {
-        setLastResult(formatError(error));
-      }
-    });
-  }, [keyName, hookRemoveSecret, refreshItems, execute]);
-
-  const handleClearService = useCallback(async () => {
-    await execute(async () => {
-      try {
-        const { success } = await hookClearAll();
-        if (success) {
-          setLastResult(`Cleared service "${baseOptions.service}"`);
-          await refreshItems();
-        }
-      } catch (error) {
-        setLastResult(formatError(error));
-      }
-    });
-  }, [baseOptions.service, hookClearAll, refreshItems, execute]);
-
-  const handleRefresh = useCallback(async () => {
-    await execute(async () => {
-      await refetchCapabilities();
-      await refreshItems();
-    });
-  }, [execute, refetchCapabilities, refreshItems]);
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f6f7fb" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Sensitive Info Playground</Text>
-          <Text style={styles.subtitle}>
-            Explore secure storage flows, test authentication policies, and
-            inspect metadata in a refined light experience.
-          </Text>
-          <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Light theme</Text>
-            </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Biometric ready</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.banner}>
-          <Text style={styles.bannerTitle}>Tip for hardware testing</Text>
-          <Text style={styles.bannerText}>
-            Simulators rarely expose Secure Enclave, StrongBox, or full
-            biometric flows. Validate critical journeys on a physical device to
-            mirror production behaviour.
-          </Text>
-        </View>
-
-        <Section
-          title="Security snapshot"
-          subtitle="Live capabilities reported by the native layer"
-          actions={
-            <ActionButton
-              label="Refresh"
-              onPress={handleRefresh}
-              disabled={pending}
-              style={styles.sectionActionButton}
-            />
-          }
-        >
-          {capabilitiesLoading ? (
-            <Text style={styles.bodyText}>Detecting capabilities...</Text>
-          ) : capabilities ? (
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricCard}>
-                <Text style={styles.metricLabel}>Secure Enclave</Text>
-                <Text style={styles.metricValue}>
-                  {capabilities.secureEnclave ? 'Available' : 'Unavailable'}
-                </Text>
-              </View>
-              <View style={styles.metricCard}>
-                <Text style={styles.metricLabel}>StrongBox</Text>
-                <Text style={styles.metricValue}>
-                  {capabilities.strongBox ? 'Available' : 'Unavailable'}
-                </Text>
-              </View>
-              <View style={styles.metricCard}>
-                <Text style={styles.metricLabel}>Biometry</Text>
-                <Text style={styles.metricValue}>
-                  {capabilities.biometry ? 'Available' : 'Unavailable'}
-                </Text>
-              </View>
-              <View style={styles.metricCard}>
-                <Text style={styles.metricLabel}>Device credential</Text>
-                <Text style={styles.metricValue}>
-                  {capabilities.deviceCredential ? 'Available' : 'Unavailable'}
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.bodyText}>
-              Tap refresh to fetch the security profile for this device.
-            </Text>
-          )}
-        </Section>
-
-        <Section
-          title="Secret blueprint"
-          subtitle="Define the identifiers and payload for your secure entry"
-        >
-          <Field
-            label="Service"
-            helper="Defaults to demo-service when left blank."
-          >
-            <TextInput
-              value={service}
-              onChangeText={setService}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              placeholder={DEFAULT_SERVICE}
-              placeholderTextColor="#9ca3af"
-            />
-          </Field>
-          <Field
-            label="Key"
-            helper="Acts as the lookup identifier within the service."
-          >
-            <TextInput
-              value={keyName}
-              onChangeText={setKeyName}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              placeholder={DEFAULT_KEY}
-              placeholderTextColor="#9ca3af"
-            />
-          </Field>
-          <Field
-            label="Secret value"
-            helper="Stored exactly as provided. Avoid personal data in demos."
-          >
-            <TextInput
-              value={secret}
-              onChangeText={setSecret}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={[styles.input, styles.multiLineInput]}
-              placeholder={DEFAULT_VALUE}
-              placeholderTextColor="#9ca3af"
-              multiline
-            />
-          </Field>
-        </Section>
-
-        <Section
-          title="Security & authentication"
-          subtitle="Tune access control, prompts, and cross-platform behaviour"
-        >
-          <Text style={styles.infoNote}>
-            The native layer automatically upgrades to the strongest guard this
-            device supports. Options shown in grey are unavailable on the
-            current hardware.
-          </Text>
-          <View style={styles.accessOptionsContainer}>
-            {ACCESS_CONTROL_OPTIONS.map(option => {
-              const selected = option.value === selectedAccessControl;
-              const available = isOptionAvailable(option.value);
-              const disabled = !available;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected, disabled }}
-                  onPress={() => {
-                    if (!available) {
-                      return;
-                    }
-                    setSelectedAccessControl(option.value);
-                  }}
-                  style={({ pressed }) => [
-                    styles.accessOption,
-                    selected && styles.accessOptionSelected,
-                    pressed && !disabled && styles.accessOptionPressed,
-                    disabled && styles.accessOptionDisabled,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.accessOptionLabel,
-                      selected && styles.accessOptionLabelSelected,
-                      disabled && styles.accessOptionLabelDisabled,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.accessOptionDescription,
-                      disabled && styles.accessOptionDescriptionDisabled,
-                    ]}
-                  >
-                    {option.description}
-                  </Text>
-                  {disabled ? (
-                    <Text style={styles.accessOptionUnavailable}>
-                      Unavailable on this device
-                    </Text>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <ToggleRow
-            label="Include values when listing"
-            helper="Disabling hides the secret content in the inventory view."
-            value={includeValues}
-            onValueChange={setIncludeValues}
-          />
-          <ToggleRow
-            label="Return value on direct fetch"
-            helper="Applies to the Get action when retrieving a single key."
-            value={includeValueOnGet}
-            onValueChange={setIncludeValueOnGet}
-          />
-          <ToggleRow
-            label="Show authentication prompt"
-            helper="Custom prompt copy helps users understand why authentication is required."
-            value={usePrompt}
-            onValueChange={setUsePrompt}
-          />
-          <ToggleRow
-            label="Sync with iCloud keychain"
-            helper="Available on Apple platforms that support keychain synchronisation."
-            value={iosSynchronizable}
-            onValueChange={setIosSynchronizable}
-          />
-
-          <Field
-            label="Shared keychain access group"
-            helper="Optional. Use to share credentials across bundle identifiers."
-          >
-            <TextInput
-              value={keychainGroup}
-              onChangeText={setKeychainGroup}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              placeholder="com.example.shared"
-              placeholderTextColor="#9ca3af"
-            />
-          </Field>
-        </Section>
-
-        <Section
-          title="Quick actions"
-          subtitle="Execute common storage operations"
-        >
-          <View style={styles.buttonGrid}>
-            <ActionButton
-              label="Save"
-              onPress={handleSetItem}
-              disabled={pending}
-            />
-            <ActionButton
-              label="Get"
-              onPress={handleGetItem}
-              disabled={pending}
-            />
-            <ActionButton
-              label="Delete"
-              onPress={handleDeleteItem}
-              disabled={pending}
-            />
-            <ActionButton
-              label="Clear service"
-              onPress={handleClearService}
-              disabled={pending}
-            />
-            <ActionButton
-              label="Refresh list"
-              onPress={handleRefresh}
-              disabled={pending}
-            />
-          </View>
-        </Section>
-
-        <Section
-          title="Secrets inventory"
-          subtitle={`Currently tracking ${items.length} entr${items.length === 1 ? 'y' : 'ies'} for ${baseOptions.service}`}
-        >
-          {items.length === 0 ? (
-            <Text style={styles.emptyState}>
-              Nothing stored yet. Save a secret to see it appear here.
-            </Text>
-          ) : (
-            items.map(item => (
-              <View key={`${item.service}-${item.key}`} style={styles.itemCard}>
-                <Text style={styles.itemTitle}>{item.key}</Text>
-                <Text style={styles.itemMeta}>Service · {item.service}</Text>
-                {includeValues && item.value != null ? (
-                  <Text style={styles.itemValue}>{item.value}</Text>
-                ) : null}
-                <View style={styles.itemRowGroup}>
-                  <Text style={styles.itemRow}>
-                    Security level · {item.metadata.securityLevel}
-                  </Text>
-                  <Text style={styles.itemRow}>
-                    Access control · {item.metadata.accessControl}
-                  </Text>
-                  <Text style={styles.itemRow}>
-                    Backend · {item.metadata.backend}
-                  </Text>
-                  <Text style={styles.itemRow}>
-                    Stored at ·{' '}
-                    {new Date(item.metadata.timestamp * 1000).toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-            ))
-          )}
-        </Section>
-
-        <Section
-          title="Activity log"
-          subtitle="Latest operation outcome"
-          style={styles.logSection}
-        >
-          <View style={styles.logContainer}>
-            <Text style={styles.logText}>{lastResult}</Text>
-          </View>
-        </Section>
-      </ScrollView>
-    </SafeAreaView>
-  );
+	return (
+		<Pressable
+			accessibilityRole="button"
+			onPress={handlePress}
+			style={({ pressed }) => [
+				styles.actionButton,
+				primary && styles.actionButtonPrimary,
+				pressed && !disabled && styles.actionButtonPressed,
+				disabled && styles.actionButtonDisabled,
+			]}
+		>
+			<Text style={[styles.actionButtonLabel, primary && styles.actionButtonLabelPrimary]}>
+				{label}
+			</Text>
+		</Pressable>
+	)
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f6f7fb',
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    paddingBottom: 48,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    color: '#111827',
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: '#4b5563',
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 8,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 16,
-  },
-  badge: {
-    backgroundColor: '#ede9fe',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  badgeText: {
-    color: '#5b21b6',
-    fontWeight: '600',
-    fontSize: 12,
-    letterSpacing: 0.3,
-  },
-  banner: {
-    backgroundColor: '#e0f2fe',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#c7e0f5',
-    padding: 18,
-    marginBottom: 24,
-  },
-  bannerTitle: {
-    color: '#0f172a',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  bannerText: {
-    color: '#1e3a8a',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 6,
-  },
-  sectionContainer: {
-    marginTop: 24,
-  },
-  section: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e6ecf5',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  sectionHeading: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  sectionHeadingText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  sectionTitle: {
-    color: '#111827',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  sectionSubtitle: {
-    color: '#6b7280',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 6,
-  },
-  sectionBody: {
-    marginTop: 20,
-  },
-  sectionActionButton: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: -4,
-  },
-  bodyText: {
-    color: '#4b5563',
-    fontSize: 15,
-  },
-  infoNote: {
-    color: '#1e3a8a',
-    fontSize: 13,
-    lineHeight: 18,
-    backgroundColor: '#e0f2fe',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-  },
-  field: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    color: '#1f2937',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  fieldHelper: {
-    color: '#6b7280',
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  fieldControl: {
-    marginTop: 10,
-  },
-  input: {
-    backgroundColor: '#f9fafb',
-    color: '#111827',
-    borderWidth: 1,
-    borderColor: '#dbe2f1',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.select({ ios: 12, default: 10 }),
-    fontSize: 15,
-  },
-  multiLineInput: {
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  accessOptionsContainer: {
-    marginBottom: 12,
-  },
-  accessOption: {
-    borderWidth: 1,
-    borderColor: '#e5e7ff',
-    borderRadius: 16,
-    padding: 16,
-    backgroundColor: '#f8faff',
-    marginBottom: 12,
-  },
-  accessOptionSelected: {
-    borderColor: '#2563eb',
-    backgroundColor: '#eef2ff',
-  },
-  accessOptionPressed: {
-    opacity: 0.9,
-  },
-  accessOptionDisabled: {
-    borderColor: '#e5e7eb',
-    backgroundColor: '#f1f5f9',
-  },
-  accessOptionLabel: {
-    color: '#1f2937',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  accessOptionLabelSelected: {
-    color: '#1d4ed8',
-  },
-  accessOptionLabelDisabled: {
-    color: '#9ca3af',
-  },
-  accessOptionDescription: {
-    color: '#6b7280',
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 6,
-  },
-  accessOptionDescriptionDisabled: {
-    color: '#9ca3af',
-  },
-  accessOptionUnavailable: {
-    color: '#ef4444',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 8,
-    letterSpacing: 0.2,
-  },
-  toggleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fdfefe',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 12,
-  },
-  toggleTextBlock: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  toggleLabel: {
-    color: '#1f2937',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  toggleHelper: {
-    color: '#6b7280',
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  metricCard: {
-    minWidth: 140,
-    flexGrow: 1,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafc',
-    padding: 16,
-    margin: 8,
-  },
-  metricLabel: {
-    color: '#4b5563',
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  metricValue: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  buttonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-    marginHorizontal: 8,
-    marginBottom: 16,
-  },
-  buttonPressed: {
-    backgroundColor: '#1d4ed8',
-  },
-  buttonDisabled: {
-    backgroundColor: '#93c5fd',
-  },
-  buttonLabel: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  itemCard: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    padding: 18,
-    marginBottom: 16,
-  },
-  itemTitle: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  itemMeta: {
-    color: '#6b7280',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  itemValue: {
-    color: '#111827',
-    fontSize: 15,
-    fontWeight: '500',
-    marginTop: 10,
-  },
-  itemRowGroup: {
-    marginTop: 12,
-  },
-  itemRow: {
-    color: '#4b5563',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  emptyState: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  logSection: {
-    marginBottom: 12,
-  },
-  logContainer: {
-    backgroundColor: '#11182708',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#dbe2f1',
-    padding: 16,
-  },
-  logText: {
-    color: '#1f2937',
-    fontFamily: Platform.select({
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'Courier',
-    }),
-    fontSize: 13,
-    lineHeight: 18,
-  },
-});
+	safeArea: {
+		flex: 1,
+		backgroundColor: '#f6f8fb',
+	},
+	scrollContent: {
+		padding: 20,
+		paddingBottom: 32,
+	},
+	header: {
+		marginBottom: 16,
+	},
+	title: {
+		fontSize: 26,
+		fontWeight: '700',
+		color: '#111827',
+	},
+	subtitle: {
+		marginTop: 6,
+		fontSize: 15,
+		lineHeight: 22,
+		color: '#4b5563',
+	},
+	card: {
+		backgroundColor: '#ffffff',
+		borderRadius: 18,
+		padding: 18,
+		marginBottom: 18,
+		borderWidth: 1,
+		borderColor: '#e5e7eb',
+		shadowColor: '#0f172a',
+		shadowOpacity: 0.04,
+		shadowRadius: 12,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: 2,
+	},
+	cardTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#0f172a',
+		marginBottom: 12,
+	},
+	input: {
+		backgroundColor: '#f9fafb',
+		borderWidth: 1,
+		borderColor: '#d1d5db',
+		borderRadius: 12,
+		paddingHorizontal: 14,
+		paddingVertical: Platform.select({ ios: 12, default: 10 }),
+		fontSize: 15,
+		color: '#111827',
+	},
+	secretInput: {
+		minHeight: 72,
+		textAlignVertical: 'top',
+	},
+	inputLabel: {
+		fontSize: 12,
+		color: '#6b7280',
+		marginTop: 6,
+		marginBottom: 12,
+		textTransform: 'uppercase',
+		letterSpacing: 0.7,
+	},
+	modeRow: {
+		flexDirection: 'column',
+		gap: 12,
+	},
+	modeTile: {
+		padding: 16,
+		borderRadius: 16,
+		borderWidth: 1,
+		borderColor: '#dbeafe',
+		backgroundColor: '#f8fbff',
+	},
+	modeTileActive: {
+		borderColor: '#2563eb',
+		backgroundColor: '#eff6ff',
+	},
+	modeTileDisabled: {
+		borderColor: '#e5e7eb',
+		backgroundColor: '#f3f4f6',
+	},
+	modeTilePressed: {
+		opacity: 0.9,
+	},
+	modeLabel: {
+		fontSize: 15,
+		fontWeight: '600',
+		color: '#1f2937',
+	},
+	modeLabelActive: {
+		color: '#1d4ed8',
+	},
+	modeLabelDisabled: {
+		color: '#9ca3af',
+	},
+	modeDescription: {
+		marginTop: 6,
+		fontSize: 13,
+		lineHeight: 19,
+		color: '#4b5563',
+	},
+	modeBadge: {
+		marginTop: 10,
+		fontSize: 12,
+		fontWeight: '600',
+		color: '#ef4444',
+	},
+	availability: {
+		marginTop: 14,
+		fontSize: 12,
+		letterSpacing: 0.6,
+		color: '#475569',
+		textTransform: 'uppercase',
+	},
+	buttonRow: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 10,
+	},
+	actionButton: {
+		paddingHorizontal: 20,
+		paddingVertical: 12,
+		borderRadius: 999,
+		backgroundColor: '#e2e8f0',
+	},
+	actionButtonPrimary: {
+		backgroundColor: '#2563eb',
+	},
+	actionButtonPressed: {
+		opacity: 0.85,
+	},
+	actionButtonDisabled: {
+		backgroundColor: '#cbd5f5',
+	},
+	actionButtonLabel: {
+		fontSize: 15,
+		fontWeight: '600',
+		color: '#1f2937',
+	},
+	actionButtonLabelPrimary: {
+		color: '#ffffff',
+	},
+	errorText: {
+		marginTop: 12,
+		color: '#dc2626',
+		fontSize: 13,
+	},
+	statusBubble: {
+		marginTop: 14,
+		backgroundColor: '#0f172a0d',
+		borderRadius: 14,
+		padding: 12,
+	},
+	statusText: {
+		fontSize: 14,
+		color: '#0f172a',
+	},
+	loadingRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	loadingText: {
+		fontSize: 14,
+		color: '#475569',
+	},
+	emptyState: {
+		fontSize: 14,
+		color: '#6b7280',
+	},
+	secretRow: {
+		paddingVertical: 12,
+	},
+	secretKey: {
+		fontSize: 15,
+		fontWeight: '600',
+		color: '#1f2937',
+	},
+	secretValue: {
+		marginTop: 4,
+		fontSize: 15,
+		color: '#0f172a',
+	},
+	secretValueMuted: {
+		marginTop: 4,
+		fontSize: 15,
+		color: '#6b7280',
+	},
+	secretMeta: {
+		marginTop: 4,
+		fontSize: 12,
+		color: '#94a3b8',
+	},
+	separator: {
+		height: 1,
+		backgroundColor: '#e2e8f0',
+	},
+	countBadge: {
+		fontSize: 16,
+		color: '#2563eb',
+		fontWeight: '700',
+	},
+})
 
-export default App;
+export default App
