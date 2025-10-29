@@ -42,19 +42,19 @@ struct AccessControlResolver {
     static func resolve(_ preference: String?) -> AccessControlConfig {
         switch preference {
         case "secureEnclaveBiometry":
-            // Strongest: Secure Enclave + Biometric
+            // Strongest: Secure Enclave + Biometric (current set)
             return AccessControlConfig(
                 preference: "secureEnclaveBiometry",
-                flags: [.biometryCurrentSet, .userPresence],
+                flags: [.biometryCurrentSet],
                 secureEnclave: true,
                 biometric: true,
-                securityLevel: "biometry"
+                securityLevel: "secureEnclave"
             )
 
         case "biometryCurrentSet":
             return AccessControlConfig(
                 preference: "biometryCurrentSet",
-                flags: [.biometryCurrentSet, .userPresence],
+                flags: [.biometryCurrentSet],
                 secureEnclave: false,
                 biometric: true,
                 securityLevel: "biometry"
@@ -63,7 +63,7 @@ struct AccessControlResolver {
         case "biometryAny":
             return AccessControlConfig(
                 preference: "biometryAny",
-                flags: [.biometryAny, .userPresence],
+                flags: [.biometryAny],
                 secureEnclave: false,
                 biometric: true,
                 securityLevel: "biometry"
@@ -72,7 +72,7 @@ struct AccessControlResolver {
         case "devicePasscode":
             return AccessControlConfig(
                 preference: "devicePasscode",
-                flags: [.userPresence],
+                flags: [.devicePasscode],
                 secureEnclave: false,
                 biometric: false,
                 securityLevel: "deviceCredential"

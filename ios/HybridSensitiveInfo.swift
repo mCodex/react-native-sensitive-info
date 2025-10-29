@@ -159,7 +159,8 @@ struct HybridSensitiveInfo {
         try await ensureAuthenticationIfNeeded(config: config, prompt: authenticationPrompt)
 
         let now = currentTimestamp()
-        let secureEnclaveEnabled = config.secureEnclave && isSecureEnclaveAvailable()
+        // Generic password items cannot opt into Secure Enclave directly; Keychain falls back to biometry.
+        let secureEnclaveEnabled = false
         let metadata = config.metadata(timestamp: now, secureEnclaveActive: secureEnclaveEnabled)
 
         let keychain = keychain(for: service)
@@ -167,7 +168,6 @@ struct HybridSensitiveInfo {
             key: key,
             value: value,
             accessControl: control,
-            useSecureEnclave: secureEnclaveEnabled,
             metadata: metadata
         )
 

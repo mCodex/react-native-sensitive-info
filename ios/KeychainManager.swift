@@ -1,5 +1,6 @@
 import Security
 import Foundation
+import LocalAuthentication
 
 /**
  * KeychainManager.swift
@@ -51,7 +52,6 @@ struct KeychainManager {
      * - Parameter key: Unique key within service
      * - Parameter value: Value to store (encrypted by Keychain)
     * - Parameter accessControl: Access control policy (nil for software-only)
-    * - Parameter useSecureEnclave: Requests Secure Enclave token (if available)
     * - Parameter metadata: Additional metadata stored alongside value
      * - Throws: KeychainError if operation fails
      *
@@ -70,7 +70,6 @@ struct KeychainManager {
         key: String,
         value: String,
         accessControl: SecAccessControl?,
-        useSecureEnclave: Bool,
         metadata: KeychainItemMetadata?
     ) throws {
         let valueData = value.data(using: .utf8) ?? Data()
@@ -84,10 +83,6 @@ struct KeychainManager {
             addQuery[kSecAttrAccessControl as String] = accessControl
         } else {
             addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        }
-
-        if useSecureEnclave {
-            addQuery[kSecAttrTokenID as String] = kSecAttrTokenIDSecureEnclave
         }
 
         if let encodedMetadata = metadata?.encoded() {
@@ -158,6 +153,9 @@ struct KeychainManager {
         query[kSecUseDataProtectionKeychain as String] = true
 
         if let prompt = prompt {
+            let context = LAContext()
+            context.localizedFallbackTitle = prompt.cancel
+            query[kSecUseAuthenticationContext as String] = context
             query[kSecUseOperationPrompt as String] = prompt.localizedReason
         }
 
