@@ -231,7 +231,7 @@ function createStorageKey(service: string, key: string): string {
   return `${service}:${key}`;
 }
 
-/*
+/**
  * Securely stores a value in encrypted storage with optional biometric protection
  *
  * The storage operation will:
