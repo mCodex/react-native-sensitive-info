@@ -480,7 +480,7 @@ export async function hasItem(
     );
 
     if (didInvoke) {
-      return Boolean(result);
+      return result as boolean;
     }
 
     return fallbackHasItem(service, key);
