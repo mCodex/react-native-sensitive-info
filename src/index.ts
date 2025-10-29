@@ -99,13 +99,125 @@ export {
  */
 const mockStorage: Record<string, string> = {};
 
+const FALLBACK_CAPABILITIES: DeviceCapabilities = {
+  secureEnclave: false,
+  strongBox: false,
+  biometry: false,
+  deviceCredential: false,
+  iCloudSync: false,
+};
+
+type NativeSetOptions = StorageOptions & { service: string };
+type NativeGetOptions = RetrievalOptions & { service: string };
+type NativeScopedOptions = { service: string };
+
+type NativeSensitiveInfoModule = {
+  setItem?: (
+    key: string,
+    value: string,
+    options: NativeSetOptions
+  ) => Promise<OperationResult>;
+  getItem?: (
+    key: string,
+    options: NativeGetOptions
+  ) => Promise<{ value?: string | null } | null>;
+  hasItem?: (key: string, options: NativeScopedOptions) => Promise<boolean>;
+  deleteItem?: (key: string, options: NativeScopedOptions) => Promise<void>;
+  getAllItems?: (options: NativeScopedOptions) => Promise<string[]>;
+  clearService?: (options: NativeScopedOptions) => Promise<void>;
+  getSupportedSecurityLevels?: () => Promise<DeviceCapabilities>;
+};
+
+type NativeMethod = keyof NativeSensitiveInfoModule;
+
+interface NativeInvocationResult<T> {
+  readonly didInvoke: boolean;
+  readonly result?: T;
+}
+
+interface KeychainScopedOptions {
+  readonly keychainService?: string;
+}
+
+function resolveService(options?: KeychainScopedOptions): string {
+  return options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+}
+
+async function invokeNative<T>(
+  nativeModule: NativeSensitiveInfoModule | null,
+  method: NativeMethod,
+  args: unknown[]
+): Promise<NativeInvocationResult<T>> {
+  const candidate = nativeModule?.[method];
+
+  if (typeof candidate !== 'function') {
+    return { didInvoke: false };
+  }
+
+  const result = await (candidate as (...innerArgs: unknown[]) => Promise<T>)(
+    ...args
+  );
+
+  return { didInvoke: true, result };
+}
+
+function fallbackSetItem(
+  service: string,
+  key: string,
+  value: string,
+  accessControl?: StorageOptions['accessControl']
+): OperationResult {
+  const storageKey = createStorageKey(service, key);
+  mockStorage[storageKey] = value;
+
+  return {
+    metadata: {
+      timestamp: Math.floor(Date.now() / 1000),
+      securityLevel: 'software',
+      accessControl: accessControl ?? DEFAULT_ACCESS_CONTROL,
+      backend: 'androidKeystore',
+    },
+  };
+}
+
+function fallbackGetItem(service: string, key: string): string | null {
+  const storageKey = createStorageKey(service, key);
+  return mockStorage[storageKey] ?? null;
+}
+
+function fallbackHasItem(service: string, key: string): boolean {
+  const storageKey = createStorageKey(service, key);
+  return storageKey in mockStorage;
+}
+
+function fallbackDeleteItem(service: string, key: string): void {
+  const storageKey = createStorageKey(service, key);
+  delete mockStorage[storageKey];
+}
+
+function fallbackGetAllItems(service: string): string[] {
+  const prefix = createStorageKey(service, '');
+  return Object.keys(mockStorage)
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => key.substring(prefix.length));
+}
+
+function fallbackClearService(service: string): void {
+  const prefix = createStorageKey(service, '');
+  Object.keys(mockStorage).forEach((key) => {
+    if (key.startsWith(prefix)) {
+      delete mockStorage[key];
+    }
+  });
+}
+
 /**
  * Get native module instance
  * @private
  */
-function getNativeModule() {
+function getNativeModule(): NativeSensitiveInfoModule | null {
   try {
-    return NativeModules.SensitiveInfo;
+    return NativeModules.SensitiveInfo as NativeSensitiveInfoModule;
   } catch {
     return null;
   }
@@ -119,7 +231,7 @@ function createStorageKey(service: string, key: string): string {
   return `${service}:${key}`;
 }
 
-/**
+/*
  * Securely stores a value in encrypted storage with optional biometric protection
  *
  * The storage operation will:
@@ -177,30 +289,21 @@ export async function setItem(
     throw new Error('Key and value are required');
   }
 
-  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+  const service = resolveService(options);
   const nativeModule = getNativeModule();
 
   try {
-    if (nativeModule?.setItem) {
-      // Use native implementation when available
-      return await nativeModule.setItem(key, value, {
-        service,
-        ...options,
-      });
+    const { didInvoke, result } = await invokeNative<OperationResult>(
+      nativeModule,
+      'setItem',
+      [key, value, { service, ...options }]
+    );
+
+    if (didInvoke) {
+      return result as OperationResult;
     }
 
-    // Development/example fallback
-    const storageKey = createStorageKey(service, key);
-    mockStorage[storageKey] = value;
-
-    return {
-      metadata: {
-        timestamp: Math.floor(Date.now() / 1000),
-        securityLevel: 'software',
-        accessControl: options?.accessControl || DEFAULT_ACCESS_CONTROL,
-        backend: 'androidKeystore',
-      },
-    };
+    return fallbackSetItem(service, key, value, options?.accessControl);
   } catch (error: any) {
     const errorCode = error?.code || ErrorCode.ENCRYPTION_FAILED;
     const message = `Failed to store "${key}": ${error?.message}`;
@@ -297,23 +400,25 @@ export async function getItem(
     throw new Error('Key is required');
   }
 
-  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+  const service = resolveService(options);
   const nativeModule = getNativeModule();
 
   try {
-    if (nativeModule?.getItem) {
-      // Use native implementation when available
-      const result = await nativeModule.getItem(key, {
+    const { didInvoke, result } = await invokeNative<{
+      value?: string | null;
+    } | null>(nativeModule, 'getItem', [
+      key,
+      {
         service,
         ...options,
-      });
-      // Extract the value field from the native result object
+      },
+    ]);
+
+    if (didInvoke) {
       return result?.value ?? null;
     }
 
-    // Development/example fallback
-    const storageKey = createStorageKey(service, key);
-    return mockStorage[storageKey] ?? null;
+    return fallbackGetItem(service, key);
   } catch (error: any) {
     const errorCode = error?.code || ErrorCode.DECRYPTION_FAILED;
     const message = `Failed to retrieve "${key}": ${error?.message}`;
@@ -364,17 +469,21 @@ export async function hasItem(
     throw new Error('Key is required');
   }
 
-  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+  const service = resolveService(options);
   const nativeModule = getNativeModule();
 
   try {
-    if (nativeModule?.hasItem) {
-      return await nativeModule.hasItem(key, { service });
+    const { didInvoke, result } = await invokeNative<boolean>(
+      nativeModule,
+      'hasItem',
+      [key, { service }]
+    );
+
+    if (didInvoke) {
+      return Boolean(result);
     }
 
-    // Development/example fallback
-    const storageKey = createStorageKey(service, key);
-    return storageKey in mockStorage;
+    return fallbackHasItem(service, key);
   } catch (error: any) {
     const message = `Failed to check "${key}": ${error?.message}`;
     throw Object.assign(new Error(message), {
@@ -424,18 +533,20 @@ export async function deleteItem(
     throw new Error('Key is required');
   }
 
-  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+  const service = resolveService(options);
   const nativeModule = getNativeModule();
 
   try {
-    if (nativeModule?.deleteItem) {
-      await nativeModule.deleteItem(key, { service });
+    const { didInvoke } = await invokeNative<void>(nativeModule, 'deleteItem', [
+      key,
+      { service },
+    ]);
+
+    if (didInvoke) {
       return;
     }
 
-    // Development/example fallback
-    const storageKey = createStorageKey(service, key);
-    delete mockStorage[storageKey];
+    fallbackDeleteItem(service, key);
   } catch (error: any) {
     const message = `Failed to delete "${key}": ${error?.message}`;
     throw Object.assign(new Error(message), {
@@ -479,19 +590,21 @@ export async function deleteItem(
 export async function getAllItems(
   options?: Pick<StorageOptions, 'keychainService'>
 ): Promise<string[]> {
-  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+  const service = resolveService(options);
   const nativeModule = getNativeModule();
 
   try {
-    if (nativeModule?.getAllItems) {
-      return await nativeModule.getAllItems({ service });
+    const { didInvoke, result } = await invokeNative<string[]>(
+      nativeModule,
+      'getAllItems',
+      [{ service }]
+    );
+
+    if (didInvoke) {
+      return result ?? [];
     }
 
-    // Development/example fallback
-    const prefix = createStorageKey(service, '');
-    return Object.keys(mockStorage)
-      .filter((k) => k.startsWith(prefix))
-      .map((k) => k.substring(prefix.length));
+    return fallbackGetAllItems(service);
   } catch (error: any) {
     throw Object.assign(new Error(`Failed to list items: ${error?.message}`), {
       code: ErrorCode.KEYSTORE_UNAVAILABLE,
@@ -545,22 +658,21 @@ export async function getAllItems(
 export async function clearService(
   options?: Pick<StorageOptions, 'keychainService'>
 ): Promise<void> {
-  const service = options?.keychainService || DEFAULT_KEYCHAIN_SERVICE;
+  const service = resolveService(options);
   const nativeModule = getNativeModule();
 
   try {
-    if (nativeModule?.clearService) {
-      await nativeModule.clearService({ service });
+    const { didInvoke } = await invokeNative<void>(
+      nativeModule,
+      'clearService',
+      [{ service }]
+    );
+
+    if (didInvoke) {
       return;
     }
 
-    // Development/example fallback
-    const prefix = createStorageKey(service, '');
-    Object.keys(mockStorage).forEach((key) => {
-      if (key.startsWith(prefix)) {
-        delete mockStorage[key];
-      }
-    });
+    fallbackClearService(service);
   } catch (error: any) {
     const message = `Failed to clear service: ${error?.message}`;
     throw Object.assign(new Error(message), {
@@ -594,13 +706,23 @@ export async function clearService(
  * ```
  */
 export async function getSupportedSecurityLevels(): Promise<DeviceCapabilities> {
-  return {
-    secureEnclave: true,
-    strongBox: true,
-    biometry: false,
-    deviceCredential: true,
-    iCloudSync: false,
-  };
+  const nativeModule = getNativeModule();
+
+  try {
+    const { didInvoke, result } = await invokeNative<DeviceCapabilities>(
+      nativeModule,
+      'getSupportedSecurityLevels',
+      []
+    );
+
+    if (didInvoke && result) {
+      return result;
+    }
+
+    return FALLBACK_CAPABILITIES;
+  } catch {
+    return FALLBACK_CAPABILITIES;
+  }
 }
 
 /**
