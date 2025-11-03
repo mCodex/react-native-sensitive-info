@@ -8,32 +8,32 @@ export {
   type HookFailureResult,
   createHookSuccessResult,
   createHookFailureResult,
-} from './types'
+} from './types';
 export {
   useSecretItem,
   type UseSecretItemOptions,
   type UseSecretItemResult,
-} from './useSecretItem'
+} from './useSecretItem';
 export {
   useHasSecret,
   type UseHasSecretOptions,
   type UseHasSecretResult,
-} from './useHasSecret'
+} from './useHasSecret';
 export {
   useSecureStorage,
   type UseSecureStorageOptions,
   type UseSecureStorageResult,
-} from './useSecureStorage'
+} from './useSecureStorage';
 export {
   useSecurityAvailability,
   type UseSecurityAvailabilityResult,
-} from './useSecurityAvailability'
+} from './useSecurityAvailability';
 export {
   useSecret,
   type UseSecretOptions,
   type UseSecretResult,
-} from './useSecret'
+} from './useSecret';
 export {
   useSecureOperation,
   type UseSecureOperationResult,
-} from './useSecureOperation'
+} from './useSecureOperation';

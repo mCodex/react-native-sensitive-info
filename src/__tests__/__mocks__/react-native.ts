@@ -1,5 +1,5 @@
-export const NativeModules = {}
+export const NativeModules = {};
 
 export default {
   NativeModules,
-}
+};

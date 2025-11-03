@@ -1,10 +1,10 @@
 import type {
   AccessControl,
   SensitiveInfoOptions,
-} from '../sensitive-info.nitro'
+} from '../sensitive-info.nitro';
 
-export const DEFAULT_SERVICE = 'default'
-export const DEFAULT_ACCESS_CONTROL: AccessControl = 'secureEnclaveBiometry'
+export const DEFAULT_SERVICE = 'default';
+export const DEFAULT_ACCESS_CONTROL: AccessControl = 'secureEnclaveBiometry';
 
 /**
  * Normalises user supplied options by applying defaults and pruning `undefined` fields.
@@ -16,7 +16,7 @@ export function normalizeOptions(
     return {
       service: DEFAULT_SERVICE,
       accessControl: DEFAULT_ACCESS_CONTROL,
-    }
+    };
   }
 
   const {
@@ -25,7 +25,7 @@ export function normalizeOptions(
     iosSynchronizable,
     keychainGroup,
     authenticationPrompt,
-  } = options
+  } = options;
 
   return {
     service,
@@ -33,5 +33,5 @@ export function normalizeOptions(
     iosSynchronizable,
     keychainGroup,
     authenticationPrompt,
-  }
+  };
 }
