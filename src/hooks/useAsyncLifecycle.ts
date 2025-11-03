@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useRef } from 'react'
-import type { RefObject } from 'react'
+import { useCallback, useEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 
 export interface AsyncLifecycleControls {
   /**
    * Indicates whether the component that owns the hook is still mounted. Helpful when dispatching asynchronous state updates.
    */
-  readonly mountedRef: RefObject<boolean>
+  readonly mountedRef: RefObject<boolean>;
   /**
    * Stores the last {@link AbortController} created by {@link begin}. Exposed for advanced scenarios such as manual cancellation.
    */
-  readonly controllerRef: RefObject<AbortController | null>
+  readonly controllerRef: RefObject<AbortController | null>;
   /**
    * Aborts the previous async job (if any) and returns a fresh {@link AbortController} tied to the current execution flow.
    */
-  begin: () => AbortController
+  begin: () => AbortController;
 }
 
 /**
@@ -34,29 +34,29 @@ export interface AsyncLifecycleControls {
  * ```
  */
 const useAsyncLifecycle = (): AsyncLifecycleControls => {
-  const mountedRef = useRef(true)
-  const controllerRef = useRef<AbortController | null>(null)
+  const mountedRef = useRef(true);
+  const controllerRef = useRef<AbortController | null>(null);
 
   useEffect(
     () => () => {
-      mountedRef.current = false
-      controllerRef.current?.abort()
+      mountedRef.current = false;
+      controllerRef.current?.abort();
     },
     []
-  )
+  );
 
   const begin = useCallback(() => {
-    controllerRef.current?.abort()
-    const controller = new AbortController()
-    controllerRef.current = controller
-    return controller
-  }, [])
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    return controller;
+  }, []);
 
   return {
     mountedRef,
     controllerRef,
     begin,
-  }
-}
+  };
+};
 
-export default useAsyncLifecycle
+export default useAsyncLifecycle;

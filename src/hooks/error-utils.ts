@@ -1,8 +1,8 @@
 import {
   getErrorMessage,
   isAuthenticationCanceledError as internalIsAuthenticationCanceledError,
-} from '../internal/errors'
-import { HookError } from './types'
+} from '../internal/errors';
+import { HookError } from './types';
 
 /**
  * Creates a {@link HookError} enhanced with the original cause, the operation label, and an optional hint.
@@ -23,9 +23,9 @@ const createHookError = (
       operation,
       hint,
     }
-  )
+  );
 
 export const isAuthenticationCanceledError =
-  internalIsAuthenticationCanceledError
+  internalIsAuthenticationCanceledError;
 
-export default createHookError
+export default createHookError;
