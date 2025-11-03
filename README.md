@@ -17,11 +17,11 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 > This README tracks the in-progress v6 work on `master`. For the stable legacy release, switch to the `v5.x` branch.
 
 > [!NOTE]
-> **Choosing between 5.6.0 and 6.x**
+> **Choosing between 5.6.x and 6.x**
 >
-> - **Need bridge stability?** `5.6.0` is the last pre-Nitro release with the latest biometric fixes, docs, and Android namespace cleanups. It’s drop-in for any `5.5.x` app already running on React Native’s Fabric architecture, but you keep the legacy JS bridge overhead—Paper is no longer supported.
+> - **Need bridge stability?** `5.6.x` is the last pre-Nitro release with the latest biometric fixes, docs, and Android namespace cleanups. It’s drop-in for any `5.5.x` app already running on React Native’s Fabric architecture, but you keep the legacy JS bridge overhead—Paper is no longer supported.
 > - **Ready for Nitro speed?** `6.x` swaps in the Nitro hybrid core, auto-enforces Class 3/StrongBox biometrics, and ships the refreshed sample app plus richer metadata. Upgrade when you can adopt the Nitro toolchain (RN 0.76+, Node 18+, `react-native-nitro-modules`).
-> - **Staying back on 5.5.x?** You remain on the legacy (Paper) architecture and miss the Android 13 prompt fixes, the manual credential fallback restoration, and the new docs—migrate to `5.6.0` at minimum before planning the Nitro jump.
+> - **Staying back on 5.5.x?** You remain on the legacy (Paper) architecture and miss the Android 13 prompt fixes, the manual credential fallback restoration, and the new docs—migrate to `5.6.x` at minimum before planning the Nitro jump.
 
 ## Table of contents
 
