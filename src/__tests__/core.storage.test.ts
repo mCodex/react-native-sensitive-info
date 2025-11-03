@@ -5,7 +5,7 @@ import type {
   SensitiveInfoHasRequest,
   SensitiveInfoOptions,
   SensitiveInfoSetRequest,
-} from '../sensitive-info.nitro'
+} from '../sensitive-info.nitro';
 
 describe('core/storage', () => {
   const nativeHandle = {
@@ -16,7 +16,7 @@ describe('core/storage', () => {
     getAllItems: jest.fn(),
     clearService: jest.fn(),
     getSupportedSecurityLevels: jest.fn(),
-  }
+  };
 
   const normalizeOptions = jest
     .fn<
@@ -26,181 +26,181 @@ describe('core/storage', () => {
     .mockReturnValue({
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    })
+    });
 
-  const isNotFoundError = jest.fn()
+  const isNotFoundError = jest.fn();
 
   const loadModule = async () => {
-    jest.resetModules()
+    jest.resetModules();
 
     jest.doMock('../internal/native', () => ({
       __esModule: true,
       default: jest.fn(() => nativeHandle),
-    }))
+    }));
 
     jest.doMock('../internal/options', () => ({
       normalizeOptions,
-    }))
+    }));
 
     jest.doMock('../internal/errors', () => ({
       isNotFoundError,
-    }))
+    }));
 
-    return import('../core/storage')
-  }
+    return import('../core/storage');
+  };
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.clearAllMocks();
     Object.values(nativeHandle).forEach((value) => {
       if (typeof value === 'function') {
-        value.mockReset()
+        value.mockReset();
       }
-    })
-    normalizeOptions.mockClear()
+    });
+    normalizeOptions.mockClear();
     normalizeOptions.mockReturnValue({
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    })
-    isNotFoundError.mockReset()
-  })
+    });
+    isNotFoundError.mockReset();
+  });
 
   it('delegates setItem to the native layer', async () => {
-    const { setItem } = await loadModule()
+    const { setItem } = await loadModule();
 
-    nativeHandle.setItem.mockResolvedValue({ metadata: {} })
+    nativeHandle.setItem.mockResolvedValue({ metadata: {} });
 
-    await setItem('token', 'secret', { service: 'service' })
+    await setItem('token', 'secret', { service: 'service' });
 
-    expect(normalizeOptions).toHaveBeenCalledWith({ service: 'service' })
+    expect(normalizeOptions).toHaveBeenCalledWith({ service: 'service' });
     expect(nativeHandle.setItem).toHaveBeenCalledWith({
       key: 'token',
       value: 'secret',
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    } as SensitiveInfoSetRequest)
-  })
+    } as SensitiveInfoSetRequest);
+  });
 
   it('returns null when a key is missing', async () => {
-    const { getItem } = await loadModule()
+    const { getItem } = await loadModule();
 
-    const error = new Error('Missing [E_NOT_FOUND] key')
-    nativeHandle.getItem.mockRejectedValueOnce(error)
-    isNotFoundError.mockReturnValueOnce(true)
+    const error = new Error('Missing [E_NOT_FOUND] key');
+    nativeHandle.getItem.mockRejectedValueOnce(error);
+    isNotFoundError.mockReturnValueOnce(true);
 
-    const result = await getItem('token', { service: 'service' })
+    const result = await getItem('token', { service: 'service' });
 
-    expect(result).toBeNull()
-    expect(normalizeOptions).toHaveBeenCalled()
-  })
+    expect(result).toBeNull();
+    expect(normalizeOptions).toHaveBeenCalled();
+  });
 
   it('rethrows unexpected errors during getItem', async () => {
-    const { getItem } = await loadModule()
+    const { getItem } = await loadModule();
 
-    const error = new Error('Boom')
-    nativeHandle.getItem.mockRejectedValueOnce(error)
-    isNotFoundError.mockReturnValueOnce(false)
+    const error = new Error('Boom');
+    nativeHandle.getItem.mockRejectedValueOnce(error);
+    isNotFoundError.mockReturnValueOnce(false);
 
-    await expect(getItem('token')).rejects.toBe(error)
-  })
+    await expect(getItem('token')).rejects.toBe(error);
+  });
 
   it('passes includeValue defaults to getItem', async () => {
-    const { getItem } = await loadModule()
+    const { getItem } = await loadModule();
 
-    nativeHandle.getItem.mockResolvedValueOnce({ key: 'token' })
+    nativeHandle.getItem.mockResolvedValueOnce({ key: 'token' });
 
-    await getItem('token')
+    await getItem('token');
 
     expect(nativeHandle.getItem).toHaveBeenCalledWith({
       key: 'token',
       includeValue: true,
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    } as SensitiveInfoGetRequest)
-  })
+    } as SensitiveInfoGetRequest);
+  });
 
   it('delegates hasItem to the native layer', async () => {
-    const { hasItem } = await loadModule()
+    const { hasItem } = await loadModule();
 
-    nativeHandle.hasItem.mockResolvedValueOnce(true)
+    nativeHandle.hasItem.mockResolvedValueOnce(true);
 
-    const result = await hasItem('token', { service: 'service' })
+    const result = await hasItem('token', { service: 'service' });
 
-    expect(result).toBe(true)
+    expect(result).toBe(true);
     expect(nativeHandle.hasItem).toHaveBeenCalledWith({
       key: 'token',
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    } as SensitiveInfoHasRequest)
-  })
+    } as SensitiveInfoHasRequest);
+  });
 
   it('delegates deleteItem to the native layer', async () => {
-    const { deleteItem } = await loadModule()
+    const { deleteItem } = await loadModule();
 
-    nativeHandle.deleteItem.mockResolvedValueOnce(true)
+    nativeHandle.deleteItem.mockResolvedValueOnce(true);
 
-    const result = await deleteItem('token', { service: 'service' })
+    const result = await deleteItem('token', { service: 'service' });
 
-    expect(result).toBe(true)
+    expect(result).toBe(true);
     expect(nativeHandle.deleteItem).toHaveBeenCalledWith({
       key: 'token',
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    } as SensitiveInfoDeleteRequest)
-  })
+    } as SensitiveInfoDeleteRequest);
+  });
 
   it('returns entries using getAllItems with includeValues default', async () => {
-    const { getAllItems } = await loadModule()
+    const { getAllItems } = await loadModule();
 
-    nativeHandle.getAllItems.mockResolvedValueOnce([])
+    nativeHandle.getAllItems.mockResolvedValueOnce([]);
 
-    await getAllItems({ includeValues: true })
+    await getAllItems({ includeValues: true });
 
     expect(nativeHandle.getAllItems).toHaveBeenCalledWith({
       includeValues: true,
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    } as SensitiveInfoEnumerateRequest)
-  })
+    } as SensitiveInfoEnumerateRequest);
+  });
 
   it('clears a service via native call', async () => {
-    const { clearService } = await loadModule()
+    const { clearService } = await loadModule();
 
-    nativeHandle.clearService.mockResolvedValueOnce(undefined)
+    nativeHandle.clearService.mockResolvedValueOnce(undefined);
 
-    await clearService({ service: 'auth' })
+    await clearService({ service: 'auth' });
 
     expect(nativeHandle.clearService).toHaveBeenCalledWith({
       service: 'normalized',
       accessControl: 'secureEnclaveBiometry',
-    })
-  })
+    });
+  });
 
   it('forwards getSupportedSecurityLevels', async () => {
-    const { getSupportedSecurityLevels } = await loadModule()
+    const { getSupportedSecurityLevels } = await loadModule();
 
     nativeHandle.getSupportedSecurityLevels.mockResolvedValueOnce({
       secureEnclave: true,
       strongBox: true,
       biometry: true,
       deviceCredential: false,
-    })
+    });
 
-    const result = await getSupportedSecurityLevels()
+    const result = await getSupportedSecurityLevels();
 
     expect(result).toEqual({
       secureEnclave: true,
       strongBox: true,
       biometry: true,
       deviceCredential: false,
-    })
-    expect(nativeHandle.getSupportedSecurityLevels).toHaveBeenCalled()
-  })
+    });
+    expect(nativeHandle.getSupportedSecurityLevels).toHaveBeenCalled();
+  });
 
   it('exposes a namespace mirroring the helpers', async () => {
-    const module = await loadModule()
+    const module = await loadModule();
 
-    expect(module.SensitiveInfo.setItem).toBe(module.setItem)
-    expect(module.SensitiveInfo.getItem).toBe(module.getItem)
-    expect(module.SensitiveInfo.clearService).toBe(module.clearService)
-  })
-})
+    expect(module.SensitiveInfo.setItem).toBe(module.setItem);
+    expect(module.SensitiveInfo.getItem).toBe(module.getItem);
+    expect(module.SensitiveInfo.clearService).toBe(module.clearService);
+  });
+});

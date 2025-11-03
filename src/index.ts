@@ -17,7 +17,7 @@ export type {
   SensitiveInfoSetRequest,
   StorageBackend,
   StorageMetadata,
-} from './sensitive-info.nitro'
+} from './sensitive-info.nitro';
 
 /**
  * Core storage helpers that mirror the native Nitro surface.
@@ -32,9 +32,9 @@ export {
   hasItem,
   setItem,
   type SensitiveInfoApi,
-} from './core/storage'
+} from './core/storage';
 
-export { default } from './core/storage'
+export { default } from './core/storage';
 
 /**
  * React hooks and utility types to integrate the secure store with React components.
@@ -64,4 +64,4 @@ export {
   type UseSecurityAvailabilityResult,
   type AsyncState,
   type VoidAsyncState,
-} from './hooks'
+} from './hooks';

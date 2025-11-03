@@ -5,7 +5,7 @@ import { createInitialAsyncState } from './types'
 import type { AsyncState } from './types'
 import useAsyncLifecycle from './useAsyncLifecycle'
 import useStableOptions from './useStableOptions'
-import createHookError from './error-utils'
+import createHookError, { isAuthenticationCanceledError } from './error-utils'
 
 /**
  * Options accepted by {@link useHasSecret}.
@@ -73,19 +73,28 @@ export function useHasSecret(
           isPending: false,
         })
       }
-    } catch (error) {
+    } catch (errorLike) {
       if (mountedRef.current && !controller.signal.aborted) {
-        const hookError = createHookError(
-          'useHasSecret.evaluate',
-          error,
-          'Most commonly triggered by an invalid key/service combination.'
-        )
-        setState({
-          data: null,
-          error: hookError,
-          isLoading: false,
-          isPending: false,
-        })
+        if (isAuthenticationCanceledError(errorLike)) {
+          setState((prev) => ({
+            data: prev.data,
+            error: null,
+            isLoading: false,
+            isPending: false,
+          }))
+        } else {
+          const hookError = createHookError(
+            'useHasSecret.evaluate',
+            errorLike,
+            'Most commonly triggered by an invalid key/service combination.'
+          )
+          setState({
+            data: null,
+            error: hookError,
+            isLoading: false,
+            isPending: false,
+          })
+        }
       }
     }
   }, [begin, key, mountedRef, stableOptions])

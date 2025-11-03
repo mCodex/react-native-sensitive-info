@@ -2,12 +2,13 @@ import { useCallback, useState } from 'react'
 import { createInitialVoidState } from './types'
 import type { VoidAsyncState } from './types'
 import useAsyncLifecycle from './useAsyncLifecycle'
-import createHookError from './error-utils'
+import createHookError, { isAuthenticationCanceledError } from './error-utils'
 
 /**
  * Result returned by {@link useSecureOperation}.
  */
 export interface UseSecureOperationResult extends VoidAsyncState {
+  /** Executes the secured procedure while tracking loading and error state. */
   readonly execute: (operation: () => Promise<void>) => Promise<void>
 }
 
@@ -47,15 +48,23 @@ export function useSecureOperation(): UseSecureOperationResult {
         }
       } catch (errorLike) {
         if (mountedRef.current && !controller.signal.aborted) {
-          setState({
-            error: createHookError(
-              'useSecureOperation.execute',
-              errorLike,
-              'Review the async callback passed to execute() for thrown errors.'
-            ),
-            isLoading: false,
-            isPending: false,
-          })
+          if (isAuthenticationCanceledError(errorLike)) {
+            setState({
+              error: null,
+              isLoading: false,
+              isPending: false,
+            })
+          } else {
+            setState({
+              error: createHookError(
+                'useSecureOperation.execute',
+                errorLike,
+                'Review the async callback passed to execute() for thrown errors.'
+              ),
+              isLoading: false,
+              isPending: false,
+            })
+          }
         }
       }
     },

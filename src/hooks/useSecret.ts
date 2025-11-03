@@ -23,8 +23,11 @@ export type UseSecretOptions = UseSecretItemOptions
  * Result bag returned by {@link useSecret}.
  */
 export interface UseSecretResult extends AsyncState<SensitiveInfoItem> {
+  /** Persist a new value for the tracked secret and refresh the cache. */
   readonly saveSecret: (value: string) => Promise<HookMutationResult>
+  /** Delete the tracked secret from secure storage. */
   readonly deleteSecret: () => Promise<HookMutationResult>
+  /** Re-run the underlying fetch even if `skip` is enabled. */
   readonly refetch: () => Promise<void>
 }
 

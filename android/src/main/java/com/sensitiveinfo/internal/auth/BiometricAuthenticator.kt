@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import com.sensitiveinfo.internal.util.ReactContextHolder
+import com.sensitiveinfo.internal.util.SensitiveInfoException
 import javax.crypto.Cipher
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
@@ -42,11 +43,8 @@ internal class BiometricAuthenticator {
 
     return withContext(Dispatchers.Main) {
       if (cipher == null && allowLegacyDeviceCredential && !canUseBiometric()) {
-        if (DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)) {
-          cipher
-        } else {
-          throw IllegalStateException("Device credential authentication canceled.")
-        }
+        DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)
+        cipher
       } else {
         try {
           authenticateWithBiometricPrompt(
@@ -59,9 +57,8 @@ internal class BiometricAuthenticator {
         } catch (error: Throwable) {
           if (error is CancellationException) throw error
           if (allowLegacyDeviceCredential) {
-            if (DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)) {
-              return@withContext cipher
-            }
+            DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)
+            return@withContext cipher
           }
           throw error
         }
@@ -86,11 +83,12 @@ internal class BiometricAuthenticator {
         }
 
         override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-          if (errorCode == BiometricPrompt.ERROR_CANCELED ||
+          if (
+            errorCode == BiometricPrompt.ERROR_CANCELED ||
             errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
             errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON
           ) {
-            continuation.cancel()
+            continuation.resumeWithException(SensitiveInfoException.AuthenticationCanceled())
           } else {
             continuation.resumeWithException(IllegalStateException(errString.toString()))
           }

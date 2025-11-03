@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { MutableRefObject } from 'react'
+import type { RefObject } from 'react'
 
 export interface AsyncLifecycleControls {
   /**
    * Indicates whether the component that owns the hook is still mounted. Helpful when dispatching asynchronous state updates.
    */
-  readonly mountedRef: MutableRefObject<boolean>
+  readonly mountedRef: RefObject<boolean>
   /**
    * Stores the last {@link AbortController} created by {@link begin}. Exposed for advanced scenarios such as manual cancellation.
    */
-  readonly controllerRef: MutableRefObject<AbortController | null>
+  readonly controllerRef: RefObject<AbortController | null>
   /**
    * Aborts the previous async job (if any) and returns a fresh {@link AbortController} tied to the current execution flow.
    */

@@ -1,7 +1,7 @@
 {
   "name": "react-native-sensitive-info",
   "version": "6.0.0-rc.8",
-  "description": "react-native-sensitive-info is a react native package built with Nitro",
+  "description": "🔐 React Native secure storage, rebuilt with Nitro Modules ⚡️ Biometric-ready, StrongBox-aware, and metadata-rich for modern mobile apps",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
