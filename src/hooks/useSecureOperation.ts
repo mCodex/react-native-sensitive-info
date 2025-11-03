@@ -1,15 +1,15 @@
-import { useCallback, useState } from 'react'
-import { createInitialVoidState } from './types'
-import type { VoidAsyncState } from './types'
-import useAsyncLifecycle from './useAsyncLifecycle'
-import createHookError, { isAuthenticationCanceledError } from './error-utils'
+import { useCallback, useState } from 'react';
+import { createInitialVoidState } from './types';
+import type { VoidAsyncState } from './types';
+import useAsyncLifecycle from './useAsyncLifecycle';
+import createHookError, { isAuthenticationCanceledError } from './error-utils';
 
 /**
  * Result returned by {@link useSecureOperation}.
  */
 export interface UseSecureOperationResult extends VoidAsyncState {
   /** Executes the secured procedure while tracking loading and error state. */
-  readonly execute: (operation: () => Promise<void>) => Promise<void>
+  readonly execute: (operation: () => Promise<void>) => Promise<void>;
 }
 
 /**
@@ -23,28 +23,28 @@ export interface UseSecureOperationResult extends VoidAsyncState {
  * ```
  */
 export function useSecureOperation(): UseSecureOperationResult {
-  const [state, setState] = useState<VoidAsyncState>(createInitialVoidState())
-  const { begin, mountedRef } = useAsyncLifecycle()
+  const [state, setState] = useState<VoidAsyncState>(createInitialVoidState());
+  const { begin, mountedRef } = useAsyncLifecycle();
 
   const execute = useCallback(
     async (operation: () => Promise<void>) => {
-      const controller = begin()
+      const controller = begin();
 
       setState({
         error: null,
         isLoading: true,
         isPending: true,
-      })
+      });
 
       try {
-        await operation()
+        await operation();
 
         if (mountedRef.current && !controller.signal.aborted) {
           setState({
             error: null,
             isLoading: false,
             isPending: false,
-          })
+          });
         }
       } catch (errorLike) {
         if (mountedRef.current && !controller.signal.aborted) {
@@ -53,7 +53,7 @@ export function useSecureOperation(): UseSecureOperationResult {
               error: null,
               isLoading: false,
               isPending: false,
-            })
+            });
           } else {
             setState({
               error: createHookError(
@@ -63,16 +63,16 @@ export function useSecureOperation(): UseSecureOperationResult {
               ),
               isLoading: false,
               isPending: false,
-            })
+            });
           }
         }
       }
     },
     [begin, mountedRef]
-  )
+  );
 
   return {
     ...state,
     execute,
-  }
+  };
 }

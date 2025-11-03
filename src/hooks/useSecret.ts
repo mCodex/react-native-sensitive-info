@@ -1,34 +1,34 @@
-import { useCallback } from 'react'
+import { useCallback } from 'react';
 import type {
   SensitiveInfoItem,
   SensitiveInfoOptions,
-} from '../sensitive-info.nitro'
-import { deleteItem, setItem } from '../core/storage'
+} from '../sensitive-info.nitro';
+import { deleteItem, setItem } from '../core/storage';
 import {
   createHookFailureResult,
   createHookSuccessResult,
   type HookMutationResult,
   type AsyncState,
-} from './types'
-import { useSecretItem, type UseSecretItemOptions } from './useSecretItem'
-import createHookError from './error-utils'
+} from './types';
+import { useSecretItem, type UseSecretItemOptions } from './useSecretItem';
+import createHookError from './error-utils';
 
 /**
  * Configuration object for {@link useSecret}.
  * Combines the read options from {@link useSecretItem} with mutation convenience flags.
  */
-export type UseSecretOptions = UseSecretItemOptions
+export type UseSecretOptions = UseSecretItemOptions;
 
 /**
  * Result bag returned by {@link useSecret}.
  */
 export interface UseSecretResult extends AsyncState<SensitiveInfoItem> {
   /** Persist a new value for the tracked secret and refresh the cache. */
-  readonly saveSecret: (value: string) => Promise<HookMutationResult>
+  readonly saveSecret: (value: string) => Promise<HookMutationResult>;
   /** Delete the tracked secret from secure storage. */
-  readonly deleteSecret: () => Promise<HookMutationResult>
+  readonly deleteSecret: () => Promise<HookMutationResult>;
   /** Re-run the underlying fetch even if `skip` is enabled. */
-  readonly refetch: () => Promise<void>
+  readonly refetch: () => Promise<void>;
 }
 
 /**
@@ -37,10 +37,10 @@ export interface UseSecretResult extends AsyncState<SensitiveInfoItem> {
 const normalizeMutationOptions = (
   options?: UseSecretOptions
 ): SensitiveInfoOptions | undefined => {
-  if (!options) return undefined
-  const { skip: _skip, includeValue: _includeValue, ...core } = options
-  return core as SensitiveInfoOptions
-}
+  if (!options) return undefined;
+  const { skip: _skip, includeValue: _includeValue, ...core } = options;
+  return core as SensitiveInfoOptions;
+};
 
 /**
  * Maintains a secure item while exposing imperative helpers to mutate or refresh it.
@@ -57,40 +57,40 @@ export function useSecret(
   const { data, error, isLoading, isPending, refetch } = useSecretItem(
     key,
     options
-  )
+  );
 
   const saveSecret = useCallback(
     async (value: string) => {
       try {
-        await setItem(key, value, normalizeMutationOptions(options))
-        await refetch()
-        return createHookSuccessResult()
+        await setItem(key, value, normalizeMutationOptions(options));
+        await refetch();
+        return createHookSuccessResult();
       } catch (errorLike) {
         const hookError = createHookError(
           'useSecret.saveSecret',
           errorLike,
           'Check the access control requirements for this key.'
-        )
-        return createHookFailureResult(hookError)
+        );
+        return createHookFailureResult(hookError);
       }
     },
     [key, options, refetch]
-  )
+  );
 
   const deleteSecret = useCallback(async () => {
     try {
-      await deleteItem(key, normalizeMutationOptions(options))
-      await refetch()
-      return createHookSuccessResult()
+      await deleteItem(key, normalizeMutationOptions(options));
+      await refetch();
+      return createHookSuccessResult();
     } catch (errorLike) {
       const hookError = createHookError(
         'useSecret.deleteSecret',
         errorLike,
         'Ensure the user completed biometric prompts or that the key is spelled correctly.'
-      )
-      return createHookFailureResult(hookError)
+      );
+      return createHookFailureResult(hookError);
     }
-  }, [key, options, refetch])
+  }, [key, options, refetch]);
 
   return {
     data,
@@ -100,5 +100,5 @@ export function useSecret(
     saveSecret,
     deleteSecret,
     refetch,
-  }
+  };
 }

@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react';
 import type {
   SensitiveInfoItem,
   SensitiveInfoOptions,
-} from '../sensitive-info.nitro'
-import { getItem } from '../core/storage'
-import { createInitialAsyncState } from './types'
-import type { AsyncState } from './types'
-import useAsyncLifecycle from './useAsyncLifecycle'
-import useStableOptions from './useStableOptions'
-import createHookError, { isAuthenticationCanceledError } from './error-utils'
+} from '../sensitive-info.nitro';
+import { getItem } from '../core/storage';
+import { createInitialAsyncState } from './types';
+import type { AsyncState } from './types';
+import useAsyncLifecycle from './useAsyncLifecycle';
+import useStableOptions from './useStableOptions';
+import createHookError, { isAuthenticationCanceledError } from './error-utils';
 
 /**
  * Configuration accepted by {@link useSecretItem}.
@@ -16,9 +16,9 @@ import createHookError, { isAuthenticationCanceledError } from './error-utils'
  */
 export interface UseSecretItemOptions extends SensitiveInfoOptions {
   /** When `false`, skip decrypting the value and return metadata only. Defaults to `true`. */
-  readonly includeValue?: boolean
+  readonly includeValue?: boolean;
   /** Set to `true` to opt out of automatic fetching while keeping access to the imperative {@link UseSecretItemResult.refetch}. */
-  readonly skip?: boolean
+  readonly skip?: boolean;
 }
 
 const SECRET_ITEM_DEFAULTS: Required<
@@ -26,14 +26,14 @@ const SECRET_ITEM_DEFAULTS: Required<
 > = {
   includeValue: true,
   skip: false,
-}
+};
 
 /**
  * Reactive state returned by {@link useSecretItem}.
  */
 export interface UseSecretItemResult extends AsyncState<SensitiveInfoItem> {
   /** Manually re-run the underlying native call. Helpful after a mutation or when `skip` toggles. */
-  refetch: () => Promise<void>
+  refetch: () => Promise<void>;
 }
 
 /**
@@ -53,16 +53,16 @@ export function useSecretItem(
 ): UseSecretItemResult {
   const [state, setState] = useState<AsyncState<SensitiveInfoItem>>(
     createInitialAsyncState<SensitiveInfoItem>()
-  )
+  );
 
-  const { begin, mountedRef } = useAsyncLifecycle()
+  const { begin, mountedRef } = useAsyncLifecycle();
   const stableOptions = useStableOptions<UseSecretItemOptions>(
     SECRET_ITEM_DEFAULTS,
     options
-  )
+  );
 
   const fetchItem = useCallback(async () => {
-    const { skip, ...requestOptions } = stableOptions
+    const { skip, ...requestOptions } = stableOptions;
 
     if (skip) {
       setState({
@@ -70,15 +70,15 @@ export function useSecretItem(
         error: null,
         isLoading: false,
         isPending: false,
-      })
-      return
+      });
+      return;
     }
 
-    const controller = begin()
-    setState((prev) => ({ ...prev, isLoading: true, isPending: true }))
+    const controller = begin();
+    setState((prev) => ({ ...prev, isLoading: true, isPending: true }));
 
     try {
-      const item = await getItem(key, requestOptions)
+      const item = await getItem(key, requestOptions);
 
       if (mountedRef.current && !controller.signal.aborted) {
         setState({
@@ -86,7 +86,7 @@ export function useSecretItem(
           error: null,
           isLoading: false,
           isPending: false,
-        })
+        });
       }
     } catch (errorLike) {
       if (mountedRef.current && !controller.signal.aborted) {
@@ -96,34 +96,34 @@ export function useSecretItem(
             error: null,
             isLoading: false,
             isPending: false,
-          }))
+          }));
         } else {
           const hookError = createHookError(
             'useSecretItem.fetch',
             errorLike,
             'Verify that the key/service pair exists and that includeValue is allowed for the caller.'
-          )
+          );
           setState({
             data: null,
             error: hookError,
             isLoading: false,
             isPending: false,
-          })
+          });
         }
       }
     }
-  }, [begin, key, mountedRef, stableOptions])
+  }, [begin, key, mountedRef, stableOptions]);
 
   useEffect(() => {
-    fetchItem().catch(() => {})
-  }, [fetchItem])
+    fetchItem().catch(() => {});
+  }, [fetchItem]);
 
   const refetch = useCallback(async () => {
-    await fetchItem()
-  }, [fetchItem])
+    await fetchItem();
+  }, [fetchItem]);
 
   return {
     ...state,
     refetch,
-  }
+  };
 }
