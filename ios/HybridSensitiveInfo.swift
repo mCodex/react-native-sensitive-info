@@ -378,7 +378,19 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   private func runtimeError(for status: OSStatus, operation: String) -> RuntimeError {
+    if isAuthenticationCanceled(status: status) {
+      return RuntimeError.error(withMessage: "[E_AUTH_CANCELED] Authentication prompt canceled by the user.")
+    }
     let message = SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus(\(status))"
     return RuntimeError.error(withMessage: "Keychain \(operation) failed: \(message)")
+  }
+
+  private func isAuthenticationCanceled(status: OSStatus) -> Bool {
+    switch status {
+    case errSecUserCanceled, errSecInteractionNotAllowed:
+      return true
+    default:
+      return false
+    }
   }
 }

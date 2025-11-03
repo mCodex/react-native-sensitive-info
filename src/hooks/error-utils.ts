@@ -1,4 +1,7 @@
-import { getErrorMessage } from '../internal/errors'
+import {
+  getErrorMessage,
+  isAuthenticationCanceledError as internalIsAuthenticationCanceledError,
+} from '../internal/errors'
 import { HookError } from './types'
 
 /**
@@ -9,10 +12,20 @@ const createHookError = (
   error: unknown,
   hint?: string
 ): HookError =>
-  new HookError(`${operation}: ${getErrorMessage(error)}`, {
-    cause: error,
-    operation,
-    hint,
-  })
+  new HookError(
+    `${operation}: ${
+      internalIsAuthenticationCanceledError(error)
+        ? 'Authentication prompt canceled by the user.'
+        : getErrorMessage(error)
+    }`,
+    {
+      cause: error,
+      operation,
+      hint,
+    }
+  )
+
+export const isAuthenticationCanceledError =
+  internalIsAuthenticationCanceledError
 
 export default createHookError

@@ -12,7 +12,7 @@ import {
 } from './types'
 import useAsyncLifecycle from './useAsyncLifecycle'
 import useStableOptions from './useStableOptions'
-import createHookError from './error-utils'
+import createHookError, { isAuthenticationCanceledError } from './error-utils'
 
 /**
  * Options accepted by {@link useSecureStorage}.
@@ -45,15 +45,22 @@ const extractCoreOptions = (
  * Structure returned by {@link useSecureStorage}.
  */
 export interface UseSecureStorageResult {
+  /** Latest snapshot of secrets returned by the underlying secure storage. */
   readonly items: SensitiveInfoItem[]
+  /** Indicates whether initial or subsequent fetches are running. */
   readonly isLoading: boolean
+  /** Hook-level error describing the last failure, if any. */
   readonly error: HookError | null
+  /** Persist or replace a secret and refresh the cached list. */
   readonly saveSecret: (
     key: string,
     value: string
   ) => Promise<HookMutationResult>
+  /** Delete a secret from secure storage and update the local cache. */
   readonly removeSecret: (key: string) => Promise<HookMutationResult>
+  /** Remove every secret associated with the configured service. */
   readonly clearAll: () => Promise<HookMutationResult>
+  /** Manually refresh the secure storage contents without mutating data. */
   readonly refreshItems: () => Promise<void>
 }
 
@@ -83,6 +90,25 @@ export function useSecureStorage(
     options
   )
 
+  const applyError = useCallback(
+    (operation: string, errorLike: unknown, hint: string): HookError => {
+      const hookError = createHookError(operation, errorLike, hint)
+
+      if (isAuthenticationCanceledError(errorLike)) {
+        if (mountedRef.current) {
+          setError(null)
+        }
+        return hookError
+      }
+
+      if (mountedRef.current) {
+        setError(hookError)
+      }
+      return hookError
+    },
+    [mountedRef]
+  )
+
   const fetchItems = useCallback(async () => {
     const { skip, ...requestOptions } = stableOptions
 
@@ -105,13 +131,17 @@ export function useSecureStorage(
       }
     } catch (errorLike) {
       if (mountedRef.current && !controller.signal.aborted) {
-        const hookError = createHookError(
+        const canceled = isAuthenticationCanceledError(errorLike)
+
+        applyError(
           'useSecureStorage.fetchItems',
           errorLike,
           'Ensure the service name matches the one used when storing the items.'
         )
-        setError(hookError)
-        setItems([])
+
+        if (!canceled) {
+          setItems([])
+        }
       }
     } finally {
       if (mountedRef.current && !controller.signal.aborted) {
@@ -137,18 +167,15 @@ export function useSecureStorage(
         }
         return createHookSuccessResult()
       } catch (errorLike) {
-        const hookError = createHookError(
+        const hookError = applyError(
           'useSecureStorage.saveSecret',
           errorLike,
           'Check for duplicate keys or permission prompts that might have been dismissed.'
         )
-        if (mountedRef.current) {
-          setError(hookError)
-        }
         return createHookFailureResult(hookError)
       }
     },
-    [fetchItems, mountedRef, stableOptions]
+    [applyError, fetchItems, mountedRef, stableOptions]
   )
 
   const removeSecret = useCallback(
@@ -160,18 +187,15 @@ export function useSecureStorage(
         }
         return createHookSuccessResult()
       } catch (errorLike) {
-        const hookError = createHookError(
+        const hookError = applyError(
           'useSecureStorage.removeSecret',
           errorLike,
           'Confirm the item still exists or that the user completed biometric prompts.'
         )
-        if (mountedRef.current) {
-          setError(hookError)
-        }
         return createHookFailureResult(hookError)
       }
     },
-    [mountedRef, stableOptions]
+    [applyError, mountedRef, stableOptions]
   )
 
   const clearAll = useCallback(async () => {
@@ -183,17 +207,14 @@ export function useSecureStorage(
       }
       return createHookSuccessResult()
     } catch (errorLike) {
-      const hookError = createHookError(
+      const hookError = applyError(
         'useSecureStorage.clearAll',
         errorLike,
         'Inspect whether another process holds a lock on the secure storage.'
       )
-      if (mountedRef.current) {
-        setError(hookError)
-      }
       return createHookFailureResult(hookError)
     }
-  }, [mountedRef, stableOptions])
+  }, [applyError, mountedRef, stableOptions])
 
   return {
     items,

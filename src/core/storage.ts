@@ -8,23 +8,23 @@ import type {
   SensitiveInfoItem,
   SensitiveInfoOptions,
   SensitiveInfoSetRequest,
-} from '../sensitive-info.nitro'
-import getNativeInstance from '../internal/native'
-import { normalizeOptions } from '../internal/options'
-import { isNotFoundError } from '../internal/errors'
+} from '../sensitive-info.nitro';
+import getNativeInstance from '../internal/native';
+import { normalizeOptions } from '../internal/options';
+import { isNotFoundError } from '../internal/errors';
 
 /**
  * Strongly typed façade around the underlying Nitro native object.
  * Each function handles payload normalization before delegating to native code.
  */
 export interface SensitiveInfoApi {
-  readonly setItem: typeof setItem
-  readonly getItem: typeof getItem
-  readonly hasItem: typeof hasItem
-  readonly deleteItem: typeof deleteItem
-  readonly getAllItems: typeof getAllItems
-  readonly clearService: typeof clearService
-  readonly getSupportedSecurityLevels: typeof getSupportedSecurityLevels
+  readonly setItem: typeof setItem;
+  readonly getItem: typeof getItem;
+  readonly hasItem: typeof hasItem;
+  readonly deleteItem: typeof deleteItem;
+  readonly getAllItems: typeof getAllItems;
+  readonly clearService: typeof clearService;
+  readonly getSupportedSecurityLevels: typeof getSupportedSecurityLevels;
 }
 
 /**
@@ -36,13 +36,13 @@ export async function setItem(
   value: string,
   options?: SensitiveInfoOptions
 ): Promise<MutationResult> {
-  const native = getNativeInstance()
+  const native = getNativeInstance();
   const payload: SensitiveInfoSetRequest = {
     key,
     value,
     ...normalizeOptions(options),
-  }
-  return native.setItem(payload)
+  };
+  return native.setItem(payload);
 }
 
 /**
@@ -57,20 +57,20 @@ export async function getItem(
   key: string,
   options?: SensitiveInfoOptions & { includeValue?: boolean }
 ): Promise<SensitiveInfoItem | null> {
-  const native = getNativeInstance()
+  const native = getNativeInstance();
   const payload: SensitiveInfoGetRequest = {
     key,
     includeValue: options?.includeValue ?? true,
     ...normalizeOptions(options),
-  }
+  };
 
   try {
-    return await native.getItem(payload)
+    return await native.getItem(payload);
   } catch (error) {
     if (isNotFoundError(error)) {
-      return null
+      return null;
     }
-    throw error
+    throw error;
   }
 }
 
@@ -86,12 +86,12 @@ export async function hasItem(
   key: string,
   options?: SensitiveInfoOptions
 ): Promise<boolean> {
-  const native = getNativeInstance()
+  const native = getNativeInstance();
   const payload: SensitiveInfoHasRequest = {
     key,
     ...normalizeOptions(options),
-  }
-  return native.hasItem(payload)
+  };
+  return native.hasItem(payload);
 }
 
 /**
@@ -106,12 +106,12 @@ export async function deleteItem(
   key: string,
   options?: SensitiveInfoOptions
 ): Promise<boolean> {
-  const native = getNativeInstance()
+  const native = getNativeInstance();
   const payload: SensitiveInfoDeleteRequest = {
     key,
     ...normalizeOptions(options),
-  }
-  return native.deleteItem(payload)
+  };
+  return native.deleteItem(payload);
 }
 
 /**
@@ -125,12 +125,12 @@ export async function deleteItem(
 export async function getAllItems(
   options?: SensitiveInfoEnumerateRequest
 ): Promise<SensitiveInfoItem[]> {
-  const native = getNativeInstance()
+  const native = getNativeInstance();
   const payload: SensitiveInfoEnumerateRequest = {
     includeValues: options?.includeValues ?? false,
     ...normalizeOptions(options),
-  }
-  return native.getAllItems(payload)
+  };
+  return native.getAllItems(payload);
 }
 
 /**
@@ -144,8 +144,8 @@ export async function getAllItems(
 export async function clearService(
   options?: SensitiveInfoOptions
 ): Promise<void> {
-  const native = getNativeInstance()
-  return native.clearService(normalizeOptions(options))
+  const native = getNativeInstance();
+  return native.clearService(normalizeOptions(options));
 }
 
 /**
@@ -157,8 +157,8 @@ export async function clearService(
  * ```
  */
 export function getSupportedSecurityLevels(): Promise<SecurityAvailability> {
-  const native = getNativeInstance()
-  return native.getSupportedSecurityLevels()
+  const native = getNativeInstance();
+  return native.getSupportedSecurityLevels();
 }
 
 /**
@@ -173,6 +173,6 @@ export const SensitiveInfo: SensitiveInfoApi = {
   getAllItems,
   clearService,
   getSupportedSecurityLevels,
-}
+};
 
-export default SensitiveInfo
+export default SensitiveInfo;

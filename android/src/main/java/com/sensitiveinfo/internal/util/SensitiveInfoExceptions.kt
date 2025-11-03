@@ -12,5 +12,10 @@ sealed class SensitiveInfoException(
     code = "E_NOT_FOUND",
     message = "[E_NOT_FOUND] No secret found for key \"$key\" in service \"$service\"."
   )
+
+  class AuthenticationCanceled : SensitiveInfoException(
+    code = "E_AUTH_CANCELED",
+    message = "[E_AUTH_CANCELED] Authentication prompt canceled by the user."
+  )
 }
 

@@ -1,4 +1,4 @@
-import type { HybridObject } from 'react-native-nitro-modules'
+import type { HybridObject } from 'react-native-nitro-modules';
 
 /**
  * Captures how strong the effective protection was when a value got persisted.
@@ -12,7 +12,7 @@ export type SecurityLevel =
   | 'strongBox'
   | 'biometry'
   | 'deviceCredential'
-  | 'software'
+  | 'software';
 
 /**
  * Enumerates which native database held the encrypted record. This is useful for auditing mixed
@@ -21,7 +21,7 @@ export type SecurityLevel =
 export type StorageBackend =
   | 'keychain'
   | 'androidKeystore'
-  | 'encryptedSharedPreferences'
+  | 'encryptedSharedPreferences';
 
 /** @see SensitiveInfoOptions.accessControl */
 export type AccessControl =
@@ -29,7 +29,7 @@ export type AccessControl =
   | 'biometryCurrentSet'
   | 'biometryAny'
   | 'devicePasscode'
-  | 'none'
+  | 'none';
 
 /**
  * Human-friendly strings that will be rendered on biometric/device credential prompts.
@@ -45,10 +45,10 @@ export type AccessControl =
  * ```
  */
 export interface AuthenticationPrompt {
-  readonly title: string
-  readonly subtitle?: string
-  readonly description?: string
-  readonly cancel?: string
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly description?: string;
+  readonly cancel?: string;
 }
 
 /**
@@ -61,49 +61,49 @@ export interface AuthenticationPrompt {
  */
 export interface SensitiveInfoOptions {
   /** Namespaces the stored entry. Defaults to the bundle identifier (when available) or `default`. */
-  readonly service?: string
+  readonly service?: string;
   /** Apple platforms: Enables Keychain sync through iCloud. */
-  readonly iosSynchronizable?: boolean
+  readonly iosSynchronizable?: boolean;
   /** Apple platforms: Custom Keychain access group. */
-  readonly keychainGroup?: string
+  readonly keychainGroup?: string;
   /**
    * Desired access-control policy. The native implementation automatically downgrades to the
    * strongest supported strategy (Secure Enclave ➝ Biometry ➝ Device Credential ➝ None).
    */
-  readonly accessControl?: AccessControl
+  readonly accessControl?: AccessControl;
   /** Optional prompt strings displayed when user presence is required to open the key. */
-  readonly authenticationPrompt?: AuthenticationPrompt
+  readonly authenticationPrompt?: AuthenticationPrompt;
 }
 
 export interface SensitiveInfoSetRequest extends SensitiveInfoOptions {
-  readonly key: string
-  readonly value: string
+  readonly key: string;
+  readonly value: string;
 }
 
 export interface SensitiveInfoGetRequest extends SensitiveInfoOptions {
-  readonly key: string
+  readonly key: string;
   /** Include the encrypted value when available. Defaults to true. */
-  readonly includeValue?: boolean
+  readonly includeValue?: boolean;
 }
 
 export interface SensitiveInfoDeleteRequest extends SensitiveInfoOptions {
-  readonly key: string
+  readonly key: string;
 }
 
 export interface SensitiveInfoHasRequest extends SensitiveInfoOptions {
-  readonly key: string
+  readonly key: string;
 }
 
 export interface SensitiveInfoEnumerateRequest extends SensitiveInfoOptions {
   /** When true, the stored value is returned for each item. Defaults to false. */
-  readonly includeValues?: boolean
+  readonly includeValues?: boolean;
 }
 
 export interface StorageMetadata {
-  readonly securityLevel: SecurityLevel
-  readonly backend: StorageBackend
-  readonly accessControl: AccessControl
-  readonly timestamp: number
+  readonly securityLevel: SecurityLevel;
+  readonly backend: StorageBackend;
+  readonly accessControl: AccessControl;
+  readonly timestamp: number;
 }
 
 /**
@@ -111,10 +111,10 @@ export interface StorageMetadata {
  * decryption or when the key is still hardware-gated (for example, prior to biometric verification).
  */
 export interface SensitiveInfoItem {
-  readonly key: string
-  readonly service: string
-  readonly value?: string
-  readonly metadata: StorageMetadata
+  readonly key: string;
+  readonly service: string;
+  readonly value?: string;
+  readonly metadata: StorageMetadata;
 }
 
 /**
@@ -122,7 +122,7 @@ export interface SensitiveInfoItem {
  * protecting the freshly written entry.
  */
 export interface MutationResult {
-  readonly metadata: StorageMetadata
+  readonly metadata: StorageMetadata;
 }
 
 /**
@@ -131,23 +131,23 @@ export interface MutationResult {
  * StrongBox support. This mirrors the format returned by `getSupportedSecurityLevels()`.
  */
 export interface SecurityAvailability {
-  readonly secureEnclave: boolean
-  readonly strongBox: boolean
-  readonly biometry: boolean
-  readonly deviceCredential: boolean
+  readonly secureEnclave: boolean;
+  readonly strongBox: boolean;
+  readonly biometry: boolean;
+  readonly deviceCredential: boolean;
 }
 
 export interface SensitiveInfo
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
-  setItem(request: SensitiveInfoSetRequest): Promise<MutationResult>
-  getItem(request: SensitiveInfoGetRequest): Promise<SensitiveInfoItem | null>
-  deleteItem(request: SensitiveInfoDeleteRequest): Promise<boolean>
-  hasItem(request: SensitiveInfoHasRequest): Promise<boolean>
+  setItem(request: SensitiveInfoSetRequest): Promise<MutationResult>;
+  getItem(request: SensitiveInfoGetRequest): Promise<SensitiveInfoItem | null>;
+  deleteItem(request: SensitiveInfoDeleteRequest): Promise<boolean>;
+  hasItem(request: SensitiveInfoHasRequest): Promise<boolean>;
   getAllItems(
     request?: SensitiveInfoEnumerateRequest
-  ): Promise<SensitiveInfoItem[]>
-  clearService(request?: SensitiveInfoOptions): Promise<void>
-  getSupportedSecurityLevels(): Promise<SecurityAvailability>
+  ): Promise<SensitiveInfoItem[]>;
+  clearService(request?: SensitiveInfoOptions): Promise<void>;
+  getSupportedSecurityLevels(): Promise<SecurityAvailability>;
 }
 
-export type SensitiveInfoSpec = SensitiveInfo
+export type SensitiveInfoSpec = SensitiveInfo;

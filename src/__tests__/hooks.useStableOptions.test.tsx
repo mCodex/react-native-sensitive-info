@@ -1,8 +1,8 @@
-import { renderHook } from '@testing-library/react'
-import useStableOptions from '../hooks/useStableOptions'
+import { renderHook } from '@testing-library/react';
+import useStableOptions from '../hooks/useStableOptions';
 
 describe('useStableOptions', () => {
-  const defaults = { service: 'default', includeValues: false }
+  const defaults = { service: 'default', includeValues: false };
 
   it('merges defaults with provided options', () => {
     const { result } = renderHook(
@@ -13,13 +13,13 @@ describe('useStableOptions', () => {
           options: { includeValues: true, service: 'custom' },
         },
       }
-    )
+    );
 
     expect(result.current).toEqual({
       service: 'custom',
       includeValues: true,
-    })
-  })
+    });
+  });
 
   it('reuses the cached object while options remain stable', () => {
     const { result, rerender } = renderHook(
@@ -28,13 +28,13 @@ describe('useStableOptions', () => {
       {
         initialProps: { options: { includeValues: true } },
       }
-    )
+    );
 
-    const first = result.current
-    rerender({ options: { includeValues: true } })
+    const first = result.current;
+    rerender({ options: { includeValues: true } });
 
-    expect(result.current).toBe(first)
-  })
+    expect(result.current).toBe(first);
+  });
 
   it('emits a new object when options change', () => {
     const { result, rerender } = renderHook(
@@ -43,15 +43,15 @@ describe('useStableOptions', () => {
       {
         initialProps: { options: { includeValues: true } },
       }
-    )
+    );
 
-    const first = result.current
-    rerender({ options: { includeValues: false } })
+    const first = result.current;
+    rerender({ options: { includeValues: false } });
 
-    expect(result.current).not.toBe(first)
+    expect(result.current).not.toBe(first);
     expect(result.current).toEqual({
       service: 'default',
       includeValues: false,
-    })
-  })
-})
+    });
+  });
+});

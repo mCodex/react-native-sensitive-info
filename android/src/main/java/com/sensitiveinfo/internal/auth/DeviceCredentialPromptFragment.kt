@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.margelo.nitro.sensitiveinfo.AuthenticationPrompt
+import com.sensitiveinfo.internal.util.SensitiveInfoException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellableContinuation
@@ -58,7 +59,7 @@ internal class DeviceCredentialPromptFragment : Fragment() {
     if (resultCode == Activity.RESULT_OK) {
       cont.resume(true)
     } else {
-      cont.cancel()
+      cont.resumeWithException(SensitiveInfoException.AuthenticationCanceled())
     }
     cleanup()
   }
