@@ -31,6 +31,7 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 - [⚡️ Quick start](#-quick-start)
 - [📚 API reference](#-api-reference)
 - [🔐 Access control & metadata](#-access-control--metadata)
+- [❗ Error handling](#-error-handling)
 - [🧪 Simulators and emulators](#-simulators-and-emulators)
 - [📈 Performance benchmarks](#-performance-benchmarks)
 - [🎮 Example application](#-example-application)
@@ -218,6 +219,47 @@ function YourComponent() {
   ```
 
 For comprehensive examples and advanced patterns, see [`HOOKS.md`](./HOOKS.md).
+
+## ❗ Error handling
+
+Every public hook returns failures as `HookError` instances. Besides `message`, each error carries:
+
+- `operation` – the hook action that failed (for example, `useSecureStorage.saveSecret`).
+- `cause` – the original native error for additional diagnostics.
+- `hint` – a short suggestion shown in the example app and useful for toast copy.
+
+Biometric or device-credential prompts cancelled by the user now surface as a friendly message (`Authentication prompt canceled by the user.`) and *do not* poison hook state. Imperative calls still reject with the raw error so you can decide how to react.
+
+```tsx
+import { Text } from 'react-native'
+import { useSecureStorage } from 'react-native-sensitive-info'
+
+function SecretsList() {
+  const { items, error } = useSecureStorage({ service: 'auth', includeValues: true })
+
+  if (error) {
+    if (error.message.includes('Authentication prompt canceled')) {
+      return <Text>The user dismissed biometric authentication.</Text>
+    }
+
+    return (
+      <Text testID="secure-error">
+        {error.message}
+        {'\n'}Hint: {error.hint ?? 'Check your secure storage configuration.'}
+      </Text>
+    )
+  }
+
+  return items.length === 0 ? (
+    <Text>No secrets stored yet.</Text>
+  ) : (
+    <Text>{items.map((item) => item.key).join(', ')}</Text>
+  )
+}
+```
+
+> [!TIP]
+> When using the imperative API, look for the `[E_AUTH_CANCELED]` marker in the thrown error message to detect cancellations.
 
 ## Imperative API
 
