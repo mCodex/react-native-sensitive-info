@@ -20,20 +20,50 @@ final class SecurityAvailabilityResolver {
       return cachedValue
     }
 
+    let snapshot = resolveOnMainThread()
+    cached = snapshot
+    return snapshot
+  }
+
+  private func resolveOnMainThread() -> (secureEnclave: Bool, strongBox: Bool, biometry: Bool, deviceCredential: Bool) {
+    if Thread.isMainThread {
+      return performCapabilityProbe()
+    }
+
+    var snapshot: (secureEnclave: Bool, strongBox: Bool, biometry: Bool, deviceCredential: Bool) = (
+      secureEnclave: false,
+      strongBox: false,
+      biometry: false,
+      deviceCredential: false
+    )
+
+    DispatchQueue.main.sync {
+      snapshot = performCapabilityProbe()
+    }
+
+    return snapshot
+  }
+
+  private func performCapabilityProbe() -> (secureEnclave: Bool, strongBox: Bool, biometry: Bool, deviceCredential: Bool) {
     let context = LAContext()
     var error: NSError?
 
-    let supportsBiometry = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) && context.biometryType != .none
+    let supportsBiometry = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+    #if targetEnvironment(simulator)
+    let biometryAvailable = supportsBiometry
+    let secureEnclaveAvailable = supportsBiometry
+    #else
+    let biometryAvailable = supportsBiometry && context.biometryType != .none
+    let secureEnclaveAvailable = biometryAvailable
+    #endif
     error = nil
     let supportsDeviceCredential = context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
 
-    let snapshot = (
-      secureEnclave: supportsBiometry,
+    return (
+      secureEnclave: secureEnclaveAvailable,
       strongBox: false,
-      biometry: supportsBiometry,
+      biometry: biometryAvailable,
       deviceCredential: supportsDeviceCredential
     )
-    cached = snapshot
-    return snapshot
   }
 }

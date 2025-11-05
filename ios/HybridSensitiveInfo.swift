@@ -266,6 +266,9 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   private func copyMatching(query: [String: Any], prompt: AuthenticationPrompt?) throws -> AnyObject? {
+#if targetEnvironment(simulator)
+    try performSimulatorBiometricPromptIfNeeded(prompt: prompt)
+#endif
     var result: CFTypeRef?
     var status = performCopyMatching(query as CFDictionary, result: &result)
 
@@ -405,4 +408,46 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
     return status
   }
+
+#if targetEnvironment(simulator)
+  private func performSimulatorBiometricPromptIfNeeded(prompt: AuthenticationPrompt?) throws {
+    guard let prompt else { return }
+
+    let context = makeLAContext(prompt: prompt)
+    var error: NSError?
+
+    guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error),
+          context.biometryType != .none else {
+      return
+    }
+
+    let reason = prompt.description ?? prompt.title ?? "Authenticate to continue"
+    let semaphore = DispatchSemaphore(value: 0)
+    var evaluationError: Error?
+
+    DispatchQueue.main.async {
+      context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, policyError in
+        if !success {
+          evaluationError = policyError
+        }
+        semaphore.signal()
+      }
+    }
+
+    semaphore.wait()
+
+    if let evaluationError {
+      if let laError = evaluationError as? LAError {
+        switch laError.code {
+        case .userCancel, .userFallback, .systemCancel:
+          throw RuntimeError.error(withMessage: "[E_AUTH_CANCELED] Authentication prompt canceled by the user.")
+        default:
+          break
+        }
+      }
+
+      throw RuntimeError.error(withMessage: "Keychain fetch failed: \(evaluationError.localizedDescription)")
+    }
+  }
+#endif
 }
