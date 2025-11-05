@@ -267,14 +267,14 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   private func copyMatching(query: [String: Any], prompt: AuthenticationPrompt?) throws -> AnyObject? {
     var result: CFTypeRef?
-    var status = SecItemCopyMatching(query as CFDictionary, &result)
+    var status = performCopyMatching(query as CFDictionary, result: &result)
 
     if status == errSecInteractionNotAllowed || status == errSecAuthFailed {
       var authQuery = query
       authQuery[kSecUseOperationPrompt as String] = prompt?.title ?? "Authenticate to access sensitive data"
       let context = makeLAContext(prompt: prompt)
       authQuery[kSecUseAuthenticationContext as String] = context
-      status = SecItemCopyMatching(authQuery as CFDictionary, &result)
+      status = performCopyMatching(authQuery as CFDictionary, result: &result)
     }
 
     switch status {
@@ -387,10 +387,22 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   private func isAuthenticationCanceled(status: OSStatus) -> Bool {
     switch status {
-    case errSecUserCanceled, errSecInteractionNotAllowed:
+    case errSecUserCanceled:
       return true
     default:
       return false
     }
+  }
+
+  private func performCopyMatching(_ query: CFDictionary, result: inout CFTypeRef?) -> OSStatus {
+    if Thread.isMainThread {
+      return SecItemCopyMatching(query, &result)
+    }
+
+    var status: OSStatus = errSecSuccess
+    DispatchQueue.main.sync {
+      status = SecItemCopyMatching(query, &result)
+    }
+    return status
   }
 }
