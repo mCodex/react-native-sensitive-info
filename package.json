@@ -18,7 +18,12 @@
   },
   "keywords": [
     "react-native",
-    "react-native-sensitive-info"
+    "secure-storage",
+    "biometrics",
+    "keychain",
+    "strongbox",
+    "nitro-modules",
+    "sensitive-info"
   ],
   "files": [
     "src",
