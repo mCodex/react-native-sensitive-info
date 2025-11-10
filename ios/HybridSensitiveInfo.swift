@@ -179,7 +179,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable
+        synchronizable: request.iosSynchronizable ?? false
       )
       if let group = request.keychainGroup {
         query[kSecAttrAccessGroup as String] = group
@@ -255,7 +255,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable
+        synchronizable: request.iosSynchronizable ?? false
       )
       if let group = request.keychainGroup {
         query[kSecAttrAccessGroup as String] = group
@@ -301,7 +301,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable
+        synchronizable: request.iosSynchronizable ?? false
       )
       if let group = request.keychainGroup {
         query[kSecAttrAccessGroup as String] = group
@@ -347,7 +347,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable
+        synchronizable: request.iosSynchronizable ?? false
       )
       if let group = request.keychainGroup {
         query[kSecAttrAccessGroup as String] = group
@@ -387,7 +387,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var query = queryBuilder.makeBaseQuery(
         key: nil,
         service: service,
-        synchronizable: request?.iosSynchronizable
+        synchronizable: request?.iosSynchronizable ?? false
       )
       if let group = request?.keychainGroup {
         query[kSecAttrAccessGroup as String] = group
@@ -433,7 +433,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var query = queryBuilder.makeBaseQuery(
         key: nil,
         service: service,
-        synchronizable: request?.iosSynchronizable
+        synchronizable: request?.iosSynchronizable ?? false
       )
       if let group = request?.keychainGroup {
         query[kSecAttrAccessGroup as String] = group
@@ -462,17 +462,17 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   func initializeKeyRotation(request: InitializeKeyRotationRequest) throws -> Promise<Void> {
     Promise.parallel(workQueue) { [self] in
       let defaults = UserDefaults.standard
-      defaults.set(request.enabled ?? true, forKey: "keyRotationEnabled")
-      defaults.set(request.rotationIntervalMs ?? (30 * 24 * 60 * 60 * 1000), forKey: "rotationIntervalMs")
-      defaults.set(request.rotateOnBiometricChange ?? true, forKey: "rotateOnBiometricChange")
-      defaults.set(request.rotateOnCredentialChange ?? true, forKey: "rotateOnCredentialChange")
-      defaults.set(request.manualRotationEnabled ?? true, forKey: "manualRotationEnabled")
-      defaults.set(request.maxKeyVersions ?? 2, forKey: "maxKeyVersions")
-      defaults.set(request.backgroundReEncryption ?? true, forKey: "backgroundReEncryption")
+      defaults.set(request.enabled, forKey: "keyRotationEnabled")
+      defaults.set(request.rotationIntervalMs, forKey: "rotationIntervalMs")
+      defaults.set(request.rotateOnBiometricChange, forKey: "rotateOnBiometricChange")
+      defaults.set(request.rotateOnCredentialChange, forKey: "rotateOnCredentialChange")
+      defaults.set(request.manualRotationEnabled, forKey: "manualRotationEnabled")
+      defaults.set(request.maxKeyVersions, forKey: "maxKeyVersions")
+      defaults.set(request.backgroundReEncryption, forKey: "backgroundReEncryption")
       defaults.synchronize()
 
       // Start periodic rotation check if enabled
-      if request.enabled ?? true {
+      if request.enabled {
         startPeriodicRotationCheck()
       } else {
         stopPeriodicRotationCheck()

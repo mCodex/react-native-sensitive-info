@@ -153,13 +153,13 @@ export interface ReEncryptAllItemsResponse {
 }
 
 export interface InitializeKeyRotationRequest {
-  readonly enabled?: boolean;
-  readonly rotationIntervalMs?: number;
-  readonly rotateOnBiometricChange?: boolean;
-  readonly rotateOnCredentialChange?: boolean;
-  readonly manualRotationEnabled?: boolean;
-  readonly maxKeyVersions?: number;
-  readonly backgroundReEncryption?: boolean;
+  readonly enabled: boolean;
+  readonly rotationIntervalMs: number;
+  readonly rotateOnBiometricChange: boolean;
+  readonly rotateOnCredentialChange: boolean;
+  readonly manualRotationEnabled: boolean;
+  readonly maxKeyVersions: number;
+  readonly backgroundReEncryption: boolean;
 }
 
 export interface RotateKeysRequest {
