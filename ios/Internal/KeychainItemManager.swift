@@ -29,7 +29,7 @@ final class KeychainItemManager: ItemManager {
   // MARK: - ItemManager Implementation
 
   func getItem(request: SensitiveInfoGetRequest) -> Promise<SensitiveInfoItem?> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       try dependencies.validator.validateKey(request.key)
 
       let service = normalizedService(request.service)
@@ -64,7 +64,7 @@ final class KeychainItemManager: ItemManager {
   }
 
   func setItem(request: SensitiveInfoSetRequest) -> Promise<MutationResult> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       try dependencies.validator.validateKey(request.key)
       try dependencies.validator.validateValue(request.value)
 
@@ -76,7 +76,7 @@ final class KeychainItemManager: ItemManager {
       let alias = UUID().uuidString
       let keyData = try dependencies.cryptoService.createOrRetrieveEncryptionKey(
         alias: alias,
-        accessControl: resolved.secAccessControl
+        accessControl: resolved.accessControlRef
       )
 
       let encryptedValue = try dependencies.cryptoService.encryptData(
@@ -105,7 +105,7 @@ final class KeychainItemManager: ItemManager {
       var attributes = query
       attributes[kSecValueData as String] = encryptedValue
 
-      if let accessControlRef = resolved.secAccessControl {
+      if let accessControlRef = resolved.accessControlRef {
         attributes[kSecAttrAccessControl as String] = accessControlRef
       } else {
         attributes[kSecAttrAccessible as String] = resolved.accessible
@@ -119,11 +119,11 @@ final class KeychainItemManager: ItemManager {
 
       var status = SecItemAdd(attributes as CFDictionary, nil)
 
-      if status == errSecParam, resolved.secAccessControl != nil {
+      if status == errSecParam, resolved.accessControlRef != nil {
         let fallbackMetadata = StorageMetadata(
           securityLevel: .software,
           backend: .keychain,
-          accessControl: .standard,
+          accessControl: .none,
           timestamp: Date().timeIntervalSince1970,
           alias: alias
         )
@@ -148,7 +148,7 @@ final class KeychainItemManager: ItemManager {
   }
 
   func deleteItem(request: SensitiveInfoDeleteRequest) -> Promise<Bool> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       try dependencies.validator.validateKey(request.key)
 
       let service = normalizedService(request.service)
@@ -174,7 +174,7 @@ final class KeychainItemManager: ItemManager {
   }
 
   func hasItem(request: SensitiveInfoHasRequest) -> Promise<Bool> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       try dependencies.validator.validateKey(request.key)
 
       let service = normalizedService(request.service)
@@ -197,7 +197,7 @@ final class KeychainItemManager: ItemManager {
   }
 
   func getAllItems(request: SensitiveInfoEnumerateRequest?) -> Promise<[SensitiveInfoItem]> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       let service = normalizedService(request?.service)
       let includeValues = request?.includeValues ?? false
 
@@ -239,7 +239,7 @@ final class KeychainItemManager: ItemManager {
   }
 
   func clearService(request: SensitiveInfoOptions?) -> Promise<Void> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       let service = normalizedService(request?.service)
 
       var query = dependencies.queryBuilder.makeBaseQuery(
@@ -327,7 +327,7 @@ final class KeychainItemManager: ItemManager {
     StorageMetadata(
       securityLevel: .software,
       backend: .keychain,
-      accessControl: .standard,
+      accessControl: .none,
       timestamp: Date().timeIntervalSince1970,
       alias: nil
     )

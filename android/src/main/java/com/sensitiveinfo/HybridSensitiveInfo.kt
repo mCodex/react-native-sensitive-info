@@ -225,42 +225,54 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       }
 
       // Step 4: Decode metadata
-      val metadata = entry.metadata.toStorageMetadata()
-
-      // Step 5: Decrypt value if requested
-      val value = if (request.includeValue == true && entry.ciphertext != null && entry.iv != null) {
-        val resolution = deps.cryptoManager.buildResolutionForPersisted(
-          accessControl = metadata?.accessControl ?: AccessControl.NONE,
-          securityLevel = metadata?.securityLevel ?: SecurityLevel.SOFTWARE,
-          authenticators = entry.authenticators,
-          requiresAuth = entry.requiresAuthentication,
-          invalidateOnEnrollment = entry.invalidateOnEnrollment,
-          useStrongBox = entry.useStrongBox
-        )
-
-        val plaintext = deps.cryptoManager.decrypt(
-          entry.alias,
-          entry.ciphertext,
-          entry.iv,
-          resolution,
-          request.authenticationPrompt
-        )
-        String(plaintext, Charsets.UTF_8)
-      } else {
+      val metadata = try {
+        entry.metadata.toStorageMetadata()
+      } catch (e: Exception) {
+        RuntimeError.log("Failed to decode metadata for key: $e")
         null
       }
 
-      // Step 6: Build response using response builder
+      // Step 5: Decrypt value if requested
+      val value = try {
+        if (request.includeValue == true && entry.ciphertext != null && entry.iv != null) {
+          val resolution = deps.cryptoManager.buildResolutionForPersisted(
+            accessControl = metadata?.accessControl ?: AccessControl.NONE,
+            securityLevel = metadata?.securityLevel ?: SecurityLevel.SOFTWARE,
+            authenticators = entry.authenticators,
+            requiresAuth = entry.requiresAuthentication,
+            invalidateOnEnrollment = entry.invalidateOnEnrollment,
+            useStrongBox = entry.useStrongBox
+          )
+
+          val plaintext = deps.cryptoManager.decrypt(
+            entry.alias,
+            entry.ciphertext,
+            entry.iv,
+            resolution,
+            request.authenticationPrompt
+          )
+          String(plaintext, Charsets.UTF_8)
+        } else {
+          null
+        }
+      } catch (e: Exception) {
+        RuntimeError.log("Failed to decrypt value for key: $e")
+        null
+      }
+
+      // Step 6: Build response using response builder with proper null handling
+      val finalMetadata = metadata ?: StorageMetadata(
+        securityLevel = SecurityLevel.SOFTWARE,
+        backend = StorageBackend.ANDROIDKEYSTORE,
+        accessControl = AccessControl.NONE,
+        timestamp = System.currentTimeMillis() / 1000.0,
+        alias = entry.alias
+      )
+
       deps.responseBuilder.buildItem(
         key = request.key,
         value = value,
-        metadata = metadata ?: StorageMetadata(
-          securityLevel = SecurityLevel.SOFTWARE,
-          backend = StorageBackend.ANDROIDKEYSTORE,
-          accessControl = AccessControl.NONE,
-          timestamp = System.currentTimeMillis() / 1000.0,
-          alias = entry.alias
-        ),
+        metadata = finalMetadata,
         service = service
       )
     }

@@ -30,7 +30,7 @@ final class KeyRotationManagerImpl: RotationManager {
   // MARK: - RotationManager Implementation
 
   func initializeKeyRotation(request: InitializeKeyRotationRequest) -> Promise<Void> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       let defaults = UserDefaults.standard
       defaults.set(request.enabled, forKey: "keyRotationEnabled")
       defaults.set(request.rotationIntervalMs, forKey: "rotationIntervalMs")
@@ -52,7 +52,7 @@ final class KeyRotationManagerImpl: RotationManager {
   }
 
   func rotateKeys(request: RotateKeysRequest) -> Promise<RotationResult> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       let manager = dependencies.keyRotationManager
 
       manager.setRotationInProgress(true)
@@ -127,7 +127,7 @@ final class KeyRotationManagerImpl: RotationManager {
   }
 
   func getRotationStatus() -> Promise<RotationStatus> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       let manager = dependencies.keyRotationManager
 
       let currentKey = manager.getCurrentKeyVersion()
@@ -153,7 +153,7 @@ final class KeyRotationManagerImpl: RotationManager {
   }
 
   func reEncryptAllItems(request: ReEncryptAllItemsRequest) -> Promise<ReEncryptAllItemsResponse> {
-    Promise.async(dependencies.workQueue) { [self] in
+    Promise.async { [self] in
       let manager = dependencies.keyRotationManager
 
       guard let currentKeyVersion = manager.getCurrentKeyVersion() else {
