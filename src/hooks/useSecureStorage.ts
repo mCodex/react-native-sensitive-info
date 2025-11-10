@@ -17,7 +17,12 @@ import {
 } from './types';
 import useAsyncLifecycle from './useAsyncLifecycle';
 import useStableOptions from './useStableOptions';
-import createHookError, { isAuthenticationCanceledError } from './error-utils';
+import {
+  createFetchError,
+  createMutationError,
+  isAuthenticationCanceled,
+  extractCoreStorageOptions,
+} from './error-factory';
 
 /**
  * Options accepted by {@link useSecureStorage}.
@@ -34,16 +39,6 @@ const DEFAULTS: Required<
 > = {
   includeValues: false,
   skip: false,
-};
-
-/**
- * Removes hook-only flags so that mutation helpers receive pristine {@link SensitiveInfoOptions}.
- */
-const extractCoreOptions = (
-  options: UseSecureStorageOptions
-): SensitiveInfoOptions => {
-  const { skip: _skip, includeValues: _includeValues, ...core } = options;
-  return core as SensitiveInfoOptions;
 };
 
 /**
@@ -72,15 +67,65 @@ export interface UseSecureStorageResult {
 /**
  * Manages a collection of secure items, exposing read/write helpers and render-ready state.
  *
+ * This hook maintains a collection of all secrets in a service and provides
+ * helpers for common operations (save, delete, clear). The collection is
+ * automatically updated after mutations.
+ *
+ * @param options - Configuration including service and value inclusion preference
+ *
+ * @returns Collection state and mutation helpers
+ *
  * @example
  * ```tsx
+ * // List all items in a service
  * const {
  *   items,
+ *   isLoading,
+ *   error,
  *   saveSecret,
  *   removeSecret,
- *   clearAll,
- * } = useSecureStorage({ service: 'com.example.session', includeValues: true })
+ *   clearAll
+ * } = useSecureStorage({
+ *   service: 'com.example.session',
+ *   includeValues: true
+ * })
+ *
+ * if (error) return <ErrorBanner error={error} />
+ * if (isLoading) return <Spinner />
+ *
+ * return (
+ *   <>
+ *     {items.map(item => (
+ *       <Item
+ *         key={item.key}
+ *         item={item}
+ *         onDelete={() => removeSecret(item.key)}
+ *       />
+ *     ))}
+ *     <button onClick={clearAll}>Clear All</button>
+ *   </>
+ * )
  * ```
+ *
+ * @example
+ * ```tsx
+ * // Lazy loading: populate on demand
+ * const { items, refreshItems } = useSecureStorage({
+ *   service: 'com.example',
+ *   skip: true
+ * })
+ *
+ * return (
+ *   <button onClick={refreshItems}>
+ *     Load Items
+ *   </button>
+ * )
+ * ```
+ *
+ * @see {@link useSecretItem} for a single item
+ * @see {@link useSecret} for single item with mutations
+ *
+ * @since 6.0.0
  */
 export function useSecureStorage(
   options?: UseSecureStorageOptions
@@ -96,10 +141,10 @@ export function useSecureStorage(
   );
 
   const applyError = useCallback(
-    (operation: string, errorLike: unknown, hint: string): HookError => {
-      const hookError = createHookError(operation, errorLike, hint);
+    (operation: string, errorLike: unknown): HookError => {
+      const hookError = createFetchError(operation as any, errorLike);
 
-      if (isAuthenticationCanceledError(errorLike)) {
+      if (isAuthenticationCanceled(errorLike)) {
         if (mountedRef.current) {
           setError(null);
         }
@@ -136,13 +181,9 @@ export function useSecureStorage(
       }
     } catch (errorLike) {
       if (mountedRef.current && !controller.signal.aborted) {
-        const canceled = isAuthenticationCanceledError(errorLike);
+        const canceled = isAuthenticationCanceled(errorLike);
 
-        applyError(
-          'useSecureStorage.fetchItems',
-          errorLike,
-          'Ensure the service name matches the one used when storing the items.'
-        );
+        applyError('useSecureStorage.fetch', errorLike);
 
         if (!canceled) {
           setItems([]);
@@ -153,7 +194,7 @@ export function useSecureStorage(
         setIsLoading(false);
       }
     }
-  }, [begin, mountedRef, stableOptions]);
+  }, [begin, mountedRef, stableOptions, applyError]);
 
   useEffect(() => {
     fetchItems().catch(() => {});
@@ -166,60 +207,69 @@ export function useSecureStorage(
   const saveSecret = useCallback(
     async (key: string, value: string) => {
       try {
-        await setItem(key, value, extractCoreOptions(stableOptions));
+        const coreOptions = extractCoreStorageOptions(stableOptions, [
+          'skip',
+          'includeValues',
+        ]);
+        await setItem(key, value, coreOptions);
         if (mountedRef.current) {
           await fetchItems();
         }
         return createHookSuccessResult();
       } catch (errorLike) {
-        const hookError = applyError(
-          'useSecureStorage.saveSecret',
-          errorLike,
-          'Check for duplicate keys or permission prompts that might have been dismissed.'
+        const hookError = createMutationError(
+          'useSecureStorage.save',
+          errorLike
         );
         return createHookFailureResult(hookError);
       }
     },
-    [applyError, fetchItems, mountedRef, stableOptions]
+    [fetchItems, mountedRef, stableOptions]
   );
 
   const removeSecret = useCallback(
     async (key: string) => {
       try {
-        await deleteItem(key, extractCoreOptions(stableOptions));
+        const coreOptions = extractCoreStorageOptions(stableOptions, [
+          'skip',
+          'includeValues',
+        ]);
+        await deleteItem(key, coreOptions);
         if (mountedRef.current) {
           setItems((prev) => prev.filter((item) => item.key !== key));
         }
         return createHookSuccessResult();
       } catch (errorLike) {
-        const hookError = applyError(
-          'useSecureStorage.removeSecret',
-          errorLike,
-          'Confirm the item still exists or that the user completed biometric prompts.'
+        const hookError = createMutationError(
+          'useSecureStorage.remove',
+          errorLike
         );
         return createHookFailureResult(hookError);
       }
     },
-    [applyError, mountedRef, stableOptions]
+    [mountedRef, stableOptions]
   );
 
   const clearAll = useCallback(async () => {
     try {
-      await clearService(extractCoreOptions(stableOptions));
+      const coreOptions = extractCoreStorageOptions(stableOptions, [
+        'skip',
+        'includeValues',
+      ]);
+      await clearService(coreOptions);
       if (mountedRef.current) {
         setItems([]);
         setError(null);
       }
       return createHookSuccessResult();
     } catch (errorLike) {
-      const hookError = applyError(
+      const hookError = createMutationError(
         'useSecureStorage.clearAll',
-        errorLike,
-        'Inspect whether another process holds a lock on the secure storage.'
+        errorLike
       );
       return createHookFailureResult(hookError);
     }
-  }, [applyError, mountedRef, stableOptions]);
+  }, [mountedRef, stableOptions]);
 
   return {
     items,

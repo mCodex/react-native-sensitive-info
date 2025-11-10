@@ -180,7 +180,7 @@ class AndroidKeyRotationManager(private val context: Context) {
    * Gets a key by version ID from the keystore.
    * Returns null if key doesn't exist or can't be accessed.
    */
-  fun getKey(byVersionId keyVersionId: String): java.security.Key? {
+  fun getKey(keyVersionId: String): java.security.Key? {
     return try {
       keyStore.getKey(keyVersionId, null)
     } catch (exception: KeyPermanentlyInvalidatedException) {
@@ -199,7 +199,7 @@ class AndroidKeyRotationManager(private val context: Context) {
    * @param keyVersionId ID of key to delete
    * @return true if deleted, false if not found
    */
-  fun deleteKey(byVersionId keyVersionId: String): Boolean {
+  fun deleteKey(keyVersionId: String): Boolean {
     return try {
       if (keyStore.containsAlias(keyVersionId)) {
         keyStore.deleteEntry(keyVersionId)

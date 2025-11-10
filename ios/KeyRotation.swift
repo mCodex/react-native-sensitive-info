@@ -23,6 +23,7 @@
 
 import Foundation
 import LocalAuthentication
+import NitroModules
 import Security
 
 // MARK: - iOS Key Rotation Types
@@ -89,8 +90,7 @@ class iOSKeyRotationManager {
     keyVersionId: String,
     requiresBiometry: Bool = true
   ) -> SecKey? {
-    var error: Cferre
-? = nil
+    var error: Unmanaged<CFError>? = nil
 
     // Build key attributes for Secure Enclave (if available)
     var keyAttributes: [String: Any] = [
@@ -99,7 +99,7 @@ class iOSKeyRotationManager {
       kSecPrivateKeyAttrs as String: [
         kSecAttrIsPermanent as String: true,
         kSecAttrApplicationTag as String: keyVersionId.data(using: .utf8) ?? Data(),
-        kSecAttrAccessControl as String: createAccessControl(requiresBiometry: requiresBiometry),
+        kSecAttrAccessControl as String: (createAccessControl(requiresBiometry: requiresBiometry) as Any),
       ] as [String: Any],
     ]
 
@@ -115,7 +115,7 @@ class iOSKeyRotationManager {
       keyAttributes as CFDictionary,
       &error
     ) else {
-      print("Failed to generate key: \(error?.localizedDescription ?? "unknown")")
+      print("Failed to generate key: \(error?.takeRetainedValue().localizedDescription ?? "unknown")")
       return nil
     }
 
@@ -164,7 +164,7 @@ class iOSKeyRotationManager {
    * Returns nil if key doesn't exist or can't be accessed.
    */
   func getKey(byVersionId keyVersionId: String) -> SecKey? {
-    var query: [String: Any] = [
+    let query: [String: Any] = [
       kSecClass as String: kSecClassKey,
       kSecAttrApplicationTag as String: keyVersionId.data(using: .utf8) ?? Data(),
       kSecReturnRef as String: kCFBooleanTrue!,
@@ -174,7 +174,7 @@ class iOSKeyRotationManager {
     let status = SecItemCopyMatching(query as CFDictionary, &result)
 
     if status == errSecSuccess {
-      return result as? SecKey
+      return (result as! SecKey)
     }
 
     return nil
@@ -346,7 +346,7 @@ class iOSKeyRotationManager {
    * Specifies requirements for accessing the key (biometry, passcode, etc.).
    */
   private func createAccessControl(requiresBiometry: Bool) -> SecAccessControl? {
-    var error: Cferre? = nil
+    var error: Unmanaged<CFError>? = nil
 
     let control = SecAccessControlCreateWithFlags(
       kCFAllocatorDefault,
@@ -403,6 +403,12 @@ class iOSKeyRotationManager {
     case .faceID:
       return "FaceID"
     @unknown default:
+      // Covers iOS 17.0+ LABiometryType.iris and future types
+      if #available(iOS 17.0, *) {
+        if type == LABiometryType.iris {
+          return "iris"
+        }
+      }
       return "unknown"
     }
   }
@@ -437,13 +443,13 @@ func getiOSKeyRotationManager() -> iOSKeyRotationManager {
  * Extension to integrate key rotation with the main HybridSensitiveInfo module.
  * Adds rotation methods to the native bridge that TypeScript can call.
  */
-extension HybridSensitiveInfo {
+extension iOSKeyRotationManager {
   /**
    * Generates a new key version for rotation.
    * Called from TypeScript rotation engine.
    */
-  @objc func generateNewKeyVersion() -> Promise<[String: Any]> {
-    Promise.parallel(workQueue) {
+  func generateNewKeyVersion() -> Promise<[String: Any]> {
+    Promise.parallel(keychainQueue) {
       let keyVersionId = ISO8601DateFormatter().string(from: Date())
       let manager = getiOSKeyRotationManager()
 
@@ -466,8 +472,8 @@ extension HybridSensitiveInfo {
    * Rotates to a newly generated key.
    * Called from TypeScript rotation engine.
    */
-  @objc func rotateKey(request: [String: Any]) -> Promise<Void> {
-    Promise.parallel(workQueue) {
+  func rotateKey(request: [String: Any]) -> Promise<Void> {
+    Promise.parallel(keychainQueue) {
       guard let keyVersionId = request["id"] as? String else {
         throw RuntimeError.error(withMessage: "Missing key version ID")
       }
@@ -482,8 +488,8 @@ extension HybridSensitiveInfo {
   /**
    * Retrieves the current key version.
    */
-  @objc func getCurrentKeyVersion() -> Promise<[String: Any]?> {
-    Promise.parallel(workQueue) {
+  func getCurrentKeyVersion() -> Promise<[String: Any]?> {
+    Promise.parallel(keychainQueue) {
       let manager = getiOSKeyRotationManager()
 
       guard let keyVersionId = manager.getCurrentKeyVersion() else {
@@ -501,8 +507,8 @@ extension HybridSensitiveInfo {
   /**
    * Gets all available key versions.
    */
-  @objc func getAvailableKeyVersions() -> Promise<[[String: Any]]> {
-    Promise.parallel(workQueue) {
+  func getAvailableKeyVersions() -> Promise<[[String: Any]]> {
+    Promise.parallel(keychainQueue) {
       // TODO: Implement retrieval of all available key versions from Keychain
       return []
     }
@@ -511,8 +517,8 @@ extension HybridSensitiveInfo {
   /**
    * Gets the timestamp of the last rotation.
    */
-  @objc func getLastRotationTimestamp() -> Promise<String?> {
-    Promise.parallel(workQueue) {
+  func getLastRotationTimestamp() -> Promise<String?> {
+    Promise.parallel(keychainQueue) {
       let manager = getiOSKeyRotationManager()
       // TODO: Retrieve from metadata
       return nil
@@ -523,8 +529,8 @@ extension HybridSensitiveInfo {
    * Re-encrypts all items with the current key.
    * Called after biometric enrollment changes or forced rotation.
    */
-  @objc func reEncryptAllItems(request: [String: Any]) -> Promise<[String: Any]> {
-    Promise.parallel(workQueue) {
+  func reEncryptAllItems(request: [String: Any]) -> Promise<[String: Any]> {
+    Promise.parallel(keychainQueue) {
       // TODO: Implement batch re-encryption
       return [
         "itemsReEncrypted": 0,

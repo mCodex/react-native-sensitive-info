@@ -1,7 +1,5 @@
 import Foundation
 
-import NitroModules
-
 /// Codable wrapper that lets us round-trip `StorageMetadata` through the Keychain's generic field.
 struct PersistedMetadata: Codable {
   let securityLevel: String

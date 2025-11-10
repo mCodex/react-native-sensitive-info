@@ -12,23 +12,29 @@ private struct ResolvedAccessControl {
 
 /// Apple platforms implementation of the SensitiveInfo Nitro module.
 ///
-/// Consumers interact with the generated JS API:
-/// ```ts
-/// import { setItem } from 'react-native-sensitive-info'
-/// await setItem('session-token', 'secret', { accessControl: 'secureEnclaveBiometry' })
+/// Provides secure storage for sensitive data using Keychain with support for biometric,
+/// device credential, and Secure Enclave authentication on iOS, macOS, visionOS, and watchOS.
+///
+/// The implementation follows a consistent pattern across all methods:
+/// 1. Validate inputs using KeychainValidator
+/// 2. Build Keychain queries using KeychainQueryBuilder
+/// 3. Execute Keychain operations on dedicated work queue
+/// 4. Encode/decode metadata using StorageMetadataHandler
+/// 5. Return responses with consistent metadata
+///
+/// Example usage:
+/// ```swift
+/// let singleValue = try await sensitiveInfo.getItem(
+///   request: SensitiveInfoGetRequest(key: "token", service: "auth")
+/// )
 /// ```
 ///
-/// The Swift bridge runs keychain queries on a dedicated queue, encodes consistent metadata, and
-/// returns results that mirror the TypeScript types shipped in the package across iOS, macOS,
-/// visionOS, and watchOS.
+/// @since 6.0.0
 final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   private let workQueue = DispatchQueue(label: "com.mcodex.sensitiveinfo.keychain", qos: .userInitiated)
-  private let encoder: JSONEncoder = {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = []
-    return encoder
-  }()
-  private let decoder = JSONDecoder()
+  private let metadataHandler = StorageMetadataHandler()
+  private let validator = KeychainValidator()
+  private let queryBuilder = KeychainQueryBuilder(defaultService: Bundle.main.bundleIdentifier ?? "default")
   private let defaultService = Bundle.main.bundleIdentifier ?? "default"
   private let availabilityResolver = SecurityAvailabilityResolver()
   private lazy var accessControlResolver = AccessControlResolver { [weak self] in
@@ -45,13 +51,33 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Stores or replaces an item in the Keychain, returning metadata describing the applied
-  /// security policy. If the requested hardware policy is unavailable (for example, simulators with
-  /// no passcode), we fall back to a software-only accessibility to keep the call successful.
+  /// security policy.
+  ///
+  /// Process:
+  /// 1. Validates key and value
+  /// 2. Resolves service name and access control
+  /// 3. Builds Keychain query for the key/service pair
+  /// 4. Constructs attributes with value, access control, and metadata
+  /// 5. Deletes any existing item
+  /// 6. Attempts to add the item
+  /// 7. Falls back to software-only if hardware policy unavailable
+  /// 8. Returns mutation result with applied metadata
+  ///
+  /// @param request The set request containing key, value, and options
+  /// @return Promise resolving to MutationResult with applied metadata
+  /// @throws KeychainValidationError if key or value is invalid
+  /// @throws RuntimeError if Keychain operation fails
   func setItem(request: SensitiveInfoSetRequest) throws -> Promise<MutationResult> {
     Promise.parallel(workQueue) { [self] in
+      // Step 1: Validate inputs
+      try validator.validateKey(request.key)
+      try validator.validateValue(request.value)
+
+      // Step 2: Resolve service and access control
       let service = normalizedService(request.service)
       let resolved = try resolveAccessControl(preferred: request.accessControl)
 
+      // Step 3: Create metadata
       let metadata = StorageMetadata(
         securityLevel: resolved.securityLevel,
         backend: .keychain,
@@ -59,13 +85,17 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         timestamp: Date().timeIntervalSince1970
       )
 
-      let query = makeBaseQuery(
+      // Step 4: Build query using query builder
+      var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable,
-        accessGroup: request.keychainGroup
+        synchronizable: request.iosSynchronizable
       )
+      if let group = request.keychainGroup {
+        query[kSecAttrAccessGroup as String] = group
+      }
 
+      // Step 5: Build attributes
       var attributes = query
       attributes[kSecValueData as String] = Data(request.value.utf8)
       if let accessControlRef = resolved.accessControlRef {
@@ -73,14 +103,17 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       } else {
         attributes[kSecAttrAccessible as String] = resolved.accessible
       }
-      attributes[kSecAttrGeneric as String] = try encoder.encode(PersistedMetadata(metadata: metadata))
+      attributes[kSecAttrGeneric as String] = try metadataHandler.encodeMetadata(metadata)
 
+      // Step 6: Delete existing and add new
       deleteExisting(query: query)
       var status = SecItemAdd(attributes as CFDictionary, nil)
+
       if status == errSecSuccess {
         return MutationResult(metadata: metadata)
       }
 
+      // Step 7: Fallback to software if hardware unavailable
       if status == errSecParam, resolved.accessControlRef != nil {
         let fallbackMetadata = StorageMetadata(
           securityLevel: .software,
@@ -92,7 +125,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         var fallbackAttributes = query
         fallbackAttributes[kSecValueData as String] = Data(request.value.utf8)
         fallbackAttributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        fallbackAttributes[kSecAttrGeneric as String] = try encoder.encode(PersistedMetadata(metadata: fallbackMetadata))
+        fallbackAttributes[kSecAttrGeneric as String] = try metadataHandler.encodeMetadata(fallbackMetadata)
 
         status = SecItemAdd(fallbackAttributes as CFDictionary, nil)
         if status == errSecSuccess {
@@ -105,43 +138,88 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Fetches a single item and optionally includes the plaintext value if the client requested it.
+  ///
+  /// Process:
+  /// 1. Validates the key
+  /// 2. Resolves service name
+  /// 3. Builds retrieval query using query builder
+  /// 4. Executes Keychain query with optional authentication
+  /// 5. Reconstructs item from Keychain attributes
+  /// 6. Returns item or nil if not found
+  ///
+  /// @param request The get request with key and authentication prompt
+  /// @return Promise resolving to SensitiveInfoItem or nil if not found
+  /// @throws KeychainValidationError if key is invalid
+  /// @throws RuntimeError if Keychain operation fails
   func getItem(request: SensitiveInfoGetRequest) throws -> Promise<SensitiveInfoItem?> {
     Promise.parallel(workQueue) { [self] in
+      // Step 1: Validate key
+      try validator.validateKey(request.key)
+
+      // Step 2: Resolve service
       let service = normalizedService(request.service)
       let includeValue = request.includeValue ?? true
 
-      var query = makeBaseQuery(
+      // Step 3: Build retrieval query
+      var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable,
-        accessGroup: request.keychainGroup
+        synchronizable: request.iosSynchronizable
       )
+      if let group = request.keychainGroup {
+        query[kSecAttrAccessGroup as String] = group
+      }
       query[kSecMatchLimit as String] = kSecMatchLimitOne
       query[kSecReturnAttributes as String] = kCFBooleanTrue
       if includeValue {
         query[kSecReturnData as String] = kCFBooleanTrue
       }
 
+      // Step 4: Execute query
       guard let raw = try copyMatching(query: query, prompt: request.authenticationPrompt) as? NSDictionary else {
         return nil
       }
 
+      // Step 5: Reconstruct item
       return try makeItem(from: raw, includeValue: includeValue)
     }
   }
 
   /// Removes a specific key/service pair from the Keychain.
+  ///
+  /// Process:
+  /// 1. Validates the key
+  /// 2. Resolves service name
+  /// 3. Builds delete query using query builder
+  /// 4. Executes Keychain delete
+  /// 5. Returns success status
+  ///
+  /// @param request The delete request containing key
+  /// @return Promise resolving to boolean (success)
+  /// @throws KeychainValidationError if key is invalid
+  /// @throws RuntimeError if Keychain operation fails
   func deleteItem(request: SensitiveInfoDeleteRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
+      // Step 1: Validate key
+      try validator.validateKey(request.key)
+
+      // Step 2: Resolve service
       let service = normalizedService(request.service)
-      let query = makeBaseQuery(
+
+      // Step 3: Build delete query
+      var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable,
-        accessGroup: request.keychainGroup
+        synchronizable: request.iosSynchronizable
       )
+      if let group = request.keychainGroup {
+        query[kSecAttrAccessGroup as String] = group
+      }
 
+      // Step 4: Execute delete
       let status = SecItemDelete(query as CFDictionary)
+
+      // Step 5: Return status
       switch status {
       case errSecSuccess:
         return true
@@ -154,50 +232,90 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Checks for existence without allocating an item payload.
+  ///
+  /// Process:
+  /// 1. Validates the key
+  /// 2. Resolves service name
+  /// 3. Builds existence check query
+  /// 4. Executes Keychain query
+  /// 5. Returns boolean existence
+  ///
+  /// @param request The has request containing key
+  /// @return Promise resolving to boolean (exists)
+  /// @throws KeychainValidationError if key is invalid
+  /// @throws RuntimeError if Keychain operation fails
   func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
+      // Step 1: Validate key
+      try validator.validateKey(request.key)
+
+      // Step 2: Resolve service
       let service = normalizedService(request.service)
-      var query = makeBaseQuery(
+
+      // Step 3: Build query
+      var query = queryBuilder.makeBaseQuery(
         key: request.key,
         service: service,
-        synchronizable: request.iosSynchronizable,
-        accessGroup: request.keychainGroup
+        synchronizable: request.iosSynchronizable
       )
+      if let group = request.keychainGroup {
+        query[kSecAttrAccessGroup as String] = group
+      }
       query[kSecMatchLimit as String] = kSecMatchLimitOne
       query[kSecReturnAttributes as String] = kCFBooleanTrue
 
+      // Step 4: Execute query
       let result = try copyMatching(query: query, prompt: request.authenticationPrompt)
+
+      // Step 5: Return existence
       return result != nil
     }
   }
 
   /// Enumerates every item matching the provided service and inclusion options.
   ///
-  /// ```ts
-  /// const items = await SensitiveInfo.getAllItems({ service: 'vault', includeValues: true })
-  /// ```
+  /// Process:
+  /// 1. Validates options (service if provided)
+  /// 2. Resolves service name
+  /// 3. Builds enumerate query
+  /// 4. Executes Keychain query to retrieve all items
+  /// 5. Reconstructs items from Keychain attributes
+  /// 6. Filters and returns array of items
+  ///
+  /// @param request The enumerate request with optional include_values flag
+  /// @return Promise resolving to array of SensitiveInfoItem
+  /// @throws KeychainValidationError if service is invalid
+  /// @throws RuntimeError if Keychain operation fails
   func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
     Promise.parallel(workQueue) { [self] in
+      // Step 1: Resolve options
       let includeValues = request?.includeValues ?? false
       let service = normalizedService(request?.service)
 
-      var query = makeBaseQuery(
+      // Step 2: Build enumerate query
+      var query = queryBuilder.makeBaseQuery(
         key: nil,
         service: service,
-        synchronizable: request?.iosSynchronizable,
-        accessGroup: request?.keychainGroup
+        synchronizable: request?.iosSynchronizable
       )
+      if let group = request?.keychainGroup {
+        query[kSecAttrAccessGroup as String] = group
+      }
       query[kSecMatchLimit as String] = kSecMatchLimitAll
       query[kSecReturnAttributes as String] = kCFBooleanTrue
       if includeValues {
         query[kSecReturnData as String] = kCFBooleanTrue
       }
 
+      // Step 3: Execute query
       let result = try copyMatching(query: query, prompt: request?.authenticationPrompt)
+
+      // Step 4: Reconstruct items
       guard let array = result as? [NSDictionary] else {
         return []
       }
 
+      // Step 5: Filter and return
       return try array.compactMap { dict in
         try makeItem(from: dict, includeValue: includeValues)
       }
@@ -205,17 +323,35 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Deletes all items for the requested service.
+  ///
+  /// Process:
+  /// 1. Resolves service name
+  /// 2. Builds delete query for all items in service
+  /// 3. Executes Keychain delete
+  /// 4. Returns success (treats not found as success)
+  ///
+  /// @param request Optional SensitiveInfoOptions containing service name
+  /// @return Promise resolving to Void
+  /// @throws RuntimeError if Keychain operation fails
   func clearService(request: SensitiveInfoOptions?) throws -> Promise<Void> {
     Promise.parallel(workQueue) { [self] in
+      // Step 1: Resolve service
       let service = normalizedService(request?.service)
-      let query = makeBaseQuery(
+
+      // Step 2: Build delete query for all items
+      var query = queryBuilder.makeBaseQuery(
         key: nil,
         service: service,
-        synchronizable: request?.iosSynchronizable,
-        accessGroup: request?.keychainGroup
+        synchronizable: request?.iosSynchronizable
       )
+      if let group = request?.keychainGroup {
+        query[kSecAttrAccessGroup as String] = group
+      }
 
+      // Step 3: Execute delete
       let status = SecItemDelete(query as CFDictionary)
+
+      // Step 4: Return result
       switch status {
       case errSecSuccess, errSecItemNotFound:
         return ()
@@ -230,32 +366,6 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   // MARK: - Keychain helpers
-
-  private func makeBaseQuery(
-    key: String?,
-    service: String,
-    synchronizable: Bool?,
-    accessGroup: String?
-  ) -> [String: Any] {
-    var query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: service
-    ]
-
-    if let account = key {
-      query[kSecAttrAccount as String] = account
-    }
-
-    if synchronizable == true {
-      query[kSecAttrSynchronizable as String] = kCFBooleanTrue
-    }
-
-    if let group = accessGroup {
-      query[kSecAttrAccessGroup as String] = group
-    }
-
-    return query
-  }
 
   private func deleteExisting(query: [String: Any]) {
     var deleteQuery = query
@@ -295,10 +405,10 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       let key = dictionary[kSecAttrAccount as String] as? String,
       let service = dictionary[kSecAttrService as String] as? String
     else {
-      throw RuntimeError.error(withMessage: "Unexpected keychain payload shape")
+      throw RuntimeError.error(withMessage: "[E_INVALID_RESPONSE] Unexpected keychain payload shape")
     }
 
-    let metadata = decodeMetadata(from: dictionary) ?? StorageMetadata(
+    let metadata = try metadataHandler.decodeMetadata(from: dictionary[kSecAttrGeneric as String] as? Data) ?? StorageMetadata(
       securityLevel: .software,
       backend: .keychain,
       accessControl: .none,
@@ -313,19 +423,6 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
 
     return SensitiveInfoItem(key: key, service: service, value: value, metadata: metadata)
-  }
-
-  private func decodeMetadata(from dictionary: NSDictionary) -> StorageMetadata? {
-    guard let raw = dictionary[kSecAttrGeneric as String] as? Data else {
-      return nil
-    }
-
-    do {
-      let payload = try decoder.decode(PersistedMetadata.self, from: raw)
-      return payload.toStorageMetadata()
-    } catch {
-      return nil
-    }
   }
 
   // MARK: - Access control resolution

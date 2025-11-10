@@ -8,7 +8,7 @@ import { createInitialAsyncState } from './types';
 import type { AsyncState } from './types';
 import useAsyncLifecycle from './useAsyncLifecycle';
 import useStableOptions from './useStableOptions';
-import createHookError, { isAuthenticationCanceledError } from './error-utils';
+import { createFetchError, isAuthenticationCanceled } from './error-factory';
 
 /**
  * Configuration accepted by {@link useSecretItem}.
@@ -39,13 +39,68 @@ export interface UseSecretItemResult extends AsyncState<SensitiveInfoItem> {
 /**
  * Fetches a single entry from the secure store and keeps the result in sync with the component lifecycle.
  *
+ * This hook automatically runs on mount and when options change, but can be skipped with `skip: true`.
+ * It handles lifecycle cleanup (abort in-flight requests when unmounting) and authentication
+ * cancellations (which are not errors, just user actions).
+ *
+ * @param key - The storage key to fetch
+ * @param options - Configuration including service, access control, and fetch behavior
+ *
+ * @returns Async state with the item and a refetch function
+ *
  * @example
  * ```tsx
- * const { data, isLoading, error, refetch } = useSecretItem('refreshToken', {
- *   service: 'com.example.session',
- *   includeValue: true,
+ * // Basic usage
+ * const { data, isLoading, error, refetch } = useSecretItem('authToken', {
+ *   service: 'com.example.session'
  * })
+ *
+ * if (error) {
+ *   return <ErrorView error={error} onRetry={refetch} />
+ * }
+ *
+ * if (isLoading) {
+ *   return <Skeleton />
+ * }
+ *
+ * return (
+ *   <View>
+ *     <Text>Token: {data?.value}</Text>
+ *     <Text>Security: {data?.metadata.securityLevel}</Text>
+ *   </View>
+ * )
  * ```
+ *
+ * @example
+ * ```tsx
+ * // Lazy loading: skip initial fetch
+ * const { data, refetch } = useSecretItem('onDemandSecret', {
+ *   service: 'com.example',
+ *   skip: true
+ * })
+ *
+ * return (
+ *   <button onClick={refetch}>
+ *     Load Secret
+ *   </button>
+ * )
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Metadata only (no authentication required)
+ * const { data } = useSecretItem('secretKey', {
+ *   service: 'com.example',
+ *   includeValue: false
+ * })
+ *
+ * return <Text>Last modified: {data?.metadata.timestamp}</Text>
+ * ```
+ *
+ * @see {@link useSecret} to combine read and write operations
+ * @see {@link useSecureStorage} to manage multiple items
+ *
+ * @since 6.0.0
  */
 export function useSecretItem(
   key: string,
@@ -90,7 +145,7 @@ export function useSecretItem(
       }
     } catch (errorLike) {
       if (mountedRef.current && !controller.signal.aborted) {
-        if (isAuthenticationCanceledError(errorLike)) {
+        if (isAuthenticationCanceled(errorLike)) {
           setState((prev) => ({
             data: prev.data,
             error: null,
@@ -98,10 +153,9 @@ export function useSecretItem(
             isPending: false,
           }));
         } else {
-          const hookError = createHookError(
+          const hookError = createFetchError(
             'useSecretItem.fetch',
-            errorLike,
-            'Verify that the key/service pair exists and that includeValue is allowed for the caller.'
+            errorLike
           );
           setState({
             data: null,
