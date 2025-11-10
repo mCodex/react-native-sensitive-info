@@ -2,12 +2,84 @@ import Foundation
 import LocalAuthentication
 import NitroModules
 import Security
+import CommonCrypto
 
-private struct ResolvedAccessControl {
-  let accessControl: AccessControl
-  let securityLevel: SecurityLevel
-  let accessible: CFString
-  let accessControlRef: SecAccessControl?
+// MARK: - Crypto Helpers
+
+private func encryptData(_ data: Data, withKey keyData: Data) throws -> Data {
+  let keyLength = kCCKeySizeAES256
+  let dataLength = data.count
+  let bufferSize = dataLength + kCCBlockSizeAES128
+  var buffer = Data(count: bufferSize)
+  var numBytesEncrypted: size_t = 0
+
+  let cryptStatus = keyData.withUnsafeBytes { keyBytes in
+    data.withUnsafeBytes { dataBytes in
+      buffer.withUnsafeMutableBytes { bufferBytes in
+        CCCrypt(
+          CCOperation(kCCEncrypt),
+          CCAlgorithm(kCCAlgorithmAES),
+          CCOptions(kCCOptionPKCS7Padding),
+          keyBytes.baseAddress,
+          keyLength,
+          nil,
+          dataBytes.baseAddress,
+          dataLength,
+          bufferBytes.baseAddress,
+          bufferSize,
+          &numBytesEncrypted
+        )
+      }
+    }
+  }
+
+  guard cryptStatus == kCCSuccess else {
+    throw RuntimeError.error(withMessage: "Encryption failed")
+  }
+
+  buffer.removeSubrange(numBytesEncrypted..<buffer.count)
+  return buffer
+}
+
+private func decryptData(_ data: Data, withKey keyData: Data) throws -> Data {
+  let keyLength = kCCKeySizeAES256
+  let dataLength = data.count
+  let bufferSize = dataLength + kCCBlockSizeAES128
+  var buffer = Data(count: bufferSize)
+  var numBytesDecrypted: size_t = 0
+
+  let cryptStatus = keyData.withUnsafeBytes { keyBytes in
+    data.withUnsafeBytes { dataBytes in
+      buffer.withUnsafeMutableBytes { bufferBytes in
+        CCCrypt(
+          CCOperation(kCCDecrypt),
+          CCAlgorithm(kCCAlgorithmAES),
+          CCOptions(kCCOptionPKCS7Padding),
+          keyBytes.baseAddress,
+          keyLength,
+          nil,
+          dataBytes.baseAddress,
+          dataLength,
+          bufferBytes.baseAddress,
+          bufferSize,
+          &numBytesDecrypted
+        )
+      }
+    }
+  }
+
+  guard cryptStatus == kCCSuccess else {
+    throw RuntimeError.error(withMessage: "Decryption failed")
+  }
+
+  buffer.removeSubrange(numBytesDecrypted..<buffer.count)
+  return buffer
+}
+
+private struct RawItem {
+  let key: String
+  let encryptedValue: Data
+  let metadata: Data
 }
 
 /// Apple platforms implementation of the SensitiveInfo Nitro module.
@@ -50,6 +122,13 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     )
   }
 
+  private struct ResolvedAccessControl {
+    let accessControl: AccessControl
+    let securityLevel: SecurityLevel
+    let accessible: CFString
+    let accessControlRef: SecAccessControl?
+  }
+
   /// Stores or replaces an item in the Keychain, returning metadata describing the applied
   /// security policy.
   ///
@@ -77,12 +156,20 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       let service = normalizedService(request.service)
       let resolved = try resolveAccessControl(preferred: request.accessControl)
 
-      // Step 3: Create metadata
+      // Step 3: Generate alias and create encryption key
+      let alias = UUID().uuidString
+      let keyData = try createEncryptionKey(alias: alias, accessControl: resolved.accessControlRef)
+
+      // Step 4: Encrypt the value
+      let encryptedValue = try encryptData(Data(request.value.utf8), withKey: keyData)
+
+      // Step 5: Create metadata
       let metadata = StorageMetadata(
         securityLevel: resolved.securityLevel,
         backend: .keychain,
         accessControl: resolved.accessControl,
-        timestamp: Date().timeIntervalSince1970
+        timestamp: Date().timeIntervalSince1970,
+        alias: alias
       )
 
       // Step 4: Build query using query builder
@@ -95,9 +182,9 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         query[kSecAttrAccessGroup as String] = group
       }
 
-      // Step 5: Build attributes
+      // Step 6: Build attributes
       var attributes = query
-      attributes[kSecValueData as String] = Data(request.value.utf8)
+      attributes[kSecValueData as String] = encryptedValue
       if let accessControlRef = resolved.accessControlRef {
         attributes[kSecAttrAccessControl as String] = accessControlRef
       } else {
@@ -119,11 +206,12 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
           securityLevel: .software,
           backend: .keychain,
           accessControl: .none,
-          timestamp: Date().timeIntervalSince1970
+          timestamp: Date().timeIntervalSince1970,
+          alias: alias
         )
 
         var fallbackAttributes = query
-        fallbackAttributes[kSecValueData as String] = Data(request.value.utf8)
+        fallbackAttributes[kSecValueData as String] = encryptedValue
         fallbackAttributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         fallbackAttributes[kSecAttrGeneric as String] = try metadataHandler.encodeMetadata(fallbackMetadata)
 
@@ -365,6 +453,81 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     Promise.resolved(withResult: resolveAvailability())
   }
 
+  /**
+   * Re-encrypts all items with the current key.
+   * Migrates items encrypted with old keys to the current key version.
+   */
+  func reEncryptAllItems(request: ReEncryptAllItemsRequest) -> Promise<ReEncryptAllItemsResponse> {
+    Promise.parallel(workQueue) { [self] in
+      let manager = getiOSKeyRotationManager()
+
+      // Step 1: Get current key version
+      guard let currentKeyVersion = manager.getCurrentKeyVersion() else {
+        throw RuntimeError.error(withMessage: "No current key version available")
+      }
+
+      // Step 2: Resolve service
+      let service = self.normalizedService(request.service)
+
+      // Step 3: Get all items for the service
+      let items = try self.getAllItemsRaw(service: service)
+
+      var reEncryptedCount = 0
+      var errors: [ReEncryptError] = []
+
+      // Step 4: Re-encrypt items that use old keys
+      for item in items {
+        do {
+          let metadata = try self.metadataHandler.decodeMetadata(from: item.metadata) ?? StorageMetadata(
+            securityLevel: .software,
+            backend: .keychain,
+            accessControl: .none,
+            timestamp: Date().timeIntervalSince1970,
+            alias: ""
+          )
+
+          if metadata.alias != currentKeyVersion {
+            // Decrypt with old key
+            let oldKeyData = try self.retrieveEncryptionKey(alias: metadata.alias)
+            let decryptedData = try decryptData(item.encryptedValue, withKey: oldKeyData)
+            let plaintext = String(data: decryptedData, encoding: .utf8) ?? ""
+
+            // Encrypt with new key
+            let newKeyData = try self.createEncryptionKey(alias: currentKeyVersion, accessControl: nil) // TODO: proper access control
+            let newEncryptedData = try encryptData(decryptedData, withKey: newKeyData)
+
+            // Update metadata
+            let newMetadata = StorageMetadata(
+              securityLevel: metadata.securityLevel,
+              backend: metadata.backend,
+              accessControl: metadata.accessControl,
+              timestamp: Date().timeIntervalSince1970,
+              alias: currentKeyVersion
+            )
+
+            // Update Keychain item
+            try self.updateItem(
+              key: item.key,
+              service: service,
+              encryptedValue: newEncryptedData,
+              metadata: newMetadata
+            )
+
+            reEncryptedCount += 1
+          }
+        } catch {
+          errors.append(ReEncryptError(key: item.key, error: error.localizedDescription))
+        }
+      }
+
+      // Step 5: Return results
+      return ReEncryptAllItemsResponse(
+        itemsReEncrypted: reEncryptedCount,
+        errors: errors
+      )
+    }
+  }
+
   // MARK: - Keychain helpers
 
   private func deleteExisting(query: [String: Any]) {
@@ -412,13 +575,16 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       securityLevel: .software,
       backend: .keychain,
       accessControl: .none,
-      timestamp: Date().timeIntervalSince1970
+      timestamp: Date().timeIntervalSince1970,
+      alias: ""
     )
 
     var value: String?
     if includeValue {
-      if let data = dictionary[kSecValueData as String] as? Data {
-        value = String(data: data, encoding: .utf8)
+      if let encryptedData = dictionary[kSecValueData as String] as? Data {
+        let keyData = try retrieveEncryptionKey(alias: metadata.alias)
+        let decryptedData = try decryptData(encryptedData, withKey: keyData)
+        value = String(data: decryptedData, encoding: .utf8)
       }
     }
 
@@ -494,16 +660,104 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  private func performCopyMatching(_ query: CFDictionary, result: inout CFTypeRef?) -> OSStatus {
-    if Thread.isMainThread {
-      return SecItemCopyMatching(query, &result)
+  private func createEncryptionKey(alias: String, accessControl: SecAccessControl?) throws -> Data {
+    // Try to retrieve existing key
+    do {
+      return try retrieveEncryptionKey(alias: alias)
+    } catch {
+      // Key doesn't exist, create it
     }
 
-    var status: OSStatus = errSecSuccess
-    DispatchQueue.main.sync {
-      status = SecItemCopyMatching(query, &result)
+    // Create a random AES256 key
+    var keyData = Data(count: kCCKeySizeAES256)
+    let result = keyData.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, kCCKeySizeAES256, $0.baseAddress!) }
+    guard result == errSecSuccess else {
+      throw RuntimeError.error(withMessage: "Failed to generate encryption key")
     }
-    return status
+
+    // Store the key in Keychain
+    var keyAttributes: [String: Any] = [
+      kSecClass as String: kSecClassKey,
+      kSecAttrApplicationLabel as String: alias,
+      kSecAttrKeyType as String: kSecAttrKeyTypeAES,
+      kSecAttrKeySizeInBits as String: 256,
+      kSecValueData as String: keyData,
+      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+      kSecReturnData as String: true
+    ]
+
+    if let accessControl = accessControl {
+      keyAttributes[kSecAttrAccessControl as String] = accessControl
+    }
+
+    let status = SecItemAdd(keyAttributes as CFDictionary, nil)
+    guard status == errSecSuccess else {
+      throw RuntimeError.error(withMessage: "Failed to store encryption key")
+    }
+
+    return keyData
+  }
+
+  private func retrieveEncryptionKey(alias: String) throws -> Data {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassKey,
+      kSecAttrApplicationLabel as String: alias,
+      kSecReturnData as String: true
+    ]
+
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    guard status == errSecSuccess, let keyData = result as? Data else {
+      throw RuntimeError.error(withMessage: "Failed to retrieve encryption key")
+    }
+
+    return keyData
+  }
+
+  private func getAllItemsRaw(service: String) throws -> [RawItem] {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: service,
+      kSecMatchLimit as String: kSecMatchLimitAll,
+      kSecReturnAttributes as String: kCFBooleanTrue,
+      kSecReturnData as String: kCFBooleanTrue,
+    ]
+
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+    guard status == errSecSuccess, let array = result as? [[String: Any]] else {
+      return []
+    }
+
+    return array.compactMap { dict in
+      guard
+        let key = dict[kSecAttrAccount as String] as? String,
+        let encryptedValue = dict[kSecValueData as String] as? Data,
+        let metadata = dict[kSecAttrGeneric as String] as? Data
+      else {
+        return nil
+      }
+      return RawItem(key: key, encryptedValue: encryptedValue, metadata: metadata)
+    }
+  }
+
+  private func updateItem(key: String, service: String, encryptedValue: Data, metadata: StorageMetadata) throws {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrAccount as String: key,
+      kSecAttrService as String: service,
+    ]
+
+    let updateAttributes: [String: Any] = [
+      kSecValueData as String: encryptedValue,
+      kSecAttrGeneric as String: try metadataHandler.encodeMetadata(metadata),
+    ]
+
+    let status = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
+    guard status == errSecSuccess else {
+      throw RuntimeError.error(withMessage: "Failed to update item")
+    }
   }
 
 #if targetEnvironment(simulator)

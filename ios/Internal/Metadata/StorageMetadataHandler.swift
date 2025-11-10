@@ -112,13 +112,15 @@ struct StorageMetadataHandler {
    */
   func makeMetadata(
     securityLevel: SecurityLevel,
-    accessControl: AccessControl
+    accessControl: AccessControl,
+    alias: String = ""
   ) -> StorageMetadata {
     StorageMetadata(
       securityLevel: securityLevel,
       backend: .keychain,
       accessControl: accessControl,
-      timestamp: Date().timeIntervalSince1970
+      timestamp: Date().timeIntervalSince1970,
+      alias: alias
     )
   }
 
@@ -135,7 +137,8 @@ struct StorageMetadataHandler {
       securityLevel: .software,
       backend: .keychain,
       accessControl: .none,
-      timestamp: Date().timeIntervalSince1970
+      timestamp: Date().timeIntervalSince1970,
+      alias: ""
     )
   }
 }

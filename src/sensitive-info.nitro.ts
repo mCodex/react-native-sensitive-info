@@ -104,6 +104,7 @@ export interface StorageMetadata {
   readonly backend: StorageBackend;
   readonly accessControl: AccessControl;
   readonly timestamp: number;
+  readonly alias: string;
 }
 
 /**
@@ -137,6 +138,20 @@ export interface SecurityAvailability {
   readonly deviceCredential: boolean;
 }
 
+export interface ReEncryptAllItemsRequest {
+  readonly service?: string;
+}
+
+export interface ReEncryptError {
+  readonly key: string;
+  readonly error: string;
+}
+
+export interface ReEncryptAllItemsResponse {
+  readonly itemsReEncrypted: number;
+  readonly errors: ReEncryptError[];
+}
+
 export interface SensitiveInfo
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   setItem(request: SensitiveInfoSetRequest): Promise<MutationResult>;
@@ -148,6 +163,9 @@ export interface SensitiveInfo
   ): Promise<SensitiveInfoItem[]>;
   clearService(request?: SensitiveInfoOptions): Promise<void>;
   getSupportedSecurityLevels(): Promise<SecurityAvailability>;
+  reEncryptAllItems(
+    request: ReEncryptAllItemsRequest
+  ): Promise<ReEncryptAllItemsResponse>;
 }
 
 export type SensitiveInfoSpec = SensitiveInfo;

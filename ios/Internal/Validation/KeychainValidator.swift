@@ -96,26 +96,26 @@ struct KeychainValidator {
     against availability: SecurityAvailability
   ) throws {
     switch accessControl {
-    case .secureEnclaveBiometry:
+    case .secureenclavebiometry:
       guard availability.secureEnclave && availability.biometry else {
         throw KeychainValidationError.unavailableFeature(
           "Secure Enclave with biometry not available on this device"
         )
       }
-    case .biometry:
+    case .biometrycurrentset, .biometryany:
       guard availability.biometry else {
         throw KeychainValidationError.unavailableFeature(
           "Biometry not available on this device"
         )
       }
-    case .hardwareBackedBiometry:
-      guard availability.biometry else {
+    case .devicepasscode:
+      guard availability.deviceCredential else {
         throw KeychainValidationError.unavailableFeature(
-          "Hardware-backed biometry not available on this device"
+          "Device passcode not available on this device"
         )
       }
-    default:
-      break  // Other access controls always available
+    case .none:
+      break  // Always available
     }
   }
 }

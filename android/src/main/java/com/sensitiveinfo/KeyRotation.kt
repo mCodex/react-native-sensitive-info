@@ -28,7 +28,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import androidx.biometric.BiometricManager
-import java.security.KeyGenerator
+import javax.crypto.KeyGenerator
 import java.security.KeyStore
 import java.util.Calendar
 import kotlin.math.min

@@ -26,6 +26,7 @@ describe('useSecretItem', () => {
         backend: 'keychain',
         accessControl: 'secureEnclaveBiometry',
         timestamp: 1,
+        alias: 'test-alias',
       },
     });
 
@@ -90,6 +91,7 @@ describe('useSecretItem', () => {
         backend: 'keychain',
         accessControl: 'secureEnclaveBiometry',
         timestamp: 2,
+        alias: 'test-alias-2',
       },
     });
 

@@ -6,12 +6,14 @@ struct PersistedMetadata: Codable {
   let backend: String
   let accessControl: String
   let timestamp: Double
+  let alias: String
 
   init(metadata: StorageMetadata) {
     securityLevel = metadata.securityLevel.stringValue
     backend = metadata.backend.stringValue
     accessControl = metadata.accessControl.stringValue
     timestamp = metadata.timestamp
+    alias = metadata.alias
   }
 
   func toStorageMetadata() -> StorageMetadata? {
@@ -26,7 +28,8 @@ struct PersistedMetadata: Codable {
       securityLevel: level,
       backend: backendValue,
       accessControl: control,
-      timestamp: timestamp
+      timestamp: timestamp,
+      alias: alias
     )
   }
 }

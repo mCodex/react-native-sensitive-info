@@ -15,8 +15,11 @@ import com.sensitiveinfo.internal.storage.SecureStorage
 import com.sensitiveinfo.internal.util.AliasGenerator
 import com.sensitiveinfo.internal.util.ReactContextHolder
 import com.sensitiveinfo.internal.util.ServiceNameResolver
+import com.sensitiveinfo.internal.util.accessControlFromPersisted
+import com.sensitiveinfo.internal.util.securityLevelFromPersisted
 import com.sensitiveinfo.internal.validation.AndroidStorageValidator
 import com.sensitiveinfo.internal.validation.StorageValidator
+import com.sensitiveinfo.AndroidKeyRotationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +48,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     val securityAvailabilityResolver: SecurityAvailabilityResolver,
     val serviceNameResolver: ServiceNameResolver,
     val validator: StorageValidator,
-    val responseBuilder: ResponseBuilder
+    val responseBuilder: ResponseBuilder,
+    val keyRotationManager: AndroidKeyRotationManager
   )
 
   @Volatile
@@ -72,7 +76,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           securityAvailabilityResolver = securityAvailabilityResolver,
           serviceNameResolver = serviceNameResolver,
           validator = AndroidStorageValidator(),
-          responseBuilder = StandardResponseBuilder()
+          responseBuilder = StandardResponseBuilder(),
+          keyRotationManager = AndroidKeyRotationManager(ctx)
         ).also { built ->
           dependencies = built
         }
@@ -123,7 +128,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         securityLevel = resolved.securityLevel,
         backend = StorageBackend.ANDROIDKEYSTORE,
         accessControl = resolved.accessControl,
-        timestamp = System.currentTimeMillis() / 1000.0
+        timestamp = System.currentTimeMillis() / 1000.0,
+        alias = alias
       )
 
       // Step 7: Persist entry
@@ -211,8 +217,10 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           securityLevel = SecurityLevel.SOFTWARE,
           backend = StorageBackend.ANDROIDKEYSTORE,
           accessControl = AccessControl.NONE,
-          timestamp = System.currentTimeMillis() / 1000.0
-        )
+          timestamp = System.currentTimeMillis() / 1000.0,
+          alias = entry.alias
+        ),
+        service = service
       )
     }
   }
@@ -320,7 +328,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
             securityLevel = SecurityLevel.SOFTWARE,
             backend = StorageBackend.ANDROIDKEYSTORE,
             accessControl = AccessControl.NONE,
-            timestamp = System.currentTimeMillis() / 1000.0
+            timestamp = System.currentTimeMillis() / 1000.0,
+            alias = entry.alias
           )
 
           val value = if (includeValues && entry.ciphertext != null && entry.iv != null) {
@@ -354,7 +363,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           deps.responseBuilder.buildItem(
             key = key,
             value = value,
-            metadata = metadata
+            metadata = metadata,
+            service = service
           )
         } catch (e: Throwable) {
           // Step 6: Skip items that fail to process
@@ -428,6 +438,103 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         strongBox = capabilities.strongBox,
         biometry = capabilities.biometry,
         deviceCredential = capabilities.deviceCredential
+      )
+    }
+  }
+
+  /**
+   * Re-encrypts all items with the current key.
+   * Migrates items encrypted with old keys to the current key version.
+   */
+  override fun reEncryptAllItems(request: ReEncryptAllItemsRequest): Promise<ReEncryptAllItemsResponse> {
+    return Promise.async(coroutineScope) {
+      val deps = ensureInitialized()
+
+      // Step 1: Resolve service
+      val service = deps.serviceNameResolver.resolve(request.service ?: "")
+
+      // Step 2: Get current key version
+      var currentKeyVersion = deps.keyRotationManager.getCurrentKeyVersion()
+      if (currentKeyVersion == null) {
+        // Generate a new key if none exists
+        val newKeyId = System.currentTimeMillis().toString()
+        val success = deps.keyRotationManager.generateNewKey(newKeyId, requiresBiometry = false)
+        if (success) {
+          deps.keyRotationManager.rotateToNewKey(newKeyId)
+          currentKeyVersion = newKeyId
+        } else {
+          throw IllegalStateException("Failed to generate initial key for re-encryption")
+        }
+      }
+
+      // Step 3: Get all entries for the service
+      val entries = deps.storage.readAll(service)
+
+      var reEncryptedCount = 0
+      val errors = mutableListOf<ReEncryptError>()
+
+      // Step 4: Re-encrypt items that use old keys
+      for ((key, entry) in entries) {
+        try {
+          if (entry.alias != currentKeyVersion && entry.ciphertext != null && entry.iv != null) {
+            // Get access control from persisted
+            val accessControl = accessControlFromPersisted(entry.metadata.accessControl) ?: AccessControl.NONE
+            val securityLevel = securityLevelFromPersisted(entry.metadata.securityLevel) ?: SecurityLevel.SOFTWARE
+
+            // Decrypt with old key
+            val resolution = deps.cryptoManager.buildResolutionForPersisted(
+              accessControl = accessControl,
+              securityLevel = securityLevel,
+              authenticators = entry.authenticators,
+              requiresAuth = entry.requiresAuthentication,
+              invalidateOnEnrollment = entry.invalidateOnEnrollment,
+              useStrongBox = entry.useStrongBox
+            )
+
+            val plaintext = deps.cryptoManager.decrypt(
+              entry.alias,
+              entry.ciphertext,
+              entry.iv,
+              resolution,
+              null // No auth prompt for background operation
+            )
+
+            // Encrypt with new key
+            val newResolution = deps.cryptoManager.buildResolutionForPersisted(
+              accessControl = accessControl,
+              securityLevel = securityLevel,
+              authenticators = entry.authenticators,
+              requiresAuth = entry.requiresAuthentication,
+              invalidateOnEnrollment = entry.invalidateOnEnrollment,
+              useStrongBox = entry.useStrongBox
+            )
+
+            val encryption = deps.cryptoManager.encrypt(
+              currentKeyVersion,
+              plaintext,
+              newResolution,
+              null
+            )
+
+            // Update storage
+            val updatedEntry = entry.copy(
+              ciphertext = encryption.ciphertext,
+              iv = encryption.iv,
+              alias = currentKeyVersion
+            )
+            deps.storage.save(service, key, updatedEntry)
+
+            reEncryptedCount++
+          }
+        } catch (e: Exception) {
+          errors.add(ReEncryptError(key = key, error = e.message ?: "Unknown error"))
+        }
+      }
+
+      // Step 5: Return results
+      ReEncryptAllItemsResponse(
+        itemsReEncrypted = reEncryptedCount.toDouble(),
+        errors = errors.toTypedArray()
       )
     }
   }

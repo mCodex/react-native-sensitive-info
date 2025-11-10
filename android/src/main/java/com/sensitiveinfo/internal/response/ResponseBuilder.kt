@@ -33,9 +33,10 @@ interface ResponseBuilder {
    * @param key The storage key
    * @param value The decrypted value (null if metadata only)
    * @param metadata The storage metadata
+   * @param service The service name
    * @return SensitiveInfoItem with consistent structure
    */
-  fun buildItem(key: String, value: String?, metadata: StorageMetadata): SensitiveInfoItem
+  fun buildItem(key: String, value: String?, metadata: StorageMetadata, service: String): SensitiveInfoItem
 }
 
 /**
@@ -53,10 +54,12 @@ class StandardResponseBuilder : ResponseBuilder {
   override fun buildItem(
     key: String,
     value: String?,
-    metadata: StorageMetadata
+    metadata: StorageMetadata,
+    service: String
   ): SensitiveInfoItem {
     return SensitiveInfoItem(
       key = key,
+      service = service,
       value = value,
       metadata = metadata
     )

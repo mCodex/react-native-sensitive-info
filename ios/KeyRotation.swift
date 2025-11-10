@@ -403,10 +403,10 @@ class iOSKeyRotationManager {
     case .faceID:
       return "FaceID"
     @unknown default:
-      // Covers iOS 17.0+ LABiometryType.iris and future types
+      // Covers iOS 17.0+ LABiometryType.opticID and future types
       if #available(iOS 17.0, *) {
-        if type == LABiometryType.iris {
-          return "iris"
+        if type == LABiometryType.opticID {
+          return "opticID"
         }
       }
       return "unknown"

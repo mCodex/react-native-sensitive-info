@@ -14,7 +14,8 @@ internal data class PersistedMetadata(
   val securityLevel: String,
   val backend: String,
   val accessControl: String,
-  val timestamp: Double
+  val timestamp: Double,
+  val alias: String
 ) {
   fun toStorageMetadata(): StorageMetadata? {
     val level = securityLevelFromPersisted(securityLevel) ?: return null
@@ -24,7 +25,8 @@ internal data class PersistedMetadata(
       securityLevel = level,
       backend = backendValue,
       accessControl = control,
-      timestamp = timestamp
+      timestamp = timestamp,
+      alias = alias
     )
   }
 
@@ -34,20 +36,23 @@ internal data class PersistedMetadata(
         securityLevel = metadata.securityLevel.persistedName(),
         backend = metadata.backend.persistedName(),
         accessControl = metadata.accessControl.persistedName(),
-        timestamp = metadata.timestamp
+        timestamp = metadata.timestamp,
+        alias = metadata.alias
       )
     }
 
     fun fallback(
       securityLevel: SecurityLevel = SecurityLevel.SOFTWARE,
       backend: StorageBackend = StorageBackend.ANDROIDKEYSTORE,
-      accessControl: AccessControl = AccessControl.NONE
+      accessControl: AccessControl = AccessControl.NONE,
+      alias: String = ""
     ): PersistedMetadata {
       val metadata = StorageMetadata(
         securityLevel = securityLevel,
         backend = backend,
         accessControl = accessControl,
-        timestamp = System.currentTimeMillis() / 1000.0
+        timestamp = System.currentTimeMillis() / 1000.0,
+        alias = alias
       )
       return from(metadata)
     }
