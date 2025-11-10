@@ -204,6 +204,96 @@ describe('KeyRotationManager', () => {
       expect(manager.shouldRotate('biometric-change')).toBe(true);
       expect(manager.shouldRotate('credential-change')).toBe(false);
     });
+
+    it('should allow manual rotation when enabled', () => {
+      const manager = new KeyRotationManager({
+        enabled: true,
+        rotationIntervalMs: 90 * 24 * 60 * 60 * 1000,
+        rotateOnBiometricChange: false,
+        rotateOnCredentialChange: false,
+        manualRotationEnabled: true,
+        maxKeyVersions: 2,
+        backgroundReEncryption: true,
+      });
+
+      // Initialize with a key version
+      const keyVersion: KeyVersion = {
+        id: '2025-01-01T00:00:00Z',
+        timestamp: Date.now(),
+        isActive: true,
+      };
+      manager.initialize(keyVersion, [keyVersion], new Date().toISOString());
+
+      expect(manager.shouldRotate('manual')).toBe(true);
+    });
+
+    it('should reject manual rotation when disabled', () => {
+      const manager = new KeyRotationManager({
+        enabled: true,
+        rotationIntervalMs: 90 * 24 * 60 * 60 * 1000,
+        rotateOnBiometricChange: false,
+        rotateOnCredentialChange: false,
+        manualRotationEnabled: false,
+        maxKeyVersions: 2,
+        backgroundReEncryption: true,
+      });
+
+      // Initialize with a key version
+      const keyVersion: KeyVersion = {
+        id: '2025-01-01T00:00:00Z',
+        timestamp: Date.now(),
+        isActive: true,
+      };
+      manager.initialize(keyVersion, [keyVersion], new Date().toISOString());
+
+      expect(manager.shouldRotate('manual')).toBe(false);
+    });
+
+    it('should allow custom reasons as manual rotation when enabled', () => {
+      const manager = new KeyRotationManager({
+        enabled: true,
+        rotationIntervalMs: 90 * 24 * 60 * 60 * 1000,
+        rotateOnBiometricChange: false,
+        rotateOnCredentialChange: false,
+        manualRotationEnabled: true,
+        maxKeyVersions: 2,
+        backgroundReEncryption: true,
+      });
+
+      // Initialize with a key version
+      const keyVersion: KeyVersion = {
+        id: '2025-01-01T00:00:00Z',
+        timestamp: Date.now(),
+        isActive: true,
+      };
+      manager.initialize(keyVersion, [keyVersion], new Date().toISOString());
+
+      expect(manager.shouldRotate('User-initiated rotation from demo app')).toBe(true);
+      expect(manager.shouldRotate('custom-reason')).toBe(true);
+    });
+
+    it('should reject custom reasons when manual rotation disabled', () => {
+      const manager = new KeyRotationManager({
+        enabled: true,
+        rotationIntervalMs: 90 * 24 * 60 * 60 * 1000,
+        rotateOnBiometricChange: false,
+        rotateOnCredentialChange: false,
+        manualRotationEnabled: false,
+        maxKeyVersions: 2,
+        backgroundReEncryption: true,
+      });
+
+      // Initialize with a key version
+      const keyVersion: KeyVersion = {
+        id: '2025-01-01T00:00:00Z',
+        timestamp: Date.now(),
+        isActive: true,
+      };
+      manager.initialize(keyVersion, [keyVersion], new Date().toISOString());
+
+      expect(manager.shouldRotate('User-initiated rotation from demo app')).toBe(false);
+      expect(manager.shouldRotate('custom-reason')).toBe(false);
+    });
   });
 
   describe('rotation lifecycle', () => {

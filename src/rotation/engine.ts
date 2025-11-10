@@ -169,18 +169,19 @@ export class KeyRotationManager {
     reason:
       | 'time-based'
       | 'biometric-change'
-      | 'credential-change' = 'time-based'
+      | 'credential-change'
+      | 'manual'
+      | string = 'time-based'
   ): boolean {
     if (!this.state.policy.enabled) {
       return false;
     }
 
-    if (!this.state.currentKeyVersion || !this.state.lastRotationTimestamp) {
-      return false; // No previous rotation recorded
-    }
-
     switch (reason) {
       case 'time-based': {
+        if (!this.state.currentKeyVersion || !this.state.lastRotationTimestamp) {
+          return false; // No previous rotation recorded
+        }
         if (!this.state.policy.enabled) return false;
         const lastRotation = new Date(
           this.state.lastRotationTimestamp
@@ -195,8 +196,12 @@ export class KeyRotationManager {
       case 'credential-change':
         return this.state.policy.rotateOnCredentialChange;
 
+      case 'manual':
+        return this.state.policy.manualRotationEnabled;
+
       default:
-        return false;
+        // For custom reasons, treat as manual rotation if enabled
+        return this.state.policy.manualRotationEnabled;
     }
   }
 

@@ -62,6 +62,7 @@ class iOSKeyRotationManager {
   )
 
   private var currentBiometryType: LABiometryType = .none
+  private var biometricChangeCallback: ((RotationEvent) -> Void)?
 
   init(keychainService: String = Bundle.main.bundleIdentifier ?? "default") {
     self.keychainService = keychainService
@@ -160,6 +161,56 @@ class iOSKeyRotationManager {
   }
 
   /**
+   * Retrieves all available key versions.
+   * Returns an array of key version IDs that exist in the Keychain.
+   */
+  func getAvailableKeyVersions() -> [String] {
+    keychainQueue.sync {
+      let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: "\(keychainService).rotation.metadata",
+        kSecMatchLimit as String: kSecMatchLimitAll,
+        kSecReturnAttributes as String: kCFBooleanTrue!,
+      ]
+
+      var result: CFTypeRef?
+      let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+      guard status == errSecSuccess, let array = result as? [[String: Any]] else {
+        return []
+      }
+
+      return array.compactMap { dict in
+        dict[kSecAttrAccount as String] as? String
+      }
+    }
+  }
+
+  /**
+   * Checks if key rotation is currently in progress.
+   */
+  func isRotationInProgress() -> Bool {
+    let defaults = UserDefaults.standard
+    return defaults.bool(forKey: "keyRotationInProgress")
+  }
+
+  /**
+   * Sets the rotation in progress state.
+   */
+  func setRotationInProgress(_ inProgress: Bool) {
+    let defaults = UserDefaults.standard
+    defaults.set(inProgress, forKey: "keyRotationInProgress")
+    defaults.synchronize()
+  }
+
+  /**
+   * Sets the callback for biometric change notifications.
+   */
+  func setBiometricChangeCallback(_ callback: @escaping (RotationEvent) -> Void) {
+    biometricChangeCallback = callback
+  }
+
+  /**
    * Gets a key by version ID.
    * Returns nil if key doesn't exist or can't be accessed.
    */
@@ -240,9 +291,11 @@ class iOSKeyRotationManager {
           + "to \(change.currentBiometryType ?? "none")"
       )
 
+      // Notify JavaScript about the change
+      notifyBiometricChangeToJavaScript(result: change)
+
       // Invalidate old keys - they're no longer accessible with new biometry
       // New rotation will create new keys
-      notifyBiometricChangeToJavaScript()
     }
   }
 
@@ -419,10 +472,15 @@ class iOSKeyRotationManager {
    *
    * @note Implementation depends on how the native bridge is structured
    */
-  private func notifyBiometricChangeToJavaScript() {
-    // TODO: Implement notification to JS side
-    // This would typically use a RCTEventEmitter or similar
-    print("Biometric change notification sent to JavaScript")
+  private func notifyBiometricChangeToJavaScript(result: BiometricChangeDetectionResult) {
+    let event = RotationEvent(
+      type: "biometric:changed",
+      timestamp: Double(Date().timeIntervalSince1970 * 1000),
+      reason: "Biometric enrollment changed from \(result.previousBiometryType ?? "none") to \(result.currentBiometryType ?? "none")",
+      itemsReEncrypted: nil,
+      duration: nil
+    )
+    biometricChangeCallback?(event)
   }
 }
 
@@ -482,60 +540,6 @@ extension iOSKeyRotationManager {
       manager.rotateToNewKey(newKeyVersionId: keyVersionId)
 
       return ()
-    }
-  }
-
-  /**
-   * Retrieves the current key version.
-   */
-  func getCurrentKeyVersion() -> Promise<[String: Any]?> {
-    Promise.parallel(keychainQueue) {
-      let manager = getiOSKeyRotationManager()
-
-      guard let keyVersionId = manager.getCurrentKeyVersion() else {
-        return nil
-      }
-
-      return [
-        "id": keyVersionId,
-        "timestamp": Int64(Date().timeIntervalSince1970 * 1000),
-        "isActive": true,
-      ]
-    }
-  }
-
-  /**
-   * Gets all available key versions.
-   */
-  func getAvailableKeyVersions() -> Promise<[[String: Any]]> {
-    Promise.parallel(keychainQueue) {
-      // TODO: Implement retrieval of all available key versions from Keychain
-      return []
-    }
-  }
-
-  /**
-   * Gets the timestamp of the last rotation.
-   */
-  func getLastRotationTimestamp() -> Promise<String?> {
-    Promise.parallel(keychainQueue) {
-      let manager = getiOSKeyRotationManager()
-      // TODO: Retrieve from metadata
-      return nil
-    }
-  }
-
-  /**
-   * Re-encrypts all items with the current key.
-   * Called after biometric enrollment changes or forced rotation.
-   */
-  func reEncryptAllItems(request: [String: Any]) -> Promise<[String: Any]> {
-    Promise.parallel(keychainQueue) {
-      // TODO: Implement batch re-encryption
-      return [
-        "itemsReEncrypted": 0,
-        "errors": [],
-      ]
     }
   }
 }

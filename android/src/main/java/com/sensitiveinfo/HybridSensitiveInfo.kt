@@ -500,6 +500,9 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     return Promise.async(coroutineScope) {
       val deps = ensureInitialized()
 
+      // Set rotation in progress
+      deps.keyRotationManager.setRotationInProgress(true)
+
       // Emit started event
       rotationEventCallback?.invoke(RotationEvent(
         type = "rotation:started",
@@ -511,67 +514,82 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
 
       val startTime = System.currentTimeMillis()
 
-      // Generate a new key
-      val newKeyId = System.currentTimeMillis().toString()
-      val success = deps.keyRotationManager.generateNewKey(newKeyId, requiresBiometry = false)
-      if (!success) {
+      try {
+        // Generate a new key
+        val newKeyId = System.currentTimeMillis().toString()
+        val success = deps.keyRotationManager.generateNewKey(newKeyId, requiresBiometry = false)
+        if (!success) {
+          // Set rotation not in progress on failure
+          deps.keyRotationManager.setRotationInProgress(false)
+
+          rotationEventCallback?.invoke(RotationEvent(
+            type = "rotation:failed",
+            timestamp = System.currentTimeMillis().toDouble(),
+            reason = "Failed to generate new key",
+            itemsReEncrypted = null,
+            duration = null
+          ))
+          throw IllegalStateException("Failed to generate new key for rotation")
+        }
+
+        // Rotate to the new key
+        val rotateSuccess = deps.keyRotationManager.rotateToNewKey(newKeyId)
+        if (!rotateSuccess) {
+          // Set rotation not in progress on failure
+          deps.keyRotationManager.setRotationInProgress(false)
+
+          rotationEventCallback?.invoke(RotationEvent(
+            type = "rotation:failed",
+            timestamp = System.currentTimeMillis().toDouble(),
+            reason = "Failed to rotate to new key",
+            itemsReEncrypted = null,
+            duration = null
+          ))
+          throw IllegalStateException("Failed to rotate to new key")
+        }
+
+        // Perform re-encryption if enabled
+        val preferences = deps.context.getSharedPreferences(
+          "com.sensitiveinfo.keyrotation",
+          Context.MODE_PRIVATE
+        )
+        val backgroundReEncryption = preferences.getBoolean("background_re_encryption", true)
+        var itemsReEncrypted = 0.0
+        if (backgroundReEncryption) {
+          val result = reEncryptAllItemsImpl(deps, newKeyId)
+          itemsReEncrypted = result.itemsReEncrypted
+        }
+
+        // Update last rotation timestamp
+        preferences.edit().putLong("last_rotation_timestamp", System.currentTimeMillis()).apply()
+
+        val duration = System.currentTimeMillis() - startTime
+
+        // Set rotation not in progress
+        deps.keyRotationManager.setRotationInProgress(false)
+
+        // Emit completed event
         rotationEventCallback?.invoke(RotationEvent(
-          type = "rotation:failed",
+          type = "rotation:completed",
           timestamp = System.currentTimeMillis().toDouble(),
-          reason = "Failed to generate new key",
-          itemsReEncrypted = null,
-          duration = null
+          reason = request.reason ?: "Manual rotation",
+          itemsReEncrypted = itemsReEncrypted,
+          duration = duration.toDouble()
         ))
-        throw IllegalStateException("Failed to generate new key for rotation")
+
+        // Return result
+        RotationResult(
+          success = true,
+          newKeyVersion = KeyVersion(id = newKeyId),
+          itemsReEncrypted = itemsReEncrypted,
+          duration = duration.toDouble(),
+          reason = request.reason ?: "Manual rotation"
+        )
+      } catch (e: Exception) {
+        // Set rotation not in progress on any error
+        deps.keyRotationManager.setRotationInProgress(false)
+        throw e
       }
-
-      // Rotate to the new key
-      val rotateSuccess = deps.keyRotationManager.rotateToNewKey(newKeyId)
-      if (!rotateSuccess) {
-        rotationEventCallback?.invoke(RotationEvent(
-          type = "rotation:failed",
-          timestamp = System.currentTimeMillis().toDouble(),
-          reason = "Failed to rotate to new key",
-          itemsReEncrypted = null,
-          duration = null
-        ))
-        throw IllegalStateException("Failed to rotate to new key")
-      }
-
-      // Perform re-encryption if enabled
-      val preferences = deps.context.getSharedPreferences(
-        "com.sensitiveinfo.keyrotation",
-        Context.MODE_PRIVATE
-      )
-      val backgroundReEncryption = preferences.getBoolean("background_re_encryption", true)
-      var itemsReEncrypted = 0.0
-      if (backgroundReEncryption) {
-        val result = reEncryptAllItemsImpl(deps, newKeyId)
-        itemsReEncrypted = result.itemsReEncrypted
-      }
-
-      // Update last rotation timestamp
-      preferences.edit().putLong("last_rotation_timestamp", System.currentTimeMillis()).apply()
-
-      val duration = System.currentTimeMillis() - startTime
-
-      // Emit completed event
-      rotationEventCallback?.invoke(RotationEvent(
-        type = "rotation:completed",
-        timestamp = System.currentTimeMillis().toDouble(),
-        reason = request.reason ?: "Manual rotation",
-        itemsReEncrypted = itemsReEncrypted,
-        duration = duration.toDouble()
-      ))
-
-      // Return result
-      RotationResult(
-        success = true,
-        newKeyVersion = KeyVersion(id = newKeyId),
-        itemsReEncrypted = itemsReEncrypted,
-        duration = duration.toDouble(),
-        reason = request.reason ?: "Manual rotation"
-      )
     }
   }
 
@@ -585,9 +603,10 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       val currentKey = deps.keyRotationManager.getCurrentKeyVersion()
       val availableVersions = deps.keyRotationManager.getAvailableKeyVersions()
       val lastRotationTimestamp = deps.keyRotationManager.getLastRotationTimestamp()
+      val isRotating = deps.keyRotationManager.isRotationInProgress()
 
       RotationStatus(
-        isRotating = false, // TODO: Track rotation state
+        isRotating = isRotating,
         currentKeyVersion = currentKey?.let { KeyVersion(id = it) },
         availableKeyVersions = availableVersions.map { KeyVersion(id = it) }.toTypedArray(),
         lastRotationTimestamp = lastRotationTimestamp?.toDouble()
@@ -600,6 +619,8 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
    */
   override fun onRotationEvent(callback: (RotationEvent) -> Unit): () -> Unit {
     rotationEventCallback = callback
+    // Also set the biometric change callback to the same callback
+    dependencies?.keyRotationManager?.setBiometricChangeCallback(callback)
     return { rotationEventCallback = null }
   }
 

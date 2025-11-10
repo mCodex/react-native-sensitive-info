@@ -28,6 +28,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import androidx.biometric.BiometricManager
+import com.margelo.nitro.sensitiveinfo.RotationEvent
 import javax.crypto.KeyGenerator
 import java.security.KeyStore
 import java.util.Calendar
@@ -48,6 +49,7 @@ class AndroidKeyRotationManager(private val context: Context) {
 
   private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER)
   private val biometricManager: BiometricManager = BiometricManager.from(context)
+  private var biometricChangeCallback: ((RotationEvent) -> Unit)? = null
 
   init {
     keyStore.load(null)
@@ -391,14 +393,36 @@ class AndroidKeyRotationManager(private val context: Context) {
   }
 
   /**
-   * Updates the last rotation timestamp.
+   * Checks if key rotation is currently in progress.
    */
-  private fun setLastRotationTimestamp() {
+  fun isRotationInProgress(): Boolean {
+    return try {
+      val preferences = context.getSharedPreferences(
+        "com.sensitiveinfo.keyrotation",
+        Context.MODE_PRIVATE
+      )
+      preferences.getBoolean("rotation_in_progress", false)
+    } catch (exception: Exception) {
+      false
+    }
+  }
+
+  /**
+   * Sets the rotation in progress state.
+   */
+  fun setRotationInProgress(inProgress: Boolean) {
     val preferences = context.getSharedPreferences(
       "com.sensitiveinfo.keyrotation",
       Context.MODE_PRIVATE
     )
-    preferences.edit().putLong("last_rotation_timestamp", System.currentTimeMillis()).apply()
+    preferences.edit().putBoolean("rotation_in_progress", inProgress).apply()
+  }
+
+  /**
+   * Sets the callback for biometric change events.
+   */
+  fun setBiometricChangeCallback(callback: (RotationEvent) -> Unit) {
+    biometricChangeCallback = callback
   }
 
   // MARK: - Notifications
@@ -410,9 +434,14 @@ class AndroidKeyRotationManager(private val context: Context) {
    * @note Implementation depends on how the native bridge is structured
    */
   private fun notifyBiometricChangeToJavaScript() {
-    // TODO: Implement notification to JS side using appropriate bridge mechanism
-    // This could use RCTNativeModule event emitter or similar
-    android.util.Log.i("KeyRotation", "Biometric change notification sent to JavaScript")
+    val event = RotationEvent(
+      type = "biometric:changed",
+      timestamp = System.currentTimeMillis().toDouble(),
+      reason = "Biometric enrollment changed",
+      itemsReEncrypted = null,
+      duration = null
+    )
+    biometricChangeCallback?.invoke(event)
   }
 }
 

@@ -489,86 +489,102 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     Promise.parallel(workQueue) { [self] in
       let manager = getiOSKeyRotationManager()
 
+      // Set rotation in progress
+      manager.setRotationInProgress(true)
+
       // Emit started event
       rotationEventCallback?(RotationEvent(
         type: "rotation:started",
-        timestamp: Int64(Date().timeIntervalSince1970 * 1000),
-        reason: request.reason ?? "Manual rotation"
+        timestamp: Double(Date().timeIntervalSince1970 * 1000),
+        reason: request.reason ?? "Manual rotation",
+        itemsReEncrypted: nil,
+        duration: nil
       ))
 
       let startTime = Date()
 
-      // Generate a new key
-      let newKeyId = ISO8601DateFormatter().string(from: Date())
-      guard let _ = manager.generateNewKey(
-        keyVersionId: newKeyId,
-        requiresBiometry: true
-      ) else {
+      do {
+        // Generate a new key
+        let newKeyId = ISO8601DateFormatter().string(from: Date())
+        guard let _ = manager.generateNewKey(
+          keyVersionId: newKeyId,
+          requiresBiometry: true
+        ) else {
+          // Set rotation not in progress on failure
+          manager.setRotationInProgress(false)
+
+          rotationEventCallback?(RotationEvent(
+            type: "rotation:failed",
+            timestamp: Double(Date().timeIntervalSince1970 * 1000),
+            reason: "Failed to generate new key",
+            itemsReEncrypted: nil,
+            duration: nil
+          ))
+          throw RuntimeError.error(withMessage: "Failed to generate new key for rotation")
+        }
+
+        // Rotate to the new key
+        manager.rotateToNewKey(newKeyVersionId: newKeyId)
+
+        // Perform re-encryption if enabled
+        let defaults = UserDefaults.standard
+        let backgroundReEncryption = defaults.bool(forKey: "backgroundReEncryption")
+        var itemsReEncrypted = 0.0
+        if backgroundReEncryption {
+          let result = try reEncryptAllItemsImpl(service: defaultService, newKeyVersion: newKeyId)
+          itemsReEncrypted = result.itemsReEncrypted
+        }
+
+        // Update last rotation timestamp
+        defaults.set(Int64(Date().timeIntervalSince1970 * 1000), forKey: "lastRotationTimestamp")
+        defaults.synchronize()
+
+        let duration = Date().timeIntervalSince(startTime) * 1000
+
+        // Set rotation not in progress
+        manager.setRotationInProgress(false)
+
+        // Emit completed event
         rotationEventCallback?(RotationEvent(
-          type: "rotation:failed",
-          timestamp: Int64(Date().timeIntervalSince1970 * 1000),
-          reason: "Failed to generate new key"
+          type: "rotation:completed",
+          timestamp: Double(Date().timeIntervalSince1970 * 1000),
+          reason: request.reason ?? "Manual rotation",
+          itemsReEncrypted: itemsReEncrypted,
+          duration: duration
         ))
-        throw RuntimeError.error(withMessage: "Failed to generate new key for rotation")
+
+        // Return result
+        return RotationResult(
+          success: true,
+          newKeyVersion: KeyVersion(id: newKeyId),
+          itemsReEncrypted: itemsReEncrypted,
+          duration: duration,
+          reason: request.reason ?? "Manual rotation"
+        )
+      } catch {
+        // Set rotation not in progress on any error
+        manager.setRotationInProgress(false)
+        throw error
       }
-
-      // Rotate to the new key
-      manager.rotateToNewKey(newKeyVersionId: newKeyId)
-
-      // Perform re-encryption if enabled
-      let defaults = UserDefaults.standard
-      let backgroundReEncryption = defaults.bool(forKey: "backgroundReEncryption")
-      var itemsReEncrypted = 0.0
-      if backgroundReEncryption {
-        let result = try reEncryptAllItemsImpl(service: defaultService, newKeyVersion: newKeyId)
-        itemsReEncrypted = result.itemsReEncrypted
-      }
-
-      // Update last rotation timestamp
-      defaults.set(Int64(Date().timeIntervalSince1970 * 1000), forKey: "lastRotationTimestamp")
-      defaults.synchronize()
-
-      let duration = Date().timeIntervalSince(startTime) * 1000
-
-      // Emit completed event
-      rotationEventCallback?(RotationEvent(
-        type: "rotation:completed",
-        timestamp: Int64(Date().timeIntervalSince1970 * 1000),
-        reason: request.reason ?? "Manual rotation",
-        itemsReEncrypted: itemsReEncrypted,
-        duration: duration
-      ))
-
-      // Return result
-      return RotationResult(
-        success: true,
-        newKeyVersion: KeyVersion(id: newKeyId),
-        itemsReEncrypted: itemsReEncrypted,
-        duration: duration,
-        reason: request.reason ?? "Manual rotation"
-      )
     }
   }
 
-  /**
-   * Gets the current rotation status.
-   */
   func getRotationStatus() throws -> Promise<RotationStatus> {
     Promise.parallel(workQueue) { [self] in
       let manager = getiOSKeyRotationManager()
 
       let currentKey = manager.getCurrentKeyVersion()
-      // TODO: Get available versions
-      let availableVersions = [String]() // manager.getAvailableKeyVersions()
+      let availableVersions = manager.getAvailableKeyVersions()
+      let isRotating = manager.isRotationInProgress()
 
       let defaults = UserDefaults.standard
       let lastRotationTimestamp = defaults.object(forKey: "lastRotationTimestamp") as? Int64
 
       return RotationStatus(
-        isRotating: false, // TODO: Track rotation state
+        isRotating: isRotating,
         currentKeyVersion: currentKey != nil ? KeyVersion(id: currentKey!) : nil,
         availableKeyVersions: availableVersions.map { KeyVersion(id: $0) },
-        lastRotationTimestamp: lastRotationTimestamp
+        lastRotationTimestamp: lastRotationTimestamp != nil ? Double(lastRotationTimestamp!) : nil
       )
     }
   }
@@ -576,8 +592,10 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   /**
    * Subscribes to rotation events.
    */
-  func onRotationEvent(callback: (RotationEvent) -> Void) throws -> () -> Void {
+  func onRotationEvent(callback: @escaping (RotationEvent) -> Void) throws -> () -> Void {
     rotationEventCallback = callback
+    // Also set the biometric change callback to the same callback
+    getiOSKeyRotationManager().setBiometricChangeCallback(callback)
     return { [weak self] in self?.rotationEventCallback = nil }
   }
 
@@ -618,17 +636,19 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
             // Decrypt with old key
             let oldKeyData = try self.retrieveEncryptionKey(alias: metadata.alias)
             let decryptedData = try decryptData(item.encryptedValue, withKey: oldKeyData)
-            let plaintext = String(data: decryptedData, encoding: .utf8) ?? ""
+
+            // Resolve access control for the new key
+            let resolvedAccessControl = try self.resolveAccessControl(preferred: metadata.accessControl)
 
             // Encrypt with new key
-            let newKeyData = try self.createEncryptionKey(alias: currentKeyVersion, accessControl: nil) // TODO: proper access control
+            let newKeyData = try self.createEncryptionKey(alias: currentKeyVersion, accessControl: resolvedAccessControl.accessControlRef)
             let newEncryptedData = try encryptData(decryptedData, withKey: newKeyData)
 
             // Update metadata
             let newMetadata = StorageMetadata(
-              securityLevel: metadata.securityLevel,
+              securityLevel: resolvedAccessControl.securityLevel,
               backend: metadata.backend,
-              accessControl: metadata.accessControl,
+              accessControl: resolvedAccessControl.accessControl,
               timestamp: Date().timeIntervalSince1970,
               alias: currentKeyVersion
             )
@@ -650,7 +670,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
       // Step 5: Return results
       return ReEncryptAllItemsResponse(
-        itemsReEncrypted: reEncryptedCount,
+        itemsReEncrypted: Double(reEncryptedCount),
         errors: errors
       )
     }
@@ -671,14 +691,14 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     try performSimulatorBiometricPromptIfNeeded(prompt: prompt)
 #endif
     var result: CFTypeRef?
-    var status = performCopyMatching(query as CFDictionary, result: &result)
+    var status = SecItemCopyMatching(query as CFDictionary, &result)
 
     if status == errSecInteractionNotAllowed || status == errSecAuthFailed {
       var authQuery = query
       authQuery[kSecUseOperationPrompt as String] = prompt?.title ?? "Authenticate to access sensitive data"
       let context = makeLAContext(prompt: prompt)
       authQuery[kSecUseAuthenticationContext as String] = context
-      status = performCopyMatching(authQuery as CFDictionary, result: &result)
+      status = SecItemCopyMatching(authQuery as CFDictionary, &result)
     }
 
     switch status {
@@ -803,15 +823,13 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       throw RuntimeError.error(withMessage: "Failed to generate encryption key")
     }
 
-    // Store the key in Keychain
+    // Store the key in Keychain as generic password
     var keyAttributes: [String: Any] = [
-      kSecClass as String: kSecClassKey,
-      kSecAttrApplicationLabel as String: alias,
-      kSecAttrKeyType as String: kSecAttrKeyTypeAES,
-      kSecAttrKeySizeInBits as String: 256,
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: "\(defaultService).encryptionKeys",
+      kSecAttrAccount as String: alias,
       kSecValueData as String: keyData,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-      kSecReturnData as String: true
     ]
 
     if let accessControl = accessControl {
@@ -828,8 +846,9 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   private func retrieveEncryptionKey(alias: String) throws -> Data {
     let query: [String: Any] = [
-      kSecClass as String: kSecClassKey,
-      kSecAttrApplicationLabel as String: alias,
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: "\(defaultService).encryptionKeys",
+      kSecAttrAccount as String: alias,
       kSecReturnData as String: true
     ]
 
@@ -953,6 +972,9 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     let defaults = UserDefaults.standard
     guard defaults.bool(forKey: "keyRotationEnabled") else { return }
 
+    // Check for biometric changes
+    getiOSKeyRotationManager().handleBiometricEnrollmentChange()
+
     let lastRotation = defaults.object(forKey: "lastRotationTimestamp") as? Int64 ?? 0
     let intervalMs = defaults.double(forKey: "rotationIntervalMs")
     let now = Int64(Date().timeIntervalSince1970 * 1000)
@@ -990,15 +1012,18 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
           let oldKeyData = try retrieveEncryptionKey(alias: metadata.alias)
           let decryptedData = try decryptData(item.encryptedValue, withKey: oldKeyData)
 
+          // Resolve access control for the new key
+          let resolvedAccessControl = try resolveAccessControl(preferred: metadata.accessControl)
+
           // Encrypt with new key
-          let newKeyData = try createEncryptionKey(alias: newKeyVersion, accessControl: nil)
+          let newKeyData = try createEncryptionKey(alias: newKeyVersion, accessControl: resolvedAccessControl.accessControlRef)
           let newEncryptedData = try encryptData(decryptedData, withKey: newKeyData)
 
           // Update metadata
           let newMetadata = StorageMetadata(
-            securityLevel: metadata.securityLevel,
+            securityLevel: resolvedAccessControl.securityLevel,
             backend: metadata.backend,
-            accessControl: metadata.accessControl,
+            accessControl: resolvedAccessControl.accessControl,
             timestamp: Date().timeIntervalSince1970,
             alias: newKeyVersion
           )

@@ -51,7 +51,16 @@ const SecretsList: React.FC<SecretsListProps> = ({
               <Text style={styles.secretValueMuted}>Locked value</Text>
             )}
             <Text style={styles.secretMeta}>
+              Security · {item.metadata.securityLevel}
+            </Text>
+            <Text style={styles.secretMeta}>
+              Backend · {item.metadata.backend}
+            </Text>
+            <Text style={styles.secretMeta}>
               Access · {item.metadata.accessControl}
+            </Text>
+            <Text style={styles.secretMeta}>
+              Key Alias · {item.metadata.alias}
             </Text>
             <Text style={styles.secretMeta}>
               Stored ·{' '}
