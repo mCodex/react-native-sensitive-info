@@ -3,6 +3,7 @@ package com.sensitiveinfo
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.sensitiveinfo.*
 import com.sensitiveinfo.internal.auth.AndroidAuthenticationManager
@@ -188,7 +189,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       deps.storage.save(service, request.key, entry)
 
       // Step 8: Build response using response builder
-      deps.responseBuilder.buildMutationResult(metadata)
+      return@async deps.responseBuilder.buildMutationResult(metadata)
     }
   }
 
@@ -221,14 +222,14 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       // Step 3: Read entry from storage
       val entry = deps.storage.read(service, request.key)
       if (entry == null) {
-        return@async null
+        // Item not found - throw exception that JS can catch and handle as null
+        throw Exception("Item not found")
       }
 
       // Step 4: Decode metadata
       val metadata = try {
         entry.metadata.toStorageMetadata()
       } catch (e: Exception) {
-        RuntimeError.log("Failed to decode metadata for key: $e")
         null
       }
 
@@ -256,7 +257,6 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           null
         }
       } catch (e: Exception) {
-        RuntimeError.log("Failed to decrypt value for key: $e")
         null
       }
 
@@ -266,15 +266,17 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         backend = StorageBackend.ANDROIDKEYSTORE,
         accessControl = AccessControl.NONE,
         timestamp = System.currentTimeMillis() / 1000.0,
-        alias = entry.alias
+        alias = entry.alias.takeIf { it.isNotEmpty() } ?: "unknown"
       )
 
-      deps.responseBuilder.buildItem(
+      val item = deps.responseBuilder.buildItem(
         key = request.key,
         value = value,
         metadata = finalMetadata,
         service = service
       )
+      
+      return@async item
     }
   }
 
@@ -413,7 +415,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           }
 
           // Step 5: Build item using response builder
-          deps.responseBuilder.buildItem(
+          return@mapNotNull deps.responseBuilder.buildItem(
             key = key,
             value = value,
             metadata = metadata,
@@ -822,7 +824,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           // Result is Promise, but we don't wait for it in background
         } catch (e: Exception) {
           // Log error but don't crash
-          android.util.Log.e("KeyRotation", "Automatic rotation failed: ${e.message}")
+          // Rotation failed silently
         }
       }
     }

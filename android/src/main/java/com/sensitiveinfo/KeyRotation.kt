@@ -134,7 +134,7 @@ class AndroidKeyRotationManager(private val context: Context) {
 
       true
     } catch (exception: Exception) {
-      android.util.Log.e("KeyRotation", "Failed to generate key: ${exception.message}")
+      // Key generation failed
       false
     }
   }
@@ -157,7 +157,7 @@ class AndroidKeyRotationManager(private val context: Context) {
       setCurrentKeyVersion(newKeyVersionId)
       true
     } catch (exception: Exception) {
-      android.util.Log.e("KeyRotation", "Failed to rotate key: ${exception.message}")
+      // Key rotation failed
       false
     }
   }
@@ -280,7 +280,7 @@ class AndroidKeyRotationManager(private val context: Context) {
   fun handleInvalidatedKey(keyVersionId: String) {
     try {
       // Log the invalidation for audit purposes
-      android.util.Log.w("KeyRotation", "Key invalidated: $keyVersionId")
+      // Key invalidated
 
       // Attempt to delete the invalidated key
       deleteKey(keyVersionId)
@@ -288,7 +288,7 @@ class AndroidKeyRotationManager(private val context: Context) {
       // Notify JavaScript side about biometric change
       notifyBiometricChangeToJavaScript()
     } catch (exception: Exception) {
-      android.util.Log.e("KeyRotation", "Error handling invalidated key: ${exception.message}")
+      // Error handling invalidated key
     }
   }
 
@@ -361,7 +361,7 @@ class AndroidKeyRotationManager(private val context: Context) {
         apply()
       }
     } catch (exception: Exception) {
-      android.util.Log.e("KeyRotation", "Failed to store key metadata: ${exception.message}")
+      // Failed to store key metadata
     }
   }
 

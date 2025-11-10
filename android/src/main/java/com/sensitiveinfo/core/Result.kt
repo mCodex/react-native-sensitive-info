@@ -8,8 +8,8 @@ package com.sensitiveinfo.core
  * Usage:
  * ```kotlin
  * when (val result = storage.setItem("key", "value")) {
- *   is Result.Success -> println("Stored: ${result.value}")
- *   is Result.Failure -> println("Error: ${result.error.message}")
+ *   is Result.Success -> {}
+ *   is Result.Failure -> {}
  * }
  * ```
  */

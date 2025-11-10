@@ -44,7 +44,7 @@ internal class BiometricAuthenticator {
     return withContext(Dispatchers.Main) {
       if (cipher == null && allowLegacyDeviceCredential && !canUseBiometric()) {
         DeviceCredentialPromptFragment.authenticate(activity, effectivePrompt)
-        cipher
+        null
       } else {
         try {
           authenticateWithBiometricPrompt(
