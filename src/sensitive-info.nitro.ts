@@ -152,6 +152,48 @@ export interface ReEncryptAllItemsResponse {
   readonly errors: ReEncryptError[];
 }
 
+export interface InitializeKeyRotationRequest {
+  readonly enabled?: boolean;
+  readonly rotationIntervalMs?: number;
+  readonly rotateOnBiometricChange?: boolean;
+  readonly rotateOnCredentialChange?: boolean;
+  readonly manualRotationEnabled?: boolean;
+  readonly maxKeyVersions?: number;
+  readonly backgroundReEncryption?: boolean;
+}
+
+export interface RotateKeysRequest {
+  readonly reason?: string;
+  readonly metadata?: Record<string, string>;
+}
+
+export interface KeyVersion {
+  readonly id: string;
+}
+
+export interface RotationResult {
+  readonly success: boolean;
+  readonly newKeyVersion: KeyVersion;
+  readonly itemsReEncrypted: number;
+  readonly duration: number;
+  readonly reason: string;
+}
+
+export interface RotationStatus {
+  readonly isRotating: boolean;
+  readonly currentKeyVersion: KeyVersion | null;
+  readonly availableKeyVersions: KeyVersion[];
+  readonly lastRotationTimestamp: number | null;
+}
+
+export interface RotationEvent {
+  readonly type: string;
+  readonly timestamp: number;
+  readonly reason?: string;
+  readonly itemsReEncrypted?: number;
+  readonly duration?: number;
+}
+
 export interface SensitiveInfo
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   setItem(request: SensitiveInfoSetRequest): Promise<MutationResult>;
@@ -163,6 +205,10 @@ export interface SensitiveInfo
   ): Promise<SensitiveInfoItem[]>;
   clearService(request?: SensitiveInfoOptions): Promise<void>;
   getSupportedSecurityLevels(): Promise<SecurityAvailability>;
+  initializeKeyRotation(request: InitializeKeyRotationRequest): Promise<void>;
+  rotateKeys(request: RotateKeysRequest): Promise<RotationResult>;
+  getRotationStatus(): Promise<RotationStatus>;
+  onRotationEvent(callback: (event: RotationEvent) => void): () => void;
   reEncryptAllItems(
     request: ReEncryptAllItemsRequest
   ): Promise<ReEncryptAllItemsResponse>;

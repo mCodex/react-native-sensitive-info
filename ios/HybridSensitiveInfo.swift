@@ -122,6 +122,9 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     )
   }
 
+  private var rotationEventCallback: ((RotationEvent) -> Void)?
+  private var rotationTimer: Timer?
+
   private struct ResolvedAccessControl {
     let accessControl: AccessControl
     let securityLevel: SecurityLevel
@@ -454,10 +457,135 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /**
+   * Initializes key rotation system.
+   */
+  func initializeKeyRotation(request: InitializeKeyRotationRequest) throws -> Promise<Void> {
+    Promise.parallel(workQueue) { [self] in
+      let defaults = UserDefaults.standard
+      defaults.set(request.enabled ?? true, forKey: "keyRotationEnabled")
+      defaults.set(request.rotationIntervalMs ?? (30 * 24 * 60 * 60 * 1000), forKey: "rotationIntervalMs")
+      defaults.set(request.rotateOnBiometricChange ?? true, forKey: "rotateOnBiometricChange")
+      defaults.set(request.rotateOnCredentialChange ?? true, forKey: "rotateOnCredentialChange")
+      defaults.set(request.manualRotationEnabled ?? true, forKey: "manualRotationEnabled")
+      defaults.set(request.maxKeyVersions ?? 2, forKey: "maxKeyVersions")
+      defaults.set(request.backgroundReEncryption ?? true, forKey: "backgroundReEncryption")
+      defaults.synchronize()
+
+      // Start periodic rotation check if enabled
+      if request.enabled ?? true {
+        startPeriodicRotationCheck()
+      } else {
+        stopPeriodicRotationCheck()
+      }
+
+      return ()
+    }
+  }
+
+  /**
+   * Rotates to a new key version.
+   */
+  func rotateKeys(request: RotateKeysRequest) throws -> Promise<RotationResult> {
+    Promise.parallel(workQueue) { [self] in
+      let manager = getiOSKeyRotationManager()
+
+      // Emit started event
+      rotationEventCallback?(RotationEvent(
+        type: "rotation:started",
+        timestamp: Int64(Date().timeIntervalSince1970 * 1000),
+        reason: request.reason ?? "Manual rotation"
+      ))
+
+      let startTime = Date()
+
+      // Generate a new key
+      let newKeyId = ISO8601DateFormatter().string(from: Date())
+      guard let _ = manager.generateNewKey(
+        keyVersionId: newKeyId,
+        requiresBiometry: true
+      ) else {
+        rotationEventCallback?(RotationEvent(
+          type: "rotation:failed",
+          timestamp: Int64(Date().timeIntervalSince1970 * 1000),
+          reason: "Failed to generate new key"
+        ))
+        throw RuntimeError.error(withMessage: "Failed to generate new key for rotation")
+      }
+
+      // Rotate to the new key
+      manager.rotateToNewKey(newKeyVersionId: newKeyId)
+
+      // Perform re-encryption if enabled
+      let defaults = UserDefaults.standard
+      let backgroundReEncryption = defaults.bool(forKey: "backgroundReEncryption")
+      var itemsReEncrypted = 0.0
+      if backgroundReEncryption {
+        let result = try reEncryptAllItemsImpl(service: defaultService, newKeyVersion: newKeyId)
+        itemsReEncrypted = result.itemsReEncrypted
+      }
+
+      // Update last rotation timestamp
+      defaults.set(Int64(Date().timeIntervalSince1970 * 1000), forKey: "lastRotationTimestamp")
+      defaults.synchronize()
+
+      let duration = Date().timeIntervalSince(startTime) * 1000
+
+      // Emit completed event
+      rotationEventCallback?(RotationEvent(
+        type: "rotation:completed",
+        timestamp: Int64(Date().timeIntervalSince1970 * 1000),
+        reason: request.reason ?? "Manual rotation",
+        itemsReEncrypted: itemsReEncrypted,
+        duration: duration
+      ))
+
+      // Return result
+      return RotationResult(
+        success: true,
+        newKeyVersion: KeyVersion(id: newKeyId),
+        itemsReEncrypted: itemsReEncrypted,
+        duration: duration,
+        reason: request.reason ?? "Manual rotation"
+      )
+    }
+  }
+
+  /**
+   * Gets the current rotation status.
+   */
+  func getRotationStatus() throws -> Promise<RotationStatus> {
+    Promise.parallel(workQueue) { [self] in
+      let manager = getiOSKeyRotationManager()
+
+      let currentKey = manager.getCurrentKeyVersion()
+      // TODO: Get available versions
+      let availableVersions = [String]() // manager.getAvailableKeyVersions()
+
+      let defaults = UserDefaults.standard
+      let lastRotationTimestamp = defaults.object(forKey: "lastRotationTimestamp") as? Int64
+
+      return RotationStatus(
+        isRotating: false, // TODO: Track rotation state
+        currentKeyVersion: currentKey != nil ? KeyVersion(id: currentKey!) : nil,
+        availableKeyVersions: availableVersions.map { KeyVersion(id: $0) },
+        lastRotationTimestamp: lastRotationTimestamp
+      )
+    }
+  }
+
+  /**
+   * Subscribes to rotation events.
+   */
+  func onRotationEvent(callback: (RotationEvent) -> Void) throws -> () -> Void {
+    rotationEventCallback = callback
+    return { [weak self] in self?.rotationEventCallback = nil }
+  }
+
+  /**
    * Re-encrypts all items with the current key.
    * Migrates items encrypted with old keys to the current key version.
    */
-  func reEncryptAllItems(request: ReEncryptAllItemsRequest) -> Promise<ReEncryptAllItemsResponse> {
+  func reEncryptAllItems(request: ReEncryptAllItemsRequest) throws -> Promise<ReEncryptAllItemsResponse> {
     Promise.parallel(workQueue) { [self] in
       let manager = getiOSKeyRotationManager()
 
@@ -801,4 +929,98 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 #endif
+
+  // MARK: - Key Rotation Helpers
+
+  private func startPeriodicRotationCheck() {
+    stopPeriodicRotationCheck()
+
+    let defaults = UserDefaults.standard
+    let intervalMs = defaults.double(forKey: "rotationIntervalMs")
+    let intervalSeconds = intervalMs / 1000.0
+
+    rotationTimer = Timer.scheduledTimer(withTimeInterval: intervalSeconds, repeats: true) { [weak self] _ in
+      self?.checkAndPerformRotation()
+    }
+  }
+
+  private func stopPeriodicRotationCheck() {
+    rotationTimer?.invalidate()
+    rotationTimer = nil
+  }
+
+  private func checkAndPerformRotation() {
+    let defaults = UserDefaults.standard
+    guard defaults.bool(forKey: "keyRotationEnabled") else { return }
+
+    let lastRotation = defaults.object(forKey: "lastRotationTimestamp") as? Int64 ?? 0
+    let intervalMs = defaults.double(forKey: "rotationIntervalMs")
+    let now = Int64(Date().timeIntervalSince1970 * 1000)
+
+    if Double(now - lastRotation) >= intervalMs {
+      // Perform automatic rotation
+      DispatchQueue.global(qos: .background).async { [weak self] in
+        do {
+          _ = try self?.rotateKeys(request: RotateKeysRequest(reason: "Automatic time-based rotation", metadata: nil))
+        } catch {
+          print("Automatic rotation failed: \(error.localizedDescription)")
+        }
+      }
+    }
+  }
+
+  private func reEncryptAllItemsImpl(service: String, newKeyVersion: String) throws -> ReEncryptAllItemsResponse {
+    let items = try getAllItemsRaw(service: service)
+
+    var reEncryptedCount = 0
+    var errors: [ReEncryptError] = []
+
+    for item in items {
+      do {
+        let metadata = try metadataHandler.decodeMetadata(from: item.metadata) ?? StorageMetadata(
+          securityLevel: .software,
+          backend: .keychain,
+          accessControl: .none,
+          timestamp: Date().timeIntervalSince1970,
+          alias: ""
+        )
+
+        if metadata.alias != newKeyVersion {
+          // Decrypt with old key
+          let oldKeyData = try retrieveEncryptionKey(alias: metadata.alias)
+          let decryptedData = try decryptData(item.encryptedValue, withKey: oldKeyData)
+
+          // Encrypt with new key
+          let newKeyData = try createEncryptionKey(alias: newKeyVersion, accessControl: nil)
+          let newEncryptedData = try encryptData(decryptedData, withKey: newKeyData)
+
+          // Update metadata
+          let newMetadata = StorageMetadata(
+            securityLevel: metadata.securityLevel,
+            backend: metadata.backend,
+            accessControl: metadata.accessControl,
+            timestamp: Date().timeIntervalSince1970,
+            alias: newKeyVersion
+          )
+
+          // Update Keychain item
+          try updateItem(
+            key: item.key,
+            service: service,
+            encryptedValue: newEncryptedData,
+            metadata: newMetadata
+          )
+
+          reEncryptedCount += 1
+        }
+      } catch {
+        errors.append(ReEncryptError(key: item.key, error: error.localizedDescription))
+      }
+    }
+
+    return ReEncryptAllItemsResponse(
+      itemsReEncrypted: Double(reEncryptedCount),
+      errors: errors
+    )
+  }
 }

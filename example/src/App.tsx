@@ -219,7 +219,7 @@ const App: React.FC = () => {
           errorMessage={error?.message}
         />
 
-        <KeyRotationPanel />
+        <KeyRotationPanel service={trimmedService} />
 
         <SecretsList
           items={items}

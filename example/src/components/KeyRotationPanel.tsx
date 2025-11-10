@@ -87,7 +87,11 @@ const styles = StyleSheet.create({
   },
 });
 
-const KeyRotationPanel: React.FC = () => {
+interface KeyRotationPanelProps {
+  service: string;
+}
+
+const KeyRotationPanel: React.FC<KeyRotationPanelProps> = ({ service }) => {
   const [statusMessage, setStatusMessage] = useState(
     'Key rotation not initialized'
   );
@@ -191,6 +195,7 @@ const KeyRotationPanel: React.FC = () => {
       setStatusMessage('🔐 Starting re-encryption of all items...');
 
       const result = await reEncryptAllItems({
+        service,
         batchSize: 50,
       });
 

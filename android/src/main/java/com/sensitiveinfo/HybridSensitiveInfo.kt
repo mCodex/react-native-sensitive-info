@@ -23,6 +23,7 @@ import com.sensitiveinfo.AndroidKeyRotationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlin.jvm.Volatile
 
 /**
@@ -39,7 +40,7 @@ import kotlin.jvm.Volatile
  *
  * @since 6.0.0
  */
-class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
+final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   private data class Dependencies(
     val context: Context,
     val storage: SecureStorage,
@@ -56,6 +57,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   private var dependencies: Dependencies? = null
   private val initializationLock = Any()
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+  private var rotationEventCallback: ((RotationEvent) -> Unit)? = null
+  private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+  private var rotationCheckRunnable: Runnable? = null
 
   private fun initialize(ctx: Context): Dependencies {
     dependencies?.let { return it }
@@ -119,22 +123,35 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       // Step 4: Generate alias for Keystore entry
       val alias = AliasGenerator.aliasFor(service, request.key)
 
-      // Step 5: Encrypt plaintext
-      val plaintext = request.value.toByteArray(Charsets.UTF_8)
-      val encryption = deps.cryptoManager.encrypt(alias, plaintext, resolved, request.authenticationPrompt)
+      // Step 5: Get or generate current key version
+      val currentKey = deps.keyRotationManager.getCurrentKeyVersion()
+      val keyVersion = currentKey ?: run {
+        val newKeyId = System.currentTimeMillis().toString()
+        val success = deps.keyRotationManager.generateNewKey(newKeyId, requiresBiometry = false)
+        if (success) {
+          deps.keyRotationManager.rotateToNewKey(newKeyId)
+          newKeyId
+        } else {
+          throw IllegalStateException("Failed to generate initial key")
+        }
+      }
 
-      // Step 6: Create metadata
+      // Step 6: Encrypt plaintext
+      val plaintext = request.value.toByteArray(Charsets.UTF_8)
+      val encryption = deps.cryptoManager.encrypt(keyVersion, plaintext, resolved, request.authenticationPrompt)
+
+      // Step 7: Create metadata
       val metadata = StorageMetadata(
         securityLevel = resolved.securityLevel,
         backend = StorageBackend.ANDROIDKEYSTORE,
         accessControl = resolved.accessControl,
         timestamp = System.currentTimeMillis() / 1000.0,
-        alias = alias
+        alias = keyVersion
       )
 
-      // Step 7: Persist entry
+      // Step 8: Persist entry
       val entry = PersistedEntry(
-        alias = alias,
+        alias = keyVersion,
         ciphertext = encryption.ciphertext,
         iv = encryption.iv,
         metadata = PersistedMetadata.from(metadata),
@@ -443,6 +460,150 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   }
 
   /**
+   * Initializes key rotation system.
+   */
+  override fun initializeKeyRotation(request: InitializeKeyRotationRequest): Promise<Unit> {
+    return Promise.async(coroutineScope) {
+      val deps = ensureInitialized()
+
+      // Store rotation settings in SharedPreferences
+      val preferences = deps.context.getSharedPreferences(
+        "com.sensitiveinfo.keyrotation",
+        Context.MODE_PRIVATE
+      )
+      preferences.edit().apply {
+        putBoolean("enabled", request.enabled ?: true)
+        putLong("rotation_interval_ms", (request.rotationIntervalMs ?: (30.0 * 24 * 60 * 60 * 1000)).toLong())
+        putBoolean("rotate_on_biometric_change", request.rotateOnBiometricChange ?: true)
+        putBoolean("rotate_on_credential_change", request.rotateOnCredentialChange ?: true)
+        putBoolean("manual_rotation_enabled", request.manualRotationEnabled ?: true)
+        putInt("max_key_versions", (request.maxKeyVersions ?: 2.0).toInt())
+        putBoolean("background_re_encryption", request.backgroundReEncryption ?: true)
+        apply()
+      }
+
+      // Start periodic rotation check if enabled
+      if (request.enabled == true) {
+        startPeriodicRotationCheck()
+      } else {
+        stopPeriodicRotationCheck()
+      }
+
+      Unit
+    }
+  }
+
+  /**
+   * Rotates to a new key version.
+   */
+  override fun rotateKeys(request: RotateKeysRequest): Promise<RotationResult> {
+    return Promise.async(coroutineScope) {
+      val deps = ensureInitialized()
+
+      // Emit started event
+      rotationEventCallback?.invoke(RotationEvent(
+        type = "rotation:started",
+        timestamp = System.currentTimeMillis().toDouble(),
+        reason = request.reason ?: "Manual rotation",
+        itemsReEncrypted = null,
+        duration = null
+      ))
+
+      val startTime = System.currentTimeMillis()
+
+      // Generate a new key
+      val newKeyId = System.currentTimeMillis().toString()
+      val success = deps.keyRotationManager.generateNewKey(newKeyId, requiresBiometry = false)
+      if (!success) {
+        rotationEventCallback?.invoke(RotationEvent(
+          type = "rotation:failed",
+          timestamp = System.currentTimeMillis().toDouble(),
+          reason = "Failed to generate new key",
+          itemsReEncrypted = null,
+          duration = null
+        ))
+        throw IllegalStateException("Failed to generate new key for rotation")
+      }
+
+      // Rotate to the new key
+      val rotateSuccess = deps.keyRotationManager.rotateToNewKey(newKeyId)
+      if (!rotateSuccess) {
+        rotationEventCallback?.invoke(RotationEvent(
+          type = "rotation:failed",
+          timestamp = System.currentTimeMillis().toDouble(),
+          reason = "Failed to rotate to new key",
+          itemsReEncrypted = null,
+          duration = null
+        ))
+        throw IllegalStateException("Failed to rotate to new key")
+      }
+
+      // Perform re-encryption if enabled
+      val preferences = deps.context.getSharedPreferences(
+        "com.sensitiveinfo.keyrotation",
+        Context.MODE_PRIVATE
+      )
+      val backgroundReEncryption = preferences.getBoolean("background_re_encryption", true)
+      var itemsReEncrypted = 0.0
+      if (backgroundReEncryption) {
+        val result = reEncryptAllItemsImpl(deps, newKeyId)
+        itemsReEncrypted = result.itemsReEncrypted
+      }
+
+      // Update last rotation timestamp
+      preferences.edit().putLong("last_rotation_timestamp", System.currentTimeMillis()).apply()
+
+      val duration = System.currentTimeMillis() - startTime
+
+      // Emit completed event
+      rotationEventCallback?.invoke(RotationEvent(
+        type = "rotation:completed",
+        timestamp = System.currentTimeMillis().toDouble(),
+        reason = request.reason ?: "Manual rotation",
+        itemsReEncrypted = itemsReEncrypted,
+        duration = duration.toDouble()
+      ))
+
+      // Return result
+      RotationResult(
+        success = true,
+        newKeyVersion = KeyVersion(id = newKeyId),
+        itemsReEncrypted = itemsReEncrypted,
+        duration = duration.toDouble(),
+        reason = request.reason ?: "Manual rotation"
+      )
+    }
+  }
+
+  /**
+   * Gets the current rotation status.
+   */
+  override fun getRotationStatus(): Promise<RotationStatus> {
+    return Promise.async(coroutineScope) {
+      val deps = ensureInitialized()
+
+      val currentKey = deps.keyRotationManager.getCurrentKeyVersion()
+      val availableVersions = deps.keyRotationManager.getAvailableKeyVersions()
+      val lastRotationTimestamp = deps.keyRotationManager.getLastRotationTimestamp()
+
+      RotationStatus(
+        isRotating = false, // TODO: Track rotation state
+        currentKeyVersion = currentKey?.let { KeyVersion(id = it) },
+        availableKeyVersions = availableVersions.map { KeyVersion(id = it) }.toTypedArray(),
+        lastRotationTimestamp = lastRotationTimestamp?.toDouble()
+      )
+    }
+  }
+
+  /**
+   * Subscribes to rotation events.
+   */
+  override fun onRotationEvent(callback: (RotationEvent) -> Unit): () -> Unit {
+    rotationEventCallback = callback
+    return { rotationEventCallback = null }
+  }
+
+  /**
    * Re-encrypts all items with the current key.
    * Migrates items encrypted with old keys to the current key version.
    */
@@ -520,7 +681,13 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
             val updatedEntry = entry.copy(
               ciphertext = encryption.ciphertext,
               iv = encryption.iv,
-              alias = currentKeyVersion
+              metadata = PersistedMetadata(
+                securityLevel = entry.metadata.securityLevel,
+                backend = entry.metadata.backend,
+                accessControl = entry.metadata.accessControl,
+                timestamp = entry.metadata.timestamp,
+                alias = currentKeyVersion
+              )
             )
             deps.storage.save(service, key, updatedEntry)
 
@@ -544,5 +711,135 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
 
     val reactContext = ReactContextHolder.getReactApplicationContext()
     return initialize(reactContext)
+  }
+
+  private fun startPeriodicRotationCheck() {
+    stopPeriodicRotationCheck() // Stop any existing
+
+    val preferences = dependencies?.context?.getSharedPreferences(
+      "com.sensitiveinfo.keyrotation",
+      Context.MODE_PRIVATE
+    ) ?: return
+
+    val intervalMs = preferences.getLong("rotation_interval_ms", 30L * 24 * 60 * 60 * 1000)
+
+    rotationCheckRunnable = Runnable {
+      checkAndPerformRotation()
+      // Schedule next check
+      mainHandler.postDelayed(rotationCheckRunnable!!, intervalMs)
+    }
+
+    mainHandler.postDelayed(rotationCheckRunnable!!, intervalMs)
+  }
+
+  private fun stopPeriodicRotationCheck() {
+    rotationCheckRunnable?.let { mainHandler.removeCallbacks(it) }
+    rotationCheckRunnable = null
+  }
+
+  private fun checkAndPerformRotation() {
+    val deps = dependencies ?: return
+
+    val preferences = deps.context.getSharedPreferences(
+      "com.sensitiveinfo.keyrotation",
+      Context.MODE_PRIVATE
+    )
+
+    if (!preferences.getBoolean("enabled", true)) return
+
+    val lastRotation = preferences.getLong("last_rotation_timestamp", 0)
+    val intervalMs = preferences.getLong("rotation_interval_ms", 30L * 24 * 60 * 60 * 1000)
+    val now = System.currentTimeMillis()
+
+    if (now - lastRotation >= intervalMs) {
+      // Perform automatic rotation
+      coroutineScope.launch {
+        try {
+          val result = rotateKeys(RotateKeysRequest(reason = "Automatic time-based rotation", metadata = null))
+          // Result is Promise, but we don't wait for it in background
+        } catch (e: Exception) {
+          // Log error but don't crash
+          android.util.Log.e("KeyRotation", "Automatic rotation failed: ${e.message}")
+        }
+      }
+    }
+  }
+
+  private suspend fun reEncryptAllItemsImpl(deps: Dependencies, newKeyVersion: String): ReEncryptAllItemsResponse {
+    // Similar to reEncryptAllItems but synchronous
+    val service = "" // Default service for now
+
+    val entries = deps.storage.readAll(service)
+
+    var reEncryptedCount = 0
+    val errors = mutableListOf<ReEncryptError>()
+
+    for ((key, entry) in entries) {
+      try {
+        if (entry.metadata.alias != newKeyVersion && entry.ciphertext != null && entry.iv != null) {
+          // Get access control from persisted
+          val accessControl = accessControlFromPersisted(entry.metadata.accessControl) ?: AccessControl.NONE
+          val securityLevel = securityLevelFromPersisted(entry.metadata.securityLevel) ?: SecurityLevel.SOFTWARE
+
+          // Decrypt with old key
+          val resolution = deps.cryptoManager.buildResolutionForPersisted(
+            accessControl = accessControl,
+            securityLevel = securityLevel,
+            authenticators = entry.authenticators,
+            requiresAuth = entry.requiresAuthentication,
+            invalidateOnEnrollment = entry.invalidateOnEnrollment,
+            useStrongBox = entry.useStrongBox
+          )
+
+          val plaintext = deps.cryptoManager.decrypt(
+            entry.metadata.alias,
+            entry.ciphertext,
+            entry.iv,
+            resolution,
+            null // No auth prompt for background operation
+          )
+
+          // Encrypt with new key
+          val newResolution = deps.cryptoManager.buildResolutionForPersisted(
+            accessControl = accessControl,
+            securityLevel = securityLevel,
+            authenticators = entry.authenticators,
+            requiresAuth = entry.requiresAuthentication,
+            invalidateOnEnrollment = entry.invalidateOnEnrollment,
+            useStrongBox = entry.useStrongBox
+          )
+
+          val encryption = deps.cryptoManager.encrypt(
+            newKeyVersion,
+            plaintext,
+            newResolution,
+            null
+          )
+
+          // Update storage
+          val updatedEntry = entry.copy(
+            ciphertext = encryption.ciphertext,
+            iv = encryption.iv,
+            metadata = PersistedMetadata(
+              securityLevel = entry.metadata.securityLevel,
+              backend = entry.metadata.backend,
+              accessControl = entry.metadata.accessControl,
+              timestamp = entry.metadata.timestamp,
+              alias = newKeyVersion
+            )
+          )
+          deps.storage.save(service, key, updatedEntry)
+
+          reEncryptedCount++
+        }
+      } catch (e: Exception) {
+        errors.add(ReEncryptError(key = key, error = e.message ?: "Unknown error"))
+      }
+    }
+
+    return ReEncryptAllItemsResponse(
+      itemsReEncrypted = reEncryptedCount.toDouble(),
+      errors = errors.toTypedArray()
+    )
   }
 }

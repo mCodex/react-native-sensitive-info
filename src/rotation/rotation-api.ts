@@ -62,32 +62,42 @@ export async function initializeKeyRotation(
   rotationManager = getRotationManager(policy);
 
   try {
-    // Load current key state from native
+    // Initialize the native rotation system first
     const native = getNativeInstance() as any;
 
-    if (!native.getCurrentKeyVersion) {
+    if (!native.initializeKeyRotation) {
       console.warn('Native rotation API not available. Key rotation disabled.');
       return;
     }
 
-    const currentKeyVersion = await native.getCurrentKeyVersion();
-    const availableKeyVersions = await native.getAvailableKeyVersions();
-    const lastRotationTimestamp = await native.getLastRotationTimestamp();
+    // Initialize native rotation system with policy settings
+    const initRequest = {
+      enabled: policy?.enabled ?? true,
+      rotationIntervalMs: policy?.rotationIntervalMs,
+      rotateOnBiometricChange: policy?.rotateOnBiometricChange,
+      rotateOnCredentialChange: policy?.rotateOnCredentialChange,
+      manualRotationEnabled: policy?.manualRotationEnabled,
+      maxKeyVersions: policy?.maxKeyVersions,
+      backgroundReEncryption: policy?.backgroundReEncryption,
+    };
 
-    if (currentKeyVersion) {
+    await native.initializeKeyRotation(initRequest);
+
+    // Now get the current rotation status
+    const rotationStatus = await native.getRotationStatus();
+
+    if (rotationStatus.currentKeyVersion) {
       rotationManager.initialize(
-        currentKeyVersion,
-        availableKeyVersions || [],
-        lastRotationTimestamp
+        rotationStatus.currentKeyVersion,
+        rotationStatus.availableKeyVersions || [],
+        rotationStatus.lastRotationTimestamp
       );
     }
   } catch (error) {
     console.error('Failed to initialize key rotation:', error);
     throw error;
   }
-}
-
-/**
+} /**
  * Initiates a key rotation operation.
  *
  * If rotation is enabled in the policy and the conditions are met,
@@ -119,10 +129,6 @@ export async function rotateKeys(options?: RotationOptions): Promise<void> {
   try {
     const native = getNativeInstance() as any;
 
-    if (!native.generateNewKeyVersion) {
-      throw new Error('Native rotation API not available');
-    }
-
     // Determine rotation trigger
     const shouldForce = options?.force ?? false;
     const reason = (options?.reason as any) || 'manual';
@@ -131,20 +137,21 @@ export async function rotateKeys(options?: RotationOptions): Promise<void> {
       throw new Error(`Rotation not needed for reason "${reason}"`);
     }
 
-    // Generate new key
-    const newKeyVersion = await native.generateNewKeyVersion();
-
     // Notify of rotation start
     const currentKeyVersion = rotationManager.getCurrentKeyVersion();
     if (currentKeyVersion) {
-      await rotationManager.startRotation(newKeyVersion, reason, options);
+      await rotationManager.startRotation(currentKeyVersion, reason, options);
     }
 
     // Perform actual rotation via native
-    await native.rotateKey(newKeyVersion);
+    const result = await native.rotateKeys({ reason });
 
     // Mark rotation complete
-    await rotationManager.completeRotation(newKeyVersion, 0, 0);
+    await rotationManager.completeRotation(
+      result.newKeyVersion,
+      result.itemsReEncrypted,
+      result.duration
+    );
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
 
@@ -178,20 +185,20 @@ export async function getKeyVersion(): Promise<string | null> {
   return keyVersion?.id ?? null;
 }
 
-/**
- * Gets detailed rotation status including all active key versions.
- *
- * @returns Current rotation status snapshot
- *
- * @example
- * ```ts
- * const status = await getRotationStatus()
- * console.log('Is rotating:', status.isRotating)
- * console.log('Active keys:', status.availableKeyVersions.length)
- * ```
- */
 export async function getRotationStatus(): Promise<RotationStatus> {
-  if (!rotationManager) {
+  const native = getNativeInstance() as any;
+
+  try {
+    const status = await native.getRotationStatus();
+    return {
+      isRotating: status.isRotating,
+      currentKeyVersion: status.currentKeyVersion,
+      availableKeyVersions: status.availableKeyVersions,
+      lastRotationTimestamp: status.lastRotationTimestamp,
+      itemsPendingReEncryption: 0, // TODO: calculate from native
+    };
+  } catch (error) {
+    console.error('Failed to get rotation status:', error);
     return {
       isRotating: false,
       currentKeyVersion: null,
@@ -200,8 +207,6 @@ export async function getRotationStatus(): Promise<RotationStatus> {
       itemsPendingReEncryption: 0,
     };
   }
-
-  return rotationManager.getRotationStatus();
 }
 
 /**
@@ -374,37 +379,24 @@ export async function getMigrationPreview(options?: MigrationOptions): Promise<{
   return previewMigration(options);
 }
 
-/**
- * Re-encrypts all items with the current key version.
- * Useful after biometric enrollment changes or forced rotation.
- *
- * This is typically called automatically, but can be invoked manually
- * if needed for compliance or security reasons.
- *
- * @param options Re-encryption options
- * @throws Error if re-encryption fails
- */
 export async function reEncryptAllItems(
   options?: MigrationOptions & { batchSize?: number }
 ): Promise<{ itemsReEncrypted: number; errors?: string[] }> {
-  if (!rotationManager) {
-    throw new Error(
-      'Key rotation not initialized. Call initializeKeyRotation first.'
-    );
-  }
-
   const native = getNativeInstance() as any;
 
-  if (!native.reEncryptAllItems) {
-    throw new Error('Re-encryption not supported on this platform');
-  }
+  try {
+    const result = await native.reEncryptAllItems({
+      service: options?.service,
+    });
 
-  return native.reEncryptAllItems({
-    service: options?.service,
-    iosSynchronizable: options?.iosSynchronizable,
-    keychainGroup: options?.keychainGroup,
-    batchSize: options?.batchSize || 50,
-  });
+    return {
+      itemsReEncrypted: result.itemsReEncrypted,
+      errors: result.errors?.map((error: any) => error.error) || [],
+    };
+  } catch (error) {
+    console.error('Re-encryption failed:', error);
+    throw error;
+  }
 }
 
 /**
