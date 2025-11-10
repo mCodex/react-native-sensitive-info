@@ -118,17 +118,21 @@ internal class CryptoManager(
         val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
         (authenticated ?: cipher)
       } else {
-        authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
-        try {
-          cipher.init(Cipher.DECRYPT_MODE, key, spec)
-        } catch (invalidated: KeyPermanentlyInvalidatedException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
-        } catch (unrecoverable: UnrecoverableKeyException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
+        val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
+        if (authenticated != null) {
+          authenticated
+        } else {
+          try {
+            cipher.init(Cipher.DECRYPT_MODE, key, spec)
+          } catch (invalidated: KeyPermanentlyInvalidatedException) {
+            deleteKey(alias)
+            throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
+          } catch (unrecoverable: UnrecoverableKeyException) {
+            deleteKey(alias)
+            throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
+          }
+          cipher
         }
-        cipher
       }
     } catch (error: CancellationException) {
       throw error

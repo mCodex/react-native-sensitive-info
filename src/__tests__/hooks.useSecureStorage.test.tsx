@@ -44,6 +44,7 @@ type MetadataOverrides = {
     | 'devicePasscode'
     | 'none';
   timestamp?: number;
+  alias?: string;
 };
 
 function buildMetadata(overrides: MetadataOverrides = {}) {
@@ -52,6 +53,7 @@ function buildMetadata(overrides: MetadataOverrides = {}) {
     backend: overrides.backend ?? 'keychain',
     accessControl: overrides.accessControl ?? 'secureEnclaveBiometry',
     timestamp: overrides.timestamp ?? Date.now(),
+    alias: overrides.alias ?? 'test-alias',
   };
 }
 

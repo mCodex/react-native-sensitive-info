@@ -20,6 +20,36 @@ export type {
 } from './sensitive-info.nitro';
 
 /**
+ * Error classification and handling for type-safe error management.
+ */
+export {
+  SensitiveInfoError,
+  ErrorCode,
+  isSensitiveInfoError,
+  isNotFoundError,
+  isAuthenticationCanceledError,
+  isBiometryError,
+  isSecurityError,
+  getErrorMessage,
+  classifyError,
+} from './internal/error-classifier';
+
+/**
+ * Branded types for enhanced type safety.
+ */
+export {
+  createStorageKey,
+  createServiceName,
+  createStorageValue,
+  isStorageKey,
+  isServiceName,
+  isStorageValue,
+  type StorageKey,
+  type ServiceName,
+  type StorageValue,
+} from './internal/branded-types';
+
+/**
  * Core storage helpers that mirror the native Nitro surface.
  */
 export {
@@ -43,6 +73,8 @@ export {
   HookError,
   createHookFailureResult,
   createHookSuccessResult,
+  useAsyncOperation,
+  useAsyncMutation,
   useHasSecret,
   useSecret,
   useSecretItem,
@@ -64,4 +96,43 @@ export {
   type UseSecurityAvailabilityResult,
   type AsyncState,
   type VoidAsyncState,
+  type AsyncOperationState,
+  type AsyncOperationResult,
 } from './hooks';
+
+/**
+ * Key rotation for automatic key management with zero-downtime support.
+ */
+export {
+  initializeKeyRotation,
+  rotateKeys,
+  getKeyVersion,
+  getRotationStatus,
+  setRotationPolicy,
+  getRotationPolicy,
+  migrateToNewKey,
+  validateMigration,
+  getMigrationPreview,
+  reEncryptAllItems,
+  on,
+  off,
+  handleBiometricChange,
+  handleCredentialChange,
+  type RotationPolicy,
+  type RotationStatus,
+  type RotationOptions,
+  type RotationEvent,
+  type RotationStartedEvent,
+  type RotationCompletedEvent,
+  type RotationFailedEvent,
+  type KeyVersion,
+  type EncryptedEnvelope,
+  type MigrationResult,
+  type MigrationOptions,
+} from './rotation/rotation-api';
+
+export type {
+  BiometricChangeEvent,
+  RotationEventCallback,
+  RotationAuditEntry,
+} from './rotation/types';

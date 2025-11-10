@@ -10,6 +10,28 @@ export {
   createHookFailureResult,
 } from './types';
 export {
+  normalizeStorageOptions,
+  validateAndNormalizeStorageOptions,
+  validateStorageKey,
+  extractCoreStorageOptions,
+  areStorageOptionsEqual,
+  type ValidationResult,
+} from './option-validator';
+export {
+  createOperationError,
+  createFetchError,
+  createMutationError,
+  isAuthenticationCanceled,
+  shouldUpdateErrorState,
+  type HookOperation,
+} from './error-factory';
+export {
+  useAsyncOperation,
+  useAsyncMutation,
+  type AsyncOperationState,
+  type AsyncOperationResult,
+} from './use-async-operation';
+export {
   useSecretItem,
   type UseSecretItemOptions,
   type UseSecretItemResult,

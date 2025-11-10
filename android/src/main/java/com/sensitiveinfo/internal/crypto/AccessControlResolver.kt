@@ -113,6 +113,16 @@ internal class AccessControlResolver(
         useStrongBox = false,
         invalidateOnEnrollment = false
       )
+      else -> {
+        // For any unknown cases (e.g., iOS-only SECUREENCLAVE from cross-platform API),
+        // map to the strongest available Android security: StrongBox biometry if available,
+        // otherwise fall back through the preference list
+        val biometryResolution = tryResolve(AccessControl.BIOMETRYCURRENTSET, availability)
+        if (biometryResolution != null) {
+          return biometryResolution
+        }
+        tryResolve(AccessControl.BIOMETRYANY, availability)
+      }
     }
   }
 

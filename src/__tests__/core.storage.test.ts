@@ -3,7 +3,6 @@ import type {
   SensitiveInfoEnumerateRequest,
   SensitiveInfoGetRequest,
   SensitiveInfoHasRequest,
-  SensitiveInfoOptions,
   SensitiveInfoSetRequest,
 } from '../sensitive-info.nitro';
 
@@ -18,16 +17,6 @@ describe('core/storage', () => {
     getSupportedSecurityLevels: jest.fn(),
   };
 
-  const normalizeOptions = jest
-    .fn<
-      ReturnType<typeof import('../internal/options').normalizeOptions>,
-      [SensitiveInfoOptions | undefined]
-    >()
-    .mockReturnValue({
-      service: 'normalized',
-      accessControl: 'secureEnclaveBiometry',
-    });
-
   const isNotFoundError = jest.fn();
 
   const loadModule = async () => {
@@ -38,12 +27,9 @@ describe('core/storage', () => {
       default: jest.fn(() => nativeHandle),
     }));
 
-    jest.doMock('../internal/options', () => ({
-      normalizeOptions,
-    }));
-
-    jest.doMock('../internal/errors', () => ({
+    jest.doMock('../internal/error-classifier', () => ({
       isNotFoundError,
+      classifyError: jest.fn((error) => error),
     }));
 
     return import('../core/storage');
@@ -56,11 +42,6 @@ describe('core/storage', () => {
         value.mockReset();
       }
     });
-    normalizeOptions.mockClear();
-    normalizeOptions.mockReturnValue({
-      service: 'normalized',
-      accessControl: 'secureEnclaveBiometry',
-    });
     isNotFoundError.mockReset();
   });
 
@@ -71,11 +52,10 @@ describe('core/storage', () => {
 
     await setItem('token', 'secret', { service: 'service' });
 
-    expect(normalizeOptions).toHaveBeenCalledWith({ service: 'service' });
     expect(nativeHandle.setItem).toHaveBeenCalledWith({
       key: 'token',
       value: 'secret',
-      service: 'normalized',
+      service: 'service',
       accessControl: 'secureEnclaveBiometry',
     } as SensitiveInfoSetRequest);
   });
@@ -90,7 +70,6 @@ describe('core/storage', () => {
     const result = await getItem('token', { service: 'service' });
 
     expect(result).toBeNull();
-    expect(normalizeOptions).toHaveBeenCalled();
   });
 
   it('rethrows unexpected errors during getItem', async () => {
@@ -113,7 +92,7 @@ describe('core/storage', () => {
     expect(nativeHandle.getItem).toHaveBeenCalledWith({
       key: 'token',
       includeValue: true,
-      service: 'normalized',
+      service: 'default',
       accessControl: 'secureEnclaveBiometry',
     } as SensitiveInfoGetRequest);
   });
@@ -128,7 +107,7 @@ describe('core/storage', () => {
     expect(result).toBe(true);
     expect(nativeHandle.hasItem).toHaveBeenCalledWith({
       key: 'token',
-      service: 'normalized',
+      service: 'service',
       accessControl: 'secureEnclaveBiometry',
     } as SensitiveInfoHasRequest);
   });
@@ -143,7 +122,7 @@ describe('core/storage', () => {
     expect(result).toBe(true);
     expect(nativeHandle.deleteItem).toHaveBeenCalledWith({
       key: 'token',
-      service: 'normalized',
+      service: 'service',
       accessControl: 'secureEnclaveBiometry',
     } as SensitiveInfoDeleteRequest);
   });
@@ -157,7 +136,7 @@ describe('core/storage', () => {
 
     expect(nativeHandle.getAllItems).toHaveBeenCalledWith({
       includeValues: true,
-      service: 'normalized',
+      service: 'default',
       accessControl: 'secureEnclaveBiometry',
     } as SensitiveInfoEnumerateRequest);
   });
@@ -170,7 +149,7 @@ describe('core/storage', () => {
     await clearService({ service: 'auth' });
 
     expect(nativeHandle.clearService).toHaveBeenCalledWith({
-      service: 'normalized',
+      service: 'auth',
       accessControl: 'secureEnclaveBiometry',
     });
   });

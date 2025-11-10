@@ -1,0 +1,45 @@
+# Development files
+src/
+.nitro/
+.github/
+docs/
+coverage/
+example/
+
+# Configuration files
+eslint.config.mts
+babel.config.js
+jest.config.js
+tsconfig.json
+tsconfig.test.json
+tsconfig.tsbuildinfo
+.prettierrc.js
+.watchmanconfig
+nitro.json
+release.config.cjs
+post-script.js
+
+# Git and environment
+.git/
+.gitignore
+.DS_Store
+.yarn/
+.yarnrc.yml
+
+# Node modules and lock files
+node_modules/
+yarn.lock
+
+# Build artifacts (except lib/)
+.nitro/
+nitrogen/
+
+# Documentation
+CODE_OF_CONDUCT.md
+SECURITY.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx

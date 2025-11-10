@@ -6,62 +6,62 @@
  *
  * @module create-nitro-module
  */
-const path = require('node:path')
-const { writeFile, readFile } = require('node:fs/promises')
-const { readdir } = require('node:fs/promises')
-const { stat } = require('node:fs/promises')
+const path = require('node:path');
+const { writeFile, readFile } = require('node:fs/promises');
+const { readdir } = require('node:fs/promises');
+const { stat } = require('node:fs/promises');
 
 const updateViewManagerFiles = async (file) => {
   const viewManagerFile = path.join(
     process.cwd(),
     'nitrogen/generated/android/kotlin/com/margelo/nitro/sensitiveinfo/views',
     file
-  )
+  );
 
-  const viewManagerStr = await readFile(viewManagerFile, { encoding: 'utf8' })
+  const viewManagerStr = await readFile(viewManagerFile, { encoding: 'utf8' });
   await writeFile(
     viewManagerFile,
     viewManagerStr.replace(
       /com\.margelo\.nitro\.sensitiveinfo\.\*/g,
       'com.sensitiveinfo.*'
     )
-  )
-}
+  );
+};
 
 const androidWorkaround = async () => {
   const androidOnLoadFile = path.join(
     process.cwd(),
     'nitrogen/generated/android',
     'SensitiveInfoOnLoad.cpp'
-  )
+  );
 
   const viewManagerDirPath = path.join(
     process.cwd(),
     'nitrogen/generated/android/kotlin/com/margelo/nitro/sensitiveinfo/views'
-  )
+  );
 
   // Check if views directory exists (only for modules with views)
   try {
-    await stat(viewManagerDirPath)
+    await stat(viewManagerDirPath);
     // Views directory exists, process view manager files
-    const viewManagerDir = await readdir(viewManagerDirPath)
+    const viewManagerDir = await readdir(viewManagerDirPath);
     const viewManagerFiles = viewManagerDir.filter((file) =>
       file.endsWith('Manager.kt')
-    )
+    );
     const res = await Promise.allSettled(
       viewManagerFiles.map(updateViewManagerFiles)
-    )
+    );
 
     if (res.some((r) => r.status === 'rejected')) {
-      throw new Error(`Error updating view manager files: ${res}`)
+      throw new Error(`Error updating view manager files: ${res}`);
     }
   } catch (error) {
     // Views directory doesn't exist, skip view manager processing
-    console.log('No views directory found, skipping view manager updates')
+    console.log('No views directory found, skipping view manager updates');
   }
 
-  const str = await readFile(androidOnLoadFile, { encoding: 'utf8' })
-  await writeFile(androidOnLoadFile, str.replace(/margelo\/nitro\//g, ''))
-}
+  const str = await readFile(androidOnLoadFile, { encoding: 'utf8' });
+  await writeFile(androidOnLoadFile, str.replace(/margelo\/nitro\//g, ''));
+};
 
-androidWorkaround()
+androidWorkaround();

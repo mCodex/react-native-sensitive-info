@@ -1,7 +1,7 @@
 import {
   getErrorMessage,
   isAuthenticationCanceledError as internalIsAuthenticationCanceledError,
-} from '../internal/errors';
+} from '../internal/error-classifier';
 import { HookError } from './types';
 
 /**

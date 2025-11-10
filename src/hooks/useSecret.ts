@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import type {
   SensitiveInfoItem,
-  SensitiveInfoOptions,
 } from '../sensitive-info.nitro';
 import { deleteItem, setItem } from '../core/storage';
 import {
@@ -11,7 +10,10 @@ import {
   type AsyncState,
 } from './types';
 import { useSecretItem, type UseSecretItemOptions } from './useSecretItem';
-import createHookError from './error-utils';
+import {
+  createMutationError,
+  extractCoreStorageOptions,
+} from './error-factory';
 
 /**
  * Configuration object for {@link useSecret}.
@@ -32,23 +34,43 @@ export interface UseSecretResult extends AsyncState<SensitiveInfoItem> {
 }
 
 /**
- * Removes hook-specific flags before delegating to the storage module.
- */
-const normalizeMutationOptions = (
-  options?: UseSecretOptions
-): SensitiveInfoOptions | undefined => {
-  if (!options) return undefined;
-  const { skip: _skip, includeValue: _includeValue, ...core } = options;
-  return core as SensitiveInfoOptions;
-};
-
-/**
  * Maintains a secure item while exposing imperative helpers to mutate or refresh it.
+ *
+ * Combines the read state of {@link useSecretItem} with mutation operations
+ * (save/delete) in a single hook, eliminating the need to pair hooks.
+ *
+ * @param key - The storage key to track
+ * @param options - Configuration for reading the item (service, access control, etc.)
+ *
+ * @returns Complete state and mutation helpers for the secret
  *
  * @example
  * ```tsx
+ * // Simple secret management
  * const secret = useSecret('refreshToken', { service: 'com.example.session' })
+ *
+ * if (secret.error) {
+ *   return <ErrorDialog error={secret.error} />
+ * }
+ *
+ * if (secret.isLoading) {
+ *   return <Spinner />
+ * }
+ *
+ * return (
+ *   <button
+ *     onClick={() => secret.saveSecret('new-token-value')}
+ *     disabled={secret.isPending}
+ *   >
+ *     Update Secret
+ *   </button>
+ * )
  * ```
+ *
+ * @see {@link useSecretItem} for read-only access
+ * @see {@link useSecureStorage} for managing multiple items
+ *
+ * @since 6.0.0
  */
 export function useSecret(
   key: string,
@@ -62,15 +84,15 @@ export function useSecret(
   const saveSecret = useCallback(
     async (value: string) => {
       try {
-        await setItem(key, value, normalizeMutationOptions(options));
+        const coreOptions = extractCoreStorageOptions(options ?? {}, [
+          'skip',
+          'includeValue',
+        ]);
+        await setItem(key, value, coreOptions);
         await refetch();
         return createHookSuccessResult();
       } catch (errorLike) {
-        const hookError = createHookError(
-          'useSecret.saveSecret',
-          errorLike,
-          'Check the access control requirements for this key.'
-        );
+        const hookError = createMutationError('useSecret.save', errorLike);
         return createHookFailureResult(hookError);
       }
     },
@@ -79,15 +101,15 @@ export function useSecret(
 
   const deleteSecret = useCallback(async () => {
     try {
-      await deleteItem(key, normalizeMutationOptions(options));
+      const coreOptions = extractCoreStorageOptions(options ?? {}, [
+        'skip',
+        'includeValue',
+      ]);
+      await deleteItem(key, coreOptions);
       await refetch();
       return createHookSuccessResult();
     } catch (errorLike) {
-      const hookError = createHookError(
-        'useSecret.deleteSecret',
-        errorLike,
-        'Ensure the user completed biometric prompts or that the key is spelled correctly.'
-      );
+      const hookError = createMutationError('useSecret.delete', errorLike);
       return createHookFailureResult(hookError);
     }
   }, [key, options, refetch]);

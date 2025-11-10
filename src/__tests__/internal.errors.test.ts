@@ -1,4 +1,4 @@
-import { getErrorMessage, isNotFoundError } from '../internal/errors';
+import { getErrorMessage, isNotFoundError } from '../internal/error-classifier';
 
 describe('internal/errors', () => {
   describe('isNotFoundError', () => {
