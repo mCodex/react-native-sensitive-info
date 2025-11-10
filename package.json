@@ -13,6 +13,7 @@
     "release": "semantic-release",
     "build": "npm run typecheck && bob build",
     "codegen": "nitrogen --logLevel=\"debug\" && npm run build && node post-script.js",
+    "lint": "eslint . --fix",
     "test": "jest",
     "test:coverage": "jest --coverage"
   },
@@ -102,39 +103,17 @@
     "react-native": "*",
     "react-native-nitro-modules": "*"
   },
-  "eslintConfig": {
-    "root": true,
-    "extends": [
-      "@react-native",
-      "prettier"
-    ],
-    "plugins": [
-      "prettier"
-    ],
-    "rules": {
-      "prettier/prettier": [
-        "warn",
-        {
-          "quoteProps": "consistent",
-          "singleQuote": true,
-          "tabWidth": 2,
-          "trailingComma": "es5",
-          "useTabs": false
-        }
-      ]
-    }
-  },
   "eslintIgnore": [
     "node_modules/",
     "lib/"
   ],
   "prettier": {
-    "quoteProps": "consistent",
     "singleQuote": true,
+    "semi": true,
     "tabWidth": 2,
     "trailingComma": "es5",
     "useTabs": false,
-    "semi": false
+    "quoteProps": "consistent"
   },
   "react-native-builder-bob": {
     "source": "src",
