@@ -65,3 +65,40 @@ export {
   type AsyncState,
   type VoidAsyncState,
 } from './hooks';
+
+/**
+ * Key rotation for automatic key management with zero-downtime support.
+ */
+export {
+  initializeKeyRotation,
+  rotateKeys,
+  getKeyVersion,
+  getRotationStatus,
+  setRotationPolicy,
+  getRotationPolicy,
+  migrateToNewKey,
+  validateMigration,
+  getMigrationPreview,
+  reEncryptAllItems,
+  on,
+  off,
+  handleBiometricChange,
+  handleCredentialChange,
+  type RotationPolicy,
+  type RotationStatus,
+  type RotationOptions,
+  type RotationEvent,
+  type RotationStartedEvent,
+  type RotationCompletedEvent,
+  type RotationFailedEvent,
+  type KeyVersion,
+  type EncryptedEnvelope,
+  type MigrationResult,
+  type MigrationOptions,
+} from './rotation/rotation-api';
+
+export type {
+  BiometricChangeEvent,
+  RotationEventCallback,
+  RotationAuditEntry,
+} from './rotation/types';

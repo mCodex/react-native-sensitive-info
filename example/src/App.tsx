@@ -10,6 +10,7 @@ import Header from './components/Header';
 import SecretForm from './components/SecretForm';
 import ModeSelector from './components/ModeSelector';
 import ActionsPanel from './components/ActionsPanel';
+import KeyRotationPanel from './components/KeyRotationPanel';
 import SecretsList from './components/SecretsList';
 import {
   ACCESS_MODES,
@@ -217,6 +218,8 @@ const App: React.FC = () => {
           status={status}
           errorMessage={error?.message}
         />
+
+        <KeyRotationPanel />
 
         <SecretsList
           items={items}
