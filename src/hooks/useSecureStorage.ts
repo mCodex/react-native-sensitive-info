@@ -214,6 +214,7 @@ export function useSecureStorage(
         await setItem(key, value, coreOptions);
         if (mountedRef.current) {
           await fetchItems();
+          setError(null);
         }
         return createHookSuccessResult();
       } catch (errorLike) {
@@ -221,6 +222,9 @@ export function useSecureStorage(
           'useSecureStorage.save',
           errorLike
         );
+        if (mountedRef.current && !isAuthenticationCanceled(errorLike)) {
+          setError(hookError);
+        }
         return createHookFailureResult(hookError);
       }
     },
@@ -237,6 +241,7 @@ export function useSecureStorage(
         await deleteItem(key, coreOptions);
         if (mountedRef.current) {
           setItems((prev) => prev.filter((item) => item.key !== key));
+          setError(null);
         }
         return createHookSuccessResult();
       } catch (errorLike) {
@@ -244,6 +249,9 @@ export function useSecureStorage(
           'useSecureStorage.remove',
           errorLike
         );
+        if (mountedRef.current && !isAuthenticationCanceled(errorLike)) {
+          setError(hookError);
+        }
         return createHookFailureResult(hookError);
       }
     },
@@ -267,6 +275,9 @@ export function useSecureStorage(
         'useSecureStorage.clearAll',
         errorLike
       );
+      if (mountedRef.current && !isAuthenticationCanceled(errorLike)) {
+        setError(hookError);
+      }
       return createHookFailureResult(hookError);
     }
   }, [mountedRef, stableOptions]);

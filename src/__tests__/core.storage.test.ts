@@ -27,8 +27,9 @@ describe('core/storage', () => {
       default: jest.fn(() => nativeHandle),
     }));
 
-    jest.doMock('../internal/errors', () => ({
+    jest.doMock('../internal/error-classifier', () => ({
       isNotFoundError,
+      classifyError: jest.fn((error) => error),
     }));
 
     return import('../core/storage');

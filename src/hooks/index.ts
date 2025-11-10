@@ -26,6 +26,12 @@ export {
   type HookOperation,
 } from './error-factory';
 export {
+  useAsyncOperation,
+  useAsyncMutation,
+  type AsyncOperationState,
+  type AsyncOperationResult,
+} from './use-async-operation';
+export {
   useSecretItem,
   type UseSecretItemOptions,
   type UseSecretItemResult,

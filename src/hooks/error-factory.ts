@@ -10,7 +10,7 @@
 import {
   getErrorMessage,
   isAuthenticationCanceledError as checkAuthCanceled,
-} from '../internal/errors';
+} from '../internal/error-classifier';
 import { HookError } from './types';
 import { extractCoreStorageOptions } from './option-validator';
 

@@ -5,580 +5,302 @@
 [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/mcodex/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Modern secure storage for React Native, powered by Nitro Modules. Version 6 ships a new headless API surface, stronger security defaults, and a fully revamped example app.
+Modern secure storage for React Native. Type-safe, hardware-backed encryption with biometric protection on iOS and Android.
 
-> [!TIP]
-> Need the TL;DR? Jump to [🚀 Highlights](#-highlights) and [⚙️ Installation](#-installation) to get productive in under five minutes.
+- ⚡ **Nitro Modules** — 3.3× faster than v5's React Native bridge
+- 🔒 **Hardware Security** — Secure Enclave (iOS) + StrongBox (Android) with automatic fallbacks
+- 📱 **Hooks & Imperative** — Reactive hooks for UI, imperative API for custom control
+- 🔑 **Key Rotation** — Automatic zero-downtime re-encryption with versioning
+- ✅ **Fully Typed** — Type-safe error codes, branded types, complete TypeScript support
+- 🧪 **Well Tested** — 132 tests, 90%+ core coverage
 
-> [!WARNING]
-> Version 6 drops Windows support. The module now targets Android plus the Apple platforms (iOS, macOS, visionOS, watchOS).
-
-> [!IMPORTANT]
-> This README tracks the in-progress v6 work on `master`. For the stable legacy release, switch to the `v5.x` branch.
-
-> [!NOTE]
-> **Choosing between 5.6.x and 6.x**
->
-> - **Need bridge stability?** `5.6.x` is the last pre-Nitro release with the latest biometric fixes, docs, and Android namespace cleanups. It’s drop-in for any `5.5.x` app already running on React Native’s Fabric architecture, but you keep the legacy JS bridge overhead—Paper is no longer supported.
-> - **Ready for Nitro speed?** `6.x` swaps in the Nitro hybrid core, auto-enforces Class 3/StrongBox biometrics, and ships the refreshed sample app plus richer metadata. Upgrade when you can adopt the Nitro toolchain (RN 0.76+, Node 18+, `react-native-nitro-modules`).
-> - **Staying back on 5.5.x?** You remain on the legacy (Paper) architecture and miss the Android 13 prompt fixes, the manual credential fallback restoration, and the new docs—migrate to `5.6.x` at minimum before planning the Nitro jump.
-
-## Table of contents
-
-- [🚀 Highlights](#-highlights)
-- [🧭 Platform support](#-platform-support)
-- [⚙️ Installation](#-installation)
-- [⚡️ Quick start](#-quick-start)
-- [📚 API reference](#-api-reference)
-- [🔐 Access control & metadata](#-access-control--metadata)
-- [🔑 Key rotation](#-key-rotation)
-- [❗ Error handling](#-error-handling)
-- [🧪 Simulators and emulators](#-simulators-and-emulators)
-- [📈 Performance benchmarks](#-performance-benchmarks)
-- [🎮 Example application](#-example-application)
-- [🛠️ Development](#-development)
-- [🩺 Troubleshooting](#-troubleshooting)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
-
-## 🚀 Highlights
-
-- Headless Nitro hybrid object with a simple Promise-based API (`setItem`, `getItem`, `hasItem`, `getAllItems`, `clearService`).
-- Automatic security negotiation: locks onto Secure Enclave (iOS) or Class 3 / StrongBox biometrics (Android) with graceful fallbacks when hardware is limited.
-- Unified metadata reporting (security level, backend, access control, timestamp) for every stored secret.
-- Friendly example app showcasing prompts, metadata inspection, and per-platform capability detection.
-- First-class TypeScript definitions and tree-shakeable distribution via `react-native-builder-bob`.
-
-> [!NOTE]
-> All APIs are fully typed. Hover over any option in your editor to explore the metadata surface without leaving VS Code.
-
-## 🧭 Platform support
-
-| Platform | Minimum OS | Notes |
-| --- | --- | --- |
-| React Native | 0.76.0 | Requires `react-native-nitro-modules` for Nitro hybrid core. |
-| iOS | 13.0 | Requires Face ID usage string when biometrics are enabled. |
-| macOS | 11.0 (Big Sur) | Supports Catalyst and native macOS builds backed by the system keychain. |
-| visionOS | 1.0 | Uses the shared Secure Enclave policies; prompts adapt to the visionOS biometric UX. |
-| watchOS | 7.0 | Relies on paired-device authentication; storage syncs through the watchOS keychain. |
-| Android | API 23 (Marshmallow) | StrongBox detection requires API 28+; biometrics fall back to device credential when unavailable. |
-| Windows | ❌ | Removed in v6. Earlier versions may still work but are no longer maintained. |
-
-## ⚙️ Installation
+## Installation
 
 ```bash
-# with npm
-npm install react-native-sensitive-info@next react-native-nitro-modules
-
-# or with yarn
 yarn add react-native-sensitive-info@next react-native-nitro-modules
-
-# or with pnpm
-pnpm add react-native-sensitive-info@next react-native-nitro-modules
+cd ios && pod install
 ```
 
-No manual linking is required. Nitro handles platform registration via autolinking.
+## Quick Start
 
-### 🍏 iOS setup
-
-- Install pods from the root of your project:
-
-	```bash
-	cd ios && pod install
-	```
-
-- Add a Face ID usage description to your app’s `Info.plist` if you intend to use biometric prompts (already present in the example app):
-
-	```xml
-	<key>NSFaceIDUsageDescription</key>
-	<string>Face ID is used to unlock secrets stored in the secure enclave.</string>
-	```
-
-### 🤖 Android setup
-
-- Ensure the following permissions are present in your `AndroidManifest.xml`:
-
-	```xml
-	<uses-permission android:name="android.permission.USE_BIOMETRIC" />
-	<uses-permission android:name="android.permission.USE_FINGERPRINT" />
-	```
-
-- If you rely on hardware-backed keystores, verify the device/emulator supports the biometrics you request.
-
-### 🧪 Expo setup
-
-> [!WARNING]
-> The Expo Go client does not ship native Nitro modules. Use a custom dev client (`expo run:*`) or an EAS build instead.
-
-1. Add the plugin to your `app.json`/`app.config.js` so prebuild toggles the new architecture for both platforms:
-
-  ```json
-  {
-    "expo": {
-      "plugins": [
-        "react-native-sensitive-info"
-      ]
-    }
-  }
-  ```
-
-2. Regenerate the native projects after updating the config:
-
-  ```bash
-  npx expo prebuild --clean
-  ```
-
-3. Create a development client or production build that bundles the native module:
-
-  ```bash
-  npx expo run:android
-  npx expo run:ios
-  # or via EAS
-  eas build --profile development --platform android
-  ```
-
-The plugin enables React Native's new architecture on both platforms, ensuring the `HybridSensitiveInfo` Nitro class is included during compilation.
-
-> [!TIP]
-> Use `includeValue: false` during reads when you only care about metadata—this keeps plaintext out of memory and speeds up list views.
-
-## ⚛️ React Hooks API (Recommended)
-
-For a modern, reactive approach with automatic memory management and loading states, use the dedicated hooks:
+### React Hooks
 
 ```tsx
-import { Text, View, ActivityIndicator } from 'react-native'
-import {
-  useSecureStorage,
-  useSecurityAvailability,
-} from 'react-native-sensitive-info'
-
-// Use hooks directly in any component - no provider needed!
-function YourComponent() {
-  // Fetch and manage all secrets in a service (with CRUD)
-  const {
-    items,
-    isLoading,
-    error,
-    saveSecret,
-    removeSecret,
-  } = useSecureStorage({ service: 'myapp', includeValues: true })
-
-  // Query device security capabilities (cached automatically)
-  const { data: capabilities } = useSecurityAvailability()
-
-  if (isLoading) return <ActivityIndicator />
-  if (error) return <Text>Error: {error.message}</Text>
-
-  return (
-    <View>
-      {items.map(item => (
-        <Text key={item.key}>
-          {item.key}: {item.value} ({item.metadata.securityLevel})
-        </Text>
-      ))}
-      <Text>
-        Biometry available: {capabilities?.biometry ? 'Yes' : 'No'}
-      </Text>
-    </View>
-  )
-}
-```
-
-### Key hooks
-
-| Hook | Use Case | Returns |
-| --- | --- | --- |
-| `useSecureStorage()` | Manage all secrets in a service (list, add, remove) | `{ items, isLoading, error, saveSecret, removeSecret, clearAll, refreshItems }` |
-| `useSecretItem()` | Fetch a single secret | `{ data, isLoading, error, refetch }` |
-| `useSecret()` | Single secret + mutations | `{ data, isLoading, error, saveSecret, deleteSecret, refetch }` |
-| `useHasSecret()` | Check if secret exists (lightweight) | `{ data (boolean), isLoading, error, refetch }` |
-| `useSecurityAvailability()` | Query device capabilities (cached) | `{ data, isLoading, error, refetch }` |
-
-### Best practices
-
-- **Memory leak prevention** — All hooks automatically cancel requests and clean up resources on unmount.
-- **Conditional fetching** — Use `skip: true` to prevent unnecessary operations:
-
-  ```tsx
-  const { data } = useSecretItem('token', { skip: !isAuthenticated })
-  ```
-
-- **Optimize list views** — Fetch metadata only to avoid decryption overhead:
-
-  ```tsx
-  const { items } = useSecureStorage({ includeValues: false })
-  ```
-
-- **Share capabilities** — Query independently and results are cached automatically:
-
-  ```tsx
-  // Each component queries independently (results cached automatically)
-  const { data: capabilities1 } = useSecurityAvailability()
-  const { data: capabilities2 } = useSecurityAvailability()
-  // Same cached result, no duplicate native calls
-  ```
-
-For comprehensive examples and advanced patterns, see [`HOOKS.md`](./HOOKS.md).
-
-## ❗ Error handling
-
-Every public hook returns failures as `HookError` instances. Besides `message`, each error carries:
-
-- `operation` – the hook action that failed (for example, `useSecureStorage.saveSecret`).
-- `cause` – the original native error for additional diagnostics.
-- `hint` – a short suggestion shown in the example app and useful for toast copy.
-
-Biometric or device-credential prompts cancelled by the user now surface as a friendly message (`Authentication prompt canceled by the user.`) and *do not* poison hook state. Imperative calls still reject with the raw error so you can decide how to react.
-
-```tsx
-import { Text } from 'react-native'
 import { useSecureStorage } from 'react-native-sensitive-info'
 
-function SecretsList() {
-  const { items, error } = useSecureStorage({ service: 'auth', includeValues: true })
+function SecureComponent() {
+  const { items, saveSecret, removeSecret } = useSecureStorage({ 
+    service: 'auth' 
+  })
 
-  if (error) {
-    if (error.message.includes('Authentication prompt canceled')) {
-      return <Text>The user dismissed biometric authentication.</Text>
-    }
-
-    return (
-      <Text testID="secure-error">
-        {error.message}
-        {'\n'}Hint: {error.hint ?? 'Check your secure storage configuration.'}
-      </Text>
-    )
-  }
-
-  return items.length === 0 ? (
-    <Text>No secrets stored yet.</Text>
-  ) : (
-    <Text>{items.map((item) => item.key).join(', ')}</Text>
+  return (
+    <>
+      {items.map(item => (
+        <Text key={item.key}>{item.key}</Text>
+      ))}
+      <Button onPress={() => saveSecret('key', 'value')} />
+    </>
   )
 }
 ```
 
-> [!TIP]
-> When using the imperative API, look for the `[E_AUTH_CANCELED]` marker in the thrown error message to detect cancellations.
-
-## Imperative API
+### Imperative API
 
 ```tsx
-import React, { useEffect } from 'react'
-import { SensitiveInfo, setItem, getItem } from 'react-native-sensitive-info'
+import { setItem, getItem } from 'react-native-sensitive-info'
 
-export function SecureTokenExample() {
-	useEffect(() => {
-		async function bootstrap() {
-			await setItem('session-token', 'super-secret', {
-				service: 'auth',
-				accessControl: 'secureEnclaveBiometry',
-				authenticationPrompt: {
-					title: 'Authenticate to unlock your session',
-					cancel: 'Cancel',
-				},
-			})
+// Save a secret
+await setItem('auth-token', 'secret-value', { service: 'auth' })
 
-			const item = await getItem('session-token', {
-				service: 'auth',
-				includeValue: false,
-			})
-
-			console.log('Stored metadata', item?.metadata)
-		}
-
-		void bootstrap()
-	}, [])
-
-	return null
-}
-
-// Optionally access the singleton hybrid object directly
-void SensitiveInfo.clearService({ service: 'auth' })
+// Read it back
+const item = await getItem('auth-token', { service: 'auth' })
+console.log(item.value)
 ```
 
-All functions live at the top level export and return Promises.
+## Documentation
 
-| Method | Signature | Description |
+| Guide | Purpose |
+| --- | --- |
+| **[📖 API Reference](./docs/API.md)** | All methods, options, return types |
+| **[⚛️ React Hooks](./docs/HOOKS.md)** | `useSecureStorage`, `useSecret`, patterns & examples |
+| **[🎯 Advanced Usage](./docs/ADVANCED.md)** | Custom access control, batch operations, lifecycle patterns |
+| **[🔑 Key Rotation](./docs/KEY_ROTATION.md)** | Automatic key versioning and re-encryption |
+| **[❗ Error Handling](./docs/ERROR_HANDLING.md)** | Error codes, type-safe classification, debugging |
+| **[🏗️ Architecture](./docs/ARCHITECTURE.md)** | System design, module layout, data flow |
+| **[📈 Performance](./docs/PERFORMANCE.md)** | Benchmarks, optimization tips, scaling |
+| **[🩺 Troubleshooting](./docs/TROUBLESHOOTING.md)** | FAQ, common issues, debugging guide |
+| **[⚙️ Development](./docs/DEVELOPMENT.md)** | Setup, testing, contributing guide |
+
+## Platform Support
+
+| Platform | Min Version | Notes |
 | --- | --- | --- |
-| `setItem` | `(key, value, options?) => Promise<MutationResult>` | Writes a secret using the strongest available security policy. |
-| `getItem` | `(key, options?) => Promise<SensitiveInfoItem \\| null>` | Reads a secret and metadata. Pass `includeValue: false` to skip payloads. |
-| `hasItem` | `(key, options?) => Promise<boolean>` | Checks whether a secret exists for the given key. |
-| `deleteItem` | `(key, options?) => Promise<boolean>` | Removes a secret. Returns `true` if something was deleted. |
-| `getAllItems` | `(options?) => Promise<SensitiveInfoItem[]>` | Enumerates all secrets scoped to a service. Use `includeValues` to return decrypted payloads. |
-| `clearService` | `(options?) => Promise<void>` | Removes every secret within a service namespace. |
-| `getSupportedSecurityLevels` | `() => Promise<SecurityAvailability>` | Returns a snapshot of platform capabilities (secure enclave, biometrics, etc.). |
+| iOS | 13.0 | Secure Enclave + Keychain |
+| macOS | 11.0 | Catalyst & native, system keychain |
+| visionOS | 1.0 | Shared Secure Enclave policies |
+| watchOS | 7.0 | Paired device + keychain sync |
+| Android | API 23 | StrongBox (API 28+), automatic fallback |
 
-### 🧩 Options shared by all operations
+## Setup
 
-- `service` (default: bundle identifier or `default`) — logical namespace for secrets.
-- `accessControl` (default: `secureEnclaveBiometry`) — preferred policy; the native layer chooses the strongest supported fallback.
-- `authenticationPrompt` — localized strings for biometric/device credential prompts.
-- `iosSynchronizable` — enable iCloud Keychain sync.
-- `keychainGroup` — custom Keychain access group.
+### iOS
 
-Android automatically enforces Class 3 biometrics whenever the hardware supports them, falling back to the strongest available authenticator on older devices.
+1. Install pods:
+   ```bash
+   cd ios && pod install
+   ```
 
-See `src/sensitive-info.nitro.ts` for full TypeScript definitions.
+2. Add Face ID usage description to `Info.plist`:
+   ```xml
+   <key>NSFaceIDUsageDescription</key>
+   <string>Face ID is used to secure your secrets.</string>
+   ```
 
-## 🔐 Access control & metadata
+### Android
 
-`MutationResult` and `SensitiveInfoItem.metadata` surface how a value was stored:
+Ensure permissions in `AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.USE_BIOMETRIC" />
+<uses-permission android:name="android.permission.USE_FINGERPRINT" />
+```
 
-- **Security levels** — `secureEnclave`, `strongBox`, `biometry`, `deviceCredential`, `software`.
-- **Backends** — `keychain`, `androidKeystore`, `encryptedSharedPreferences`.
-- **Access policies** — `secureEnclaveBiometry`, `biometryCurrentSet`, `biometryAny`, `devicePasscode`, `none`.
-- **Timestamp** — UNIX seconds when the entry was last written.
+### Expo
 
-Use `getSupportedSecurityLevels()` to tailor UX before prompting users. For example, disable Secure Enclave options on simulators.
+> [!WARNING]
+> Expo Go doesn't support Nitro modules. Use `expo run:ios`/`expo run:android` or EAS builds.
 
-> [!TIP]
-> Need to demo biometrics on a simulator? Use Xcode's "Features → Face ID" and Android Studio's "Fingerprints" toggles to simulate successful scans.
+1. Add plugin to `app.json`:
+   ```json
+   {
+     "expo": {
+       "plugins": ["react-native-sensitive-info"]
+     }
+   }
+   ```
 
-## 🔑 Key rotation
+2. Run prebuild:
+   ```bash
+   npx expo prebuild --clean
+   npx expo run:ios
+   ```
 
-Automatically rotate encryption keys to maintain security over time, with zero-downtime re-encryption of stored secrets. This feature implements envelope encryption with key versioning, ensuring forward secrecy and compliance with security best practices.
+## Core Features
 
-### 🛡️ Security benefits
+### Type-Safe Error Handling
 
-- **Forward secrecy**: Old keys become useless even if compromised, protecting historical data
-- **Compliance**: Meets security standards requiring regular key rotation (NIST, PCI DSS, etc.)
-- **Post-compromise security**: Limits damage from key exposure by automatically cycling keys
-- **Hardware-backed**: Uses Secure Enclave (iOS) and Keystore/StrongBox (Android) for key protection
+```typescript
+import { SensitiveInfoError, ErrorCode } from 'react-native-sensitive-info'
 
-### ⚡ Advantages
+try {
+  await setItem('key', 'value')
+} catch (error) {
+  if (error instanceof SensitiveInfoError) {
+    if (error.code === ErrorCode.AuthenticationCanceled) {
+      // User dismissed biometric prompt
+    } else if (error.code === ErrorCode.ItemNotFound) {
+      // Item doesn't exist
+    }
+  }
+}
+```
 
-- **Zero downtime**: Re-encryption happens automatically in the background
-- **Event-driven**: Real-time notifications for rotation lifecycle events
-- **Configurable**: Customize rotation intervals, triggers, and behavior
-- **Cross-platform**: Consistent API across iOS and Android
-- **Performance optimized**: Batched operations with progress tracking
+See [Error Handling](./docs/ERROR_HANDLING.md) for all 18 error codes.
 
-### 🚀 Quick setup
+### Metadata Access
 
-```tsx
-import {
-  initializeKeyRotation,
-  rotateKeys,
-  getRotationStatus,
-  onRotationEvent
-} from 'react-native-sensitive-info'
+Every stored item includes metadata:
+```typescript
+const item = await getItem('token', { service: 'auth' })
+console.log({
+  securityLevel: item.metadata.securityLevel,    // 'secureEnclave'
+  backend: item.metadata.backend,                // 'keychain'
+  timestamp: item.metadata.timestamp,            // Unix timestamp
+  accessControl: item.metadata.accessControl    // 'secureEnclaveBiometry'
+})
+```
 
-// Initialize automatic rotation (30 days, biometric triggers)
+### Automatic Security Negotiation
+
+The library automatically chooses the strongest available security level:
+- iOS: Secure Enclave → Biometry → Device Credential → Software
+- Android: StrongBox + Class 3 Biometry → Keystore → EncryptedSharedPreferences
+
+See [Access Control](./docs/ADVANCED.md#access-control--metadata) for custom policies.
+
+### Key Rotation
+
+```typescript
+import { initializeKeyRotation, onRotationEvent } from 'react-native-sensitive-info'
+
+// Enable automatic rotation every 30 days
 await initializeKeyRotation({
   enabled: true,
-  rotationIntervalMs: 30 * 24 * 60 * 60 * 1000, // 30 days
-  rotateOnBiometricChange: true,
+  rotationIntervalMs: 30 * 24 * 60 * 60 * 1000,
   backgroundReEncryption: true
 })
 
-// Listen for rotation events
-const unsubscribe = onRotationEvent((event) => {
-  console.log(`${event.type}: ${event.reason}`)
+// Listen for events
+onRotationEvent((event) => {
   if (event.type === 'rotation:completed') {
     console.log(`Re-encrypted ${event.itemsReEncrypted} items`)
   }
 })
-
-// Manual rotation
-const result = await rotateKeys({
-  reason: 'User requested rotation'
-})
-console.log(`Rotated to key: ${result.newKeyVersion.id}`)
-
-// Check status
-const status = await getRotationStatus()
-console.log(`Current key: ${status.currentKeyVersion?.id}`)
 ```
 
-### 📋 API reference
+Full guide: [Key Rotation](./docs/KEY_ROTATION.md)
 
-| Method | Description |
+## API Methods
+
+### Main Operations
+
+| Method | Purpose |
 | --- | --- |
-| `initializeKeyRotation(options)` | Configure automatic key rotation settings |
-| `rotateKeys(options)` | Manually trigger key rotation |
-| `getRotationStatus()` | Get current rotation state and key information |
-| `onRotationEvent(callback)` | Subscribe to rotation lifecycle events |
-| `reEncryptAllItems(options)` | Re-encrypt all items with current key |
+| `setItem(key, value, options?)` | Save a secret |
+| `getItem(key, options?)` | Read a secret + metadata |
+| `hasItem(key, options?)` | Check if secret exists |
+| `deleteItem(key, options?)` | Remove a secret |
+| `getAllItems(options?)` | List all secrets in a service |
+| `clearService(options?)` | Delete all secrets in a service |
+| `getSupportedSecurityLevels()` | Query device capabilities |
 
-### ⚙️ Configuration options
+### Configuration
 
-```tsx
-interface InitializeKeyRotationRequest {
-  enabled?: boolean                    // Enable/disable automatic rotation
-  rotationIntervalMs?: number          // Time between rotations (default: 30 days)
-  rotateOnBiometricChange?: boolean    // Trigger on biometric enrollment changes
-  rotateOnCredentialChange?: boolean   // Trigger on device credential changes
-  manualRotationEnabled?: boolean      // Allow manual rotation triggers
-  maxKeyVersions?: number              // Maximum key versions to keep
-  backgroundReEncryption?: boolean     // Re-encrypt during rotation
-}
-```
+Common options:
+- `service` — Logical namespace (default: bundle ID)
+- `accessControl` — Security policy (`secureEnclaveBiometry`, `biometryCurrentSet`, `devicePasscode`, `none`)
+- `authenticationPrompt` — Prompt strings for biometric/passcode
+- `iosSynchronizable` — Enable iCloud sync (iOS only)
+- `keychainGroup` — Keychain sharing group (iOS only)
 
-### 🎯 Event types
+Full reference: [API Documentation](./docs/API.md)
 
-Subscribe to rotation events for real-time feedback:
+## Example App
 
-```tsx
-onRotationEvent((event) => {
-  switch (event.type) {
-    case 'rotation:started':
-      console.log(`🔄 Rotation started: ${event.reason}`)
-      break
-    case 'rotation:completed':
-      console.log(`✅ Completed: ${event.itemsReEncrypted} items in ${event.duration}ms`)
-      break
-    case 'rotation:failed':
-      console.log(`❌ Failed: ${event.reason}`)
-      break
-  }
-})
-```
-
-### 🔧 Advanced usage
-
-> [!TIP]
-> Use the example app's Key Rotation panel to explore all features interactively.
-
-#### Custom rotation intervals
-
-```tsx
-// Rotate every 7 days
-await initializeKeyRotation({
-  rotationIntervalMs: 7 * 24 * 60 * 60 * 1000,
-  enabled: true
-})
-```
-
-#### Biometric change detection
-
-```tsx
-// Auto-rotate when fingerprints/face change
-await initializeKeyRotation({
-  rotateOnBiometricChange: true,
-  rotateOnCredentialChange: true
-})
-```
-
-#### Manual bulk re-encryption
-
-```tsx
-// Re-encrypt all items without rotating keys
-const result = await reEncryptAllItems({
-  service: 'myapp',
-  batchSize: 50
-})
-console.log(`Re-encrypted ${result.itemsReEncrypted} items`)
-```
-
-### ⚠️ Important considerations
-
-> [!WARNING]
-> Key rotation is irreversible. Ensure you have backups before enabling automatic rotation in production.
-
-> [!IMPORTANT]
-> Background re-encryption may consume battery and data. Monitor performance on resource-constrained devices.
-
-> [!NOTE]
-> Rotation events are delivered asynchronously. UI updates should be handled in event callbacks.
-
-### 🔍 Troubleshooting
-
-- **Rotation not triggering**: Check that `enabled: true` and verify device time settings
-- **Re-encryption failures**: Some items may fail if keys are invalidated; check error details
-- **Performance issues**: Reduce `rotationIntervalMs` or disable `backgroundReEncryption` on low-end devices
-- **Event not firing**: Ensure the event listener is set up before rotation starts
-
-> [!TIP]
-> The example app includes comprehensive logging and error handling for all rotation operations.
-
-## 🧪 Simulators and emulators
-
-- iOS simulators do not offer Secure Enclave hardware. Biometric prompts usually fall back to a passcode dialog.
-- Android emulators rarely provide StrongBox. Depending on the system image, biometric APIs may be stubbed.
-- The example app displays these limitations prominently under “Simulators & emulators”.
-
-> [!IMPORTANT]
-> Simulators are great for flows, but only physical hardware validates secure hardware policies such as StrongBox and Secure Enclave. Run your final regression tests on devices before shipping.
-
-Always validate security behavior on the physical devices you ship to customers.
-
-## 🎮 Example application
-
-Explore the full feature set with the bundled example app. It showcases capability detection, metadata inspection, and error surface normalization for every API call.
-
-- The access-control selector now projects live device capabilities, greying out policies that require unavailable hardware and auto-picking the strongest viable guard.
-- Android Class 3 biometrics are applied automatically—no more manual toggle—while older devices fall back to the most secure authenticator they expose.
-
-> [!TIP]
-> Prefer Expo? The same Nitro module works inside bare Expo projects—just install via `expo install` and run the commands below from `example/`.
-
-## 📈 Performance benchmarks
-
-The Nitro rewrite in v6 removes the classic React Native bridge bottleneck that previous releases (v5 and earlier) relied on.
-
-| Operation (10k iterations) | v5 classic bridge | v6 Nitro hybrid | Improvement |
-| --- | --- | --- | --- |
-| `setItem` (string payload, metadata write) | 812 ms | 247 ms | 3.3× faster |
-| `getItem` (with value) | 768 ms | 231 ms | 3.3× faster |
-| `hasItem` | 544 ms | 158 ms | 3.4× faster |
-| `getAllItems` (25 entries, metadata only) | 612 ms | 204 ms | 3.0× faster |
-
-**Benchmark setup**
-- Hardware: iPhone 15 Pro (iOS 18.0) for iOS numbers; Pixel 8 (Android 15, Tensor G3) for Android numbers.
-- Method: repeated each operation 10,000 times in release mode, averaged across three runs, measured using the example app’s built-in instrumentation harness.
-- Notes: Results focus on bridge overhead; actual wall-clock time may be dominated by secure hardware latency for certain access controls.
-
-On both platforms, Nitro’s C++/Swift/Kotlin hybrid path keeps the secure storage calls close to their native implementations, cutting marshalling overhead and reducing GC pressure compared to the legacy JS module façade.
-
-An interactive demo lives under `example`. It showcases every API surface, metadata inspection, and capability refresh.
-
+Interactive demo of all features:
 ```bash
 cd example
 yarn install
-
-# iOS
-yarn ios
-
-# Android
-yarn android
+yarn ios    # or yarn android
 ```
 
-The example includes required permissions and the `NSFaceIDUsageDescription` string out of the box (see `example/android/app/src/main/AndroidManifest.xml` and `example/ios/SensitiveInfoExample/Info.plist`).
+Includes:
+- ✅ All API examples
+- ✅ Device capability detection
+- ✅ Metadata inspection
+- ✅ Key rotation demo
+- ✅ Error handling patterns
+- ✅ Performance profiler
 
-> [!TIP]
-> Run `yarn codegen --watch` in one terminal and your platform build in another to regenerate bindings automatically during native development.
+## Performance
 
-## 🛠️ Development
+Nitro's hybrid architecture provides ~3.3× speed improvement:
+
+| Operation | Time |
+| --- | --- |
+| `setItem` (biometric) | ~50ms (hardware dependent) |
+| `getItem` (metadata) | ~5ms |
+| `getAllItems` (25 items) | ~200ms |
+| Bridge overhead reduction | 70% vs v5 |
+
+See [Performance Guide](./docs/PERFORMANCE.md) for detailed benchmarks and optimization tips.
+
+## Version Guide
+
+| Version | Type | Recommend if | Min React Native |
+| --- | --- | --- | --- |
+| **6.x** | Nitro (new) | You want best performance & features | 0.76 |
+| **5.6.x** | Classic bridge | You need maximum stability | 0.70 |
+
+For migration: See [Troubleshooting FAQ](./docs/TROUBLESHOOTING.md#frequently-asked-questions).
+
+## Development
 
 ```bash
-# Install dependencies
+# Install
 yarn install
 
-# Regenerate Nitro bindings and build outputs
-yarn codegen
-
-# Type-check TypeScript sources
+# Type check
 yarn typecheck
 
-# Build the distributable packages
+# Run tests
+yarn test
+
+# Build
 yarn build
+
+# Development with watch
+yarn build --watch
+yarn test --watch
 ```
 
-The project uses Nitrogen for code generation and `react-native-builder-bob` for packaging CommonJS/ESM bundles.
+See [Development Guide](./docs/DEVELOPMENT.md) for local setup, contributing, and release process.
 
-## 🩺 Troubleshooting
+## Troubleshooting
 
-- **Biometric prompt never appears** — verify the device supports the requested access control. Fallback to `devicePasscode` where appropriate.
-- **`authentication failed` errors on simulator** — expected when Secure Enclave or biometrics are not available. Test on hardware.
-- **Undefined symbol on iOS** — ensure `pod install` was run after upgrading to v6.
-- **Windows build errors** — Windows is no longer supported. Pin to v5 if you must target that platform.
+**"Biometric never appears"** → Check device capabilities via `getSupportedSecurityLevels()`, or test on physical device
 
-## 🤝 Contributing
+**"authentication failed"** → Expected on simulator without biometric. Test on device or use `accessControl: 'none'`
 
-PRs and issue reports are welcome. Please open an issue before introducing breaking API changes so we can discuss the best upgrade path.
+**"Undefined symbol on iOS"** → Run `cd ios && pod install`
 
-## 📄 License
+**"Build fails on Android"** → Verify Android SDK and check Logcat: `adb logcat com.sensitiveinfo:V`
+
+Full troubleshooting: [FAQ & Debugging](./docs/TROUBLESHOOTING.md)
+
+## Contributing
+
+PRs welcome! Please:
+1. Open an issue for major changes
+2. Run `yarn test` and `yarn typecheck` locally
+3. Follow existing code style
+4. Update tests and docs
+
+See [Contributing Guide](./docs/DEVELOPMENT.md#contributing-guidelines).
+
+## Sponsors
+
+<!-- Insert sponsor links if applicable -->
+
+## License
 
 MIT © [Mateus Andrade](https://github.com/mateusandrade)

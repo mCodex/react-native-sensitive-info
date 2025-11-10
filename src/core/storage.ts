@@ -11,7 +11,8 @@ import type {
 } from '../sensitive-info.nitro';
 import getNativeInstance from '../internal/native';
 import { normalizeStorageOptions } from '../hooks/option-validator';
-import { isNotFoundError } from '../internal/errors';
+import { isNotFoundError, classifyError } from '../internal/error-classifier';
+import { storageValidator } from '../internal/validator';
 
 /**
  * Strongly typed façade around the underlying Nitro native object.
@@ -91,13 +92,18 @@ export async function setItem(
   value: string,
   options?: SensitiveInfoOptions
 ): Promise<MutationResult> {
-  const native = getNativeInstance();
-  const payload: SensitiveInfoSetRequest = {
-    key,
-    value,
-    ...normalizeStorageOptions(options),
-  };
-  return native.setItem(payload);
+  try {
+    storageValidator.validateSetOperation(key, value, options);
+    const native = getNativeInstance();
+    const payload: SensitiveInfoSetRequest = {
+      key,
+      value,
+      ...normalizeStorageOptions(options),
+    };
+    return native.setItem(payload);
+  } catch (error) {
+    throw classifyError(error, { operation: 'setItem', key });
+  }
 }
 
 /**
@@ -154,20 +160,21 @@ export async function getItem(
   key: string,
   options?: SensitiveInfoOptions & { includeValue?: boolean }
 ): Promise<SensitiveInfoItem | null> {
-  const native = getNativeInstance();
-  const payload: SensitiveInfoGetRequest = {
-    key,
-    includeValue: options?.includeValue ?? true,
-    ...normalizeStorageOptions(options),
-  };
-
   try {
+    storageValidator.validateGetOperation(key, options);
+    const native = getNativeInstance();
+    const payload: SensitiveInfoGetRequest = {
+      key,
+      includeValue: options?.includeValue ?? true,
+      ...normalizeStorageOptions(options),
+    };
+
     return await native.getItem(payload);
   } catch (error) {
     if (isNotFoundError(error)) {
       return null;
     }
-    throw error;
+    throw classifyError(error, { operation: 'getItem', key });
   }
 }
 
@@ -210,12 +217,17 @@ export async function hasItem(
   key: string,
   options?: SensitiveInfoOptions
 ): Promise<boolean> {
-  const native = getNativeInstance();
-  const payload: SensitiveInfoHasRequest = {
-    key,
-    ...normalizeStorageOptions(options),
-  };
-  return native.hasItem(payload);
+  try {
+    storageValidator.validateHasOperation(key, options);
+    const native = getNativeInstance();
+    const payload: SensitiveInfoHasRequest = {
+      key,
+      ...normalizeStorageOptions(options),
+    };
+    return native.hasItem(payload);
+  } catch (error) {
+    throw classifyError(error, { operation: 'hasItem', key });
+  }
 }
 
 /**
@@ -262,12 +274,17 @@ export async function deleteItem(
   key: string,
   options?: SensitiveInfoOptions
 ): Promise<boolean> {
-  const native = getNativeInstance();
-  const payload: SensitiveInfoDeleteRequest = {
-    key,
-    ...normalizeStorageOptions(options),
-  };
-  return native.deleteItem(payload);
+  try {
+    storageValidator.validateDeleteOperation(key, options);
+    const native = getNativeInstance();
+    const payload: SensitiveInfoDeleteRequest = {
+      key,
+      ...normalizeStorageOptions(options),
+    };
+    return native.deleteItem(payload);
+  } catch (error) {
+    throw classifyError(error, { operation: 'deleteItem', key });
+  }
 }
 
 /**
@@ -324,12 +341,17 @@ export async function deleteItem(
 export async function getAllItems(
   options?: SensitiveInfoEnumerateRequest
 ): Promise<SensitiveInfoItem[]> {
-  const native = getNativeInstance();
-  const payload: SensitiveInfoEnumerateRequest = {
-    includeValues: options?.includeValues ?? false,
-    ...normalizeStorageOptions(options),
-  };
-  return native.getAllItems(payload);
+  try {
+    storageValidator.validateEnumerateOperation(options);
+    const native = getNativeInstance();
+    const payload: SensitiveInfoEnumerateRequest = {
+      includeValues: options?.includeValues ?? false,
+      ...normalizeStorageOptions(options),
+    };
+    return native.getAllItems(payload);
+  } catch (error) {
+    throw classifyError(error, { operation: 'getAllItems' });
+  }
 }
 
 /**
@@ -378,8 +400,13 @@ export async function getAllItems(
 export async function clearService(
   options?: SensitiveInfoOptions
 ): Promise<void> {
-  const native = getNativeInstance();
-  return native.clearService(normalizeStorageOptions(options));
+  try {
+    storageValidator.validateClearOperation(options);
+    const native = getNativeInstance();
+    return native.clearService(normalizeStorageOptions(options));
+  } catch (error) {
+    throw classifyError(error, { operation: 'clearService' });
+  }
 }
 
 /**

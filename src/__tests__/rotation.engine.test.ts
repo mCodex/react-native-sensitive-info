@@ -476,7 +476,7 @@ describe('KeyRotationManager', () => {
       };
 
       const found = manager.findKeyVersionForDecryption(
-        JSON.stringify(envelope)
+        envelope.KEKVersion
       );
       expect(found?.id).toBe('key-v1');
     });
