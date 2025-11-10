@@ -62,8 +62,31 @@ export default [
     },
 
     rules: {
-      'prettier/prettier': 'error',
+      'prettier/prettier': [
+        'error',
+        {
+          singleQuote: true,
+          semi: true,
+          tabWidth: 2,
+          trailingComma: 'es5',
+          useTabs: false,
+          quoteProps: 'consistent',
+        },
+      ],
       'import/extensions': 'off',
+      'react/function-component-definition': [
+        'error',
+        {
+          namedComponents: 'arrow-function',
+          unnamedComponents: 'arrow-function',
+        },
+      ],
+      'react/jsx-filename-extension': [
+        'error',
+        {
+          extensions: ['.jsx', '.tsx'],
+        },
+      ],
     },
   },
 ];

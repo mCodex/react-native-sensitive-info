@@ -30,6 +30,6 @@ const config = {
     },
   },
   testMatch: ['<rootDir>/src/**/?(*.)+(spec|test).ts?(x)'],
-}
+};
 
-module.exports = config
+module.exports = config;
