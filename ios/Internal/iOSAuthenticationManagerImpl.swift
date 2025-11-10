@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 import Security
+import NitroModules
 
 /// Concrete implementation of AuthenticationManager for iOS.
 ///

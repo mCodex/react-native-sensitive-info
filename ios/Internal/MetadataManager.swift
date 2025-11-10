@@ -1,4 +1,5 @@
 import Foundation
+import NitroModules
 
 /// Protocol for managing metadata operations.
 ///

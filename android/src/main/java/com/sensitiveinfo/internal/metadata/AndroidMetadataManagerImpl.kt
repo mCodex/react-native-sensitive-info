@@ -19,27 +19,14 @@ import com.sensitiveinfo.internal.util.persistedName
  *
  * @since 6.0.0
  */
-class AndroidMetadataManager : MetadataManager {
+internal class AndroidMetadataManager : MetadataManager {
   
-  override suspend fun decodeMetadata(persisted: PersistedMetadata?): StorageMetadata? {
-    persisted ?: return null
-
-    return StorageMetadata(
-      securityLevel = securityLevelFromPersisted(persisted.securityLevel) ?: SecurityLevel.SOFTWARE,
-      backend = StorageBackend.ANDROIDKEYSTORE,
-      accessControl = accessControlFromPersisted(persisted.accessControl) ?: AccessControl.NONE,
-      timestamp = persisted.timestamp.toDouble() / 1000.0,
-      alias = persisted.alias
-    )
+  override suspend fun decodeMetadata(metadata: StorageMetadata?): StorageMetadata? {
+    return metadata
   }
 
-  override suspend fun encodeMetadata(metadata: StorageMetadata): PersistedMetadata {
-    return PersistedMetadata(
-      securityLevel = metadata.securityLevel.persistedName(),
-      accessControl = metadata.accessControl.persistedName(),
-      timestamp = (metadata.timestamp * 1000.0).toLong(),
-      alias = metadata.alias ?: ""
-    )
+  override suspend fun encodeMetadata(metadata: StorageMetadata): StorageMetadata {
+    return metadata
   }
 
   override fun createMetadata(

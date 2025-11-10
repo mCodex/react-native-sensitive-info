@@ -13,7 +13,7 @@ import com.sensitiveinfo.internal.crypto.AccessControlResolver
 import com.sensitiveinfo.internal.crypto.AndroidAccessControlManager
 import com.sensitiveinfo.internal.crypto.CryptoManager
 import com.sensitiveinfo.internal.crypto.SecurityAvailabilityResolver
-import com.sensitiveinfo.internal.metadata.AndroidMetadataManagerImpl
+import com.sensitiveinfo.internal.metadata.AndroidMetadataManager
 import com.sensitiveinfo.internal.metadata.MetadataManager
 import com.sensitiveinfo.internal.response.ResponseBuilder
 import com.sensitiveinfo.internal.response.StandardResponseBuilder
@@ -87,7 +87,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         val cryptoManager = CryptoManager(authenticator)
 
         // Initialize specialized managers
-        val metadataManager: MetadataManager = AndroidMetadataManagerImpl()
+        val metadataManager: MetadataManager = AndroidMetadataManager()
         val authenticationManager: AuthenticationManager = AndroidAuthenticationManager(authenticator)
         val accessControlManager: AccessControlManager = AndroidAccessControlManager(
           securityAvailabilityResolver

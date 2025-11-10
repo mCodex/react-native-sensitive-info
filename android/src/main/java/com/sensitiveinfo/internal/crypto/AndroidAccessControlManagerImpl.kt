@@ -6,6 +6,8 @@ import androidx.biometric.BiometricManager
 import com.margelo.nitro.sensitiveinfo.AccessControl
 import com.margelo.nitro.sensitiveinfo.SecurityLevel
 import com.margelo.nitro.sensitiveinfo.SecurityAvailability
+import com.sensitiveinfo.internal.crypto.SecurityAvailabilityResolver
+import com.sensitiveinfo.internal.crypto.SecurityAvailabilitySnapshot
 
 /**
  * Concrete implementation of AccessControlManager for Android.
@@ -17,7 +19,7 @@ import com.margelo.nitro.sensitiveinfo.SecurityAvailability
  *
  * @since 6.0.0
  */
-class AndroidAccessControlManager(
+internal class AndroidAccessControlManager(
   private val securityAvailabilityResolver: SecurityAvailabilityResolver,
   private val context: Context? = null
 ) : AccessControlManager {
@@ -29,7 +31,7 @@ class AndroidAccessControlManager(
     val securityLevel = mapToSecurityLevel(resolvedPolicy)
     val requiresAuth = requiresAuthentication(resolvedPolicy)
     val invalidatedByBiometric = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      resolvedPolicy == AccessControl.BIOMETRIC
+      resolvedPolicy == AccessControl.BIOMETRYCURRENTSET || resolvedPolicy == AccessControl.BIOMETRYANY
     } else {
       false
     }
@@ -56,44 +58,41 @@ class AndroidAccessControlManager(
 
   private fun mapToAvailablePolicy(
     preferred: AccessControl?,
-    availability: SecurityAvailabilityResolver.Capabilities
+    availability: SecurityAvailabilitySnapshot
   ): AccessControl {
     preferred ?: return AccessControl.NONE
 
     return when (preferred) {
-      AccessControl.BIOMETRIC -> {
-        if (availability.biometry) AccessControl.BIOMETRIC else AccessControl.DEVICE_CREDENTIAL
+      AccessControl.BIOMETRYCURRENTSET, AccessControl.BIOMETRYANY -> {
+        if (availability.biometry) preferred else AccessControl.DEVICEPASSCODE
       }
-      AccessControl.DEVICE_CREDENTIAL -> {
-        if (availability.deviceCredential) AccessControl.DEVICE_CREDENTIAL else AccessControl.NONE
+      AccessControl.DEVICEPASSCODE -> {
+        if (availability.deviceCredential) AccessControl.DEVICEPASSCODE else AccessControl.NONE
       }
-      AccessControl.SECURE_ENCLAVE -> {
-        if (availability.secureEnclave) AccessControl.SECURE_ENCLAVE else AccessControl.SOFTWARE
+      AccessControl.SECUREENCLAVEBIOMETRY -> {
+        if (availability.secureEnclave) AccessControl.SECUREENCLAVEBIOMETRY else AccessControl.NONE
       }
-      AccessControl.STRONG_BOX -> {
-        if (availability.strongBox) AccessControl.STRONG_BOX else AccessControl.SOFTWARE
-      }
-      AccessControl.SOFTWARE, AccessControl.NONE -> AccessControl.SOFTWARE
-      else -> AccessControl.SOFTWARE
+      AccessControl.NONE -> AccessControl.NONE
+      else -> AccessControl.NONE
     }
   }
 
   private fun mapToSecurityLevel(policy: AccessControl): SecurityLevel {
     return when (policy) {
-      AccessControl.BIOMETRIC -> SecurityLevel.BIOMETRIC
-      AccessControl.DEVICE_CREDENTIAL -> SecurityLevel.DEVICE_CREDENTIAL
-      AccessControl.SECURE_ENCLAVE, AccessControl.STRONG_BOX -> SecurityLevel.HARDWARE_BACKED
-      AccessControl.SOFTWARE, AccessControl.NONE -> SecurityLevel.SOFTWARE
+      AccessControl.BIOMETRYCURRENTSET, AccessControl.BIOMETRYANY -> SecurityLevel.BIOMETRY
+      AccessControl.DEVICEPASSCODE -> SecurityLevel.DEVICECREDENTIAL
+      AccessControl.SECUREENCLAVEBIOMETRY -> SecurityLevel.SECUREENCLAVE
+      AccessControl.NONE -> SecurityLevel.SOFTWARE
       else -> SecurityLevel.SOFTWARE
     }
   }
 
   private fun requiresAuthentication(policy: AccessControl): Boolean {
     return policy in listOf(
-      AccessControl.BIOMETRIC,
-      AccessControl.DEVICE_CREDENTIAL,
-      AccessControl.SECURE_ENCLAVE,
-      AccessControl.STRONG_BOX
+      AccessControl.BIOMETRYCURRENTSET,
+      AccessControl.BIOMETRYANY,
+      AccessControl.DEVICEPASSCODE,
+      AccessControl.SECUREENCLAVEBIOMETRY
     )
   }
 }

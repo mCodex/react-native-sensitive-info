@@ -15,20 +15,20 @@ interface MetadataManager {
   /**
    * Decode metadata from persisted format.
    *
-   * @param persisted The persisted metadata from storage
+   * @param metadata The StorageMetadata from storage
    * @return Decoded StorageMetadata or null if invalid
    * @throws Exception if decoding fails
    */
-  suspend fun decodeMetadata(persisted: PersistedMetadata?): StorageMetadata?
+  suspend fun decodeMetadata(metadata: StorageMetadata?): StorageMetadata?
 
   /**
    * Encode metadata to persisted format.
    *
    * @param metadata The StorageMetadata to encode
-   * @return Encoded PersistedMetadata for storage
+   * @return Encoded StorageMetadata for storage
    * @throws Exception if encoding fails
    */
-  suspend fun encodeMetadata(metadata: StorageMetadata): PersistedMetadata
+  suspend fun encodeMetadata(metadata: StorageMetadata): StorageMetadata
 
   /**
    * Create default metadata with common values.

@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import NitroModules
 
 /// Represents resolved access control with platform-specific details.
 struct ResolvedAccessControl {

@@ -27,10 +27,9 @@
     "sensitive-info"
   ],
   "files": [
-    "src",
     "react-native.config.js",
     "lib",
-    "nitrogen",
+    "nitrogen/generated",
     "cpp",
     "nitro.json",
     "android/build.gradle",

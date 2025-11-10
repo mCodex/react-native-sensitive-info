@@ -1,4 +1,5 @@
 import Foundation
+import NitroModules
 
 /// Concrete implementation of MetadataManager using StorageMetadataHandler.
 ///

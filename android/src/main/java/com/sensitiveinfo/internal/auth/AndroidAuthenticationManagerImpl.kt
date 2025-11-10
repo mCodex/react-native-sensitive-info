@@ -7,7 +7,10 @@ import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import com.margelo.nitro.sensitiveinfo.AuthenticationPrompt
 import com.sensitiveinfo.internal.util.ReactContextHolder
-import kotlinx.coroutines.suspendCancellableCoroutine
+import com.sensitiveinfo.internal.util.SensitiveInfoException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import javax.crypto.Cipher
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -22,12 +25,16 @@ import kotlin.coroutines.resumeWithException
  *
  * @since 6.0.0
  */
-class AndroidAuthenticationManager(
-  private val biometricAuthenticator: BiometricAuthenticator = BiometricAuthenticator()
+internal class AndroidAuthenticationManager(
+  private val biometricAuthenticator: BiometricAuthenticator
 ) : AuthenticationManager {
   
   private val context: Context?
-    get() = ReactContextHolder.getContext()
+    get() = try {
+      ReactContextHolder.requireContext() as? Context
+    } catch (e: Exception) {
+      null
+    }
 
   override suspend fun isBiometricAvailable(): Boolean {
     val ctx = context ?: return false
@@ -42,35 +49,23 @@ class AndroidAuthenticationManager(
   }
 
   override suspend fun evaluateBiometric(prompt: AuthenticationPrompt?): Boolean {
-    return suspendCancellableCoroutine { continuation ->
-      val ctx = context
-      if (ctx !is FragmentActivity) {
-        continuation.resumeWithException(
-          IllegalStateException("Context must be FragmentActivity for biometric authentication")
-        )
-        return@suspendCancellableCoroutine
-      }
+    val ctx = context
+    if (ctx !is FragmentActivity) {
+      throw IllegalStateException("Context must be FragmentActivity for biometric authentication")
+    }
 
-      val title = prompt?.title ?: "Authenticate"
-      val subtitle = prompt?.subtitle ?: "Use biometric to continue"
-      val negativeText = prompt?.cancel ?: "Cancel"
-
-      biometricAuthenticator.authenticate(
-        fragmentActivity = ctx,
-        title = title,
-        subtitle = subtitle,
-        negativeButtonText = negativeText,
-        onSuccess = { continuation.resume(true) },
-        onError = { error ->
-          if (isAuthenticationCanceled(error)) {
-            continuation.resumeWithException(
-              Exception("[E_AUTH_CANCELED] Authentication prompt canceled by the user.")
-            )
-          } else {
-            continuation.resumeWithException(error)
-          }
-        }
+    return try {
+      val cipher = biometricAuthenticator.authenticate(
+        prompt = prompt,
+        allowedAuthenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG,
+        cipher = null
       )
+      cipher != null
+    } catch (e: Exception) {
+      if (isAuthenticationCanceled(e)) {
+        throw SensitiveInfoException.AuthenticationCanceled()
+      }
+      throw e
     }
   }
 

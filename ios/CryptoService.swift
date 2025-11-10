@@ -1,6 +1,7 @@
 import Foundation
 import Security
 import CommonCrypto
+import NitroModules
 
 /// Handles encryption and decryption operations using AES-256 with CommonCrypto.
 ///

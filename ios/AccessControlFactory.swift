@@ -15,25 +15,21 @@ import Security
 /// Example:
 /// ```swift
 /// let factory = AccessControlFactory(availabilityResolver: resolver)
-/// let resolved = try factory.resolve(accessControl: .biometric)
+/// let resolved = try factory.resolveAccessControl(accessControl: .biometrycurrentset)
 /// ```
 ///
 /// @since 6.0.0
 final class AccessControlFactory {
   private let availabilityResolver: SecurityAvailabilityResolver
-  private let workQueue: DispatchQueue
 
   /// Initialize the access control factory.
   ///
   /// - Parameters:
   ///   - availabilityResolver: Resolves available security features
-  ///   - workQueue: Dispatch queue for Keychain operations
   init(
-    availabilityResolver: SecurityAvailabilityResolver,
-    workQueue: DispatchQueue? = nil
+    availabilityResolver: SecurityAvailabilityResolver
   ) {
     self.availabilityResolver = availabilityResolver
-    self.workQueue = workQueue ?? DispatchQueue(label: "com.mcodex.sensitiveinfo.accesscontrol", qos: .userInitiated)
   }
 
   /// Resolve the best available access control policy.
@@ -46,45 +42,53 @@ final class AccessControlFactory {
   /// 5. Return resolved policy with security level and accessible attribute
   ///
   /// - Parameter accessControl: Requested access control level
-  /// - Returns: Promise resolving to ResolvedAccessControl
+  /// - Returns: ResolvedAccessControl with matching security level
   /// - Throws: RuntimeError if access control creation fails
-  func resolve(accessControl: AccessControl) -> Promise<ResolvedAccessControl> {
-    Promise.parallel(workQueue) { [self] in
-      let availability = availabilityResolver.resolveAvailability()
+  func resolveAccessControl(accessControl: AccessControl) throws -> ResolvedAccessControl {
+    let availability = availabilityResolver.resolve()
 
-      switch accessControl {
-      case .standard:
-        return ResolvedAccessControl(
-          accessControl: .standard,
-          securityLevel: .standard,
-          accessible: kSecAttrAccessibleWhenUnlocked,
-          accessControlRef: nil
-        )
+    switch accessControl {
+    case .none:
+      return ResolvedAccessControl(
+        accessControl: .none,
+        securityLevel: .software,
+        accessible: kSecAttrAccessibleWhenUnlocked,
+        accessControlRef: nil
+      )
 
-      case .strongBox:
-        guard availability.strongBox else {
-          // Fall back to device credential
-          return try createDeviceCredentialControl()
-        }
-        return try createStrongBoxControl()
-
-      case .biometric:
-        guard availability.biometry else {
-          // Fall back to device credential
-          return try createDeviceCredentialControl()
-        }
-        return try createBiometricControl()
-
-      case .deviceCredential:
+    case .strongbox:
+      guard availability.strongBox else {
+        // Fall back to device credential
         return try createDeviceCredentialControl()
-
-      case .secureEnclave:
-        guard availability.secureEnclave else {
-          // Fall back to device credential
-          return try createDeviceCredentialControl()
-        }
-        return try createSecureEnclaveControl()
       }
+      return try createStrongBoxControl()
+
+    case .biometrycurrentset:
+      guard availability.biometry else {
+        // Fall back to device credential
+        return try createDeviceCredentialControl()
+      }
+      return try createBiometricControl()
+
+    case .devicepasscode:
+      return try createDeviceCredentialControl()
+
+    case .secureenclavebiometry:
+      guard availability.secureEnclave else {
+        // Fall back to device credential
+        return try createDeviceCredentialControl()
+      }
+      return try createSecureEnclaveControl()
+    
+    case .biometryany:
+      guard availability.biometry else {
+        // Fall back to device credential
+        return try createDeviceCredentialControl()
+      }
+      return try createBiometricControl()
+    
+    @unknown default:
+      return try createDeviceCredentialControl()
     }
   }
 
@@ -93,9 +97,9 @@ final class AccessControlFactory {
   /// - Returns: ResolvedAccessControl configured for biometric
   /// - Throws: RuntimeError if SecAccessControl creation fails
   private func createBiometricControl() throws -> ResolvedAccessControl {
-    var error: Throwable?
+    var error: Unmanaged<CFError>?
     let control = SecAccessControlCreateWithFlags(
-      nil,
+      kCFAllocatorDefault,
       kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       [.biometryCurrentSet, .privateKeyUsage],
       &error
@@ -106,8 +110,8 @@ final class AccessControlFactory {
     }
 
     return ResolvedAccessControl(
-      accessControl: .biometric,
-      securityLevel: .biometric,
+      accessControl: .biometrycurrentset,
+      securityLevel: .biometry,
       accessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       accessControlRef: control
     )
@@ -118,9 +122,9 @@ final class AccessControlFactory {
   /// - Returns: ResolvedAccessControl configured for device credentials
   /// - Throws: RuntimeError if SecAccessControl creation fails
   private func createDeviceCredentialControl() throws -> ResolvedAccessControl {
-    var error: Throwable?
+    var error: Unmanaged<CFError>?
     let control = SecAccessControlCreateWithFlags(
-      nil,
+      kCFAllocatorDefault,
       kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       [.devicePasscode, .privateKeyUsage],
       &error
@@ -131,8 +135,8 @@ final class AccessControlFactory {
     }
 
     return ResolvedAccessControl(
-      accessControl: .deviceCredential,
-      securityLevel: .deviceCredential,
+      accessControl: .devicepasscode,
+      securityLevel: .devicecredential,
       accessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       accessControlRef: control
     )
@@ -146,9 +150,9 @@ final class AccessControlFactory {
   /// - Returns: ResolvedAccessControl configured for Secure Enclave
   /// - Throws: RuntimeError if creation fails
   private func createSecureEnclaveControl() throws -> ResolvedAccessControl {
-    var error: Throwable?
+    var error: Unmanaged<CFError>?
     let control = SecAccessControlCreateWithFlags(
-      nil,
+      kCFAllocatorDefault,
       kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       [.privateKeyUsage],
       &error
@@ -159,8 +163,8 @@ final class AccessControlFactory {
     }
 
     return ResolvedAccessControl(
-      accessControl: .secureEnclave,
-      securityLevel: .hardwareBacked,
+      accessControl: .secureenclavebiometry,
+      securityLevel: .secureenclave,
       accessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       accessControlRef: control
     )
@@ -173,9 +177,9 @@ final class AccessControlFactory {
   /// - Returns: ResolvedAccessControl configured for StrongBox
   /// - Throws: RuntimeError if creation fails
   private func createStrongBoxControl() throws -> ResolvedAccessControl {
-    var error: Throwable?
+    var error: Unmanaged<CFError>?
     let control = SecAccessControlCreateWithFlags(
-      nil,
+      kCFAllocatorDefault,
       kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       [.biometryCurrentSet, .privateKeyUsage],
       &error
@@ -186,27 +190,10 @@ final class AccessControlFactory {
     }
 
     return ResolvedAccessControl(
-      accessControl: .strongBox,
-      securityLevel: .hardwareBacked,
+      accessControl: .strongbox,
+      securityLevel: .strongbox,
       accessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
       accessControlRef: control
     )
   }
-}
-
-/// Resolved access control with metadata.
-///
-/// Contains the SecAccessControl object and related metadata needed by Keychain operations.
-struct ResolvedAccessControl {
-  /// The access control enum value
-  let accessControl: AccessControl
-
-  /// The security level achieved
-  let securityLevel: SecurityLevel
-
-  /// The kSecAttrAccessible attribute value
-  let accessible: CFString
-
-  /// The SecAccessControl reference (nil for software-only policies)
-  let accessControlRef: SecAccessControl?
 }

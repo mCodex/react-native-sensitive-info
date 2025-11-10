@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 import Security
+import NitroModules
 
 /// Protocol for managing authentication and biometric operations.
 ///
