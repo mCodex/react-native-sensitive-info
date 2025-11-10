@@ -180,7 +180,7 @@ final class CryptoService {
   ///   - accessControl: Access control policy for key storage
   /// - Returns: 32-byte key data
   /// - Throws: RuntimeError if generation or storage fails
-  private func createOrRetrieveEncryptionKey(
+  func createOrRetrieveEncryptionKey(
     alias: String,
     accessControl: SecAccessControl?
   ) throws -> Data {

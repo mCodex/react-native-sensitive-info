@@ -1,12 +1,20 @@
 package com.sensitiveinfo
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.sensitiveinfo.*
+import com.sensitiveinfo.internal.auth.AndroidAuthenticationManager
+import com.sensitiveinfo.internal.auth.AuthenticationManager
 import com.sensitiveinfo.internal.auth.BiometricAuthenticator
+import com.sensitiveinfo.internal.crypto.AccessControlManager
 import com.sensitiveinfo.internal.crypto.AccessControlResolver
+import com.sensitiveinfo.internal.crypto.AndroidAccessControlManager
 import com.sensitiveinfo.internal.crypto.CryptoManager
 import com.sensitiveinfo.internal.crypto.SecurityAvailabilityResolver
+import com.sensitiveinfo.internal.metadata.AndroidMetadataManagerImpl
+import com.sensitiveinfo.internal.metadata.MetadataManager
 import com.sensitiveinfo.internal.response.ResponseBuilder
 import com.sensitiveinfo.internal.response.StandardResponseBuilder
 import com.sensitiveinfo.internal.storage.PersistedEntry
@@ -41,10 +49,14 @@ import kotlin.jvm.Volatile
  * @since 6.0.0
  */
 final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
+  
   private data class Dependencies(
     val context: Context,
     val storage: SecureStorage,
     val cryptoManager: CryptoManager,
+    val metadataManager: MetadataManager,
+    val authenticationManager: AuthenticationManager,
+    val accessControlManager: AccessControlManager,
     val accessControlResolver: AccessControlResolver,
     val securityAvailabilityResolver: SecurityAvailabilityResolver,
     val serviceNameResolver: ServiceNameResolver,
@@ -58,8 +70,10 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   private val initializationLock = Any()
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
   private var rotationEventCallback: ((RotationEvent) -> Unit)? = null
-  private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+  private val mainHandler = Handler(Looper.getMainLooper())
   private var rotationCheckRunnable: Runnable? = null
+
+  // MARK: - Initialization
 
   private fun initialize(ctx: Context): Dependencies {
     dependencies?.let { return it }
@@ -72,10 +86,20 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         val authenticator = BiometricAuthenticator()
         val cryptoManager = CryptoManager(authenticator)
 
+        // Initialize specialized managers
+        val metadataManager: MetadataManager = AndroidMetadataManagerImpl()
+        val authenticationManager: AuthenticationManager = AndroidAuthenticationManager(authenticator)
+        val accessControlManager: AccessControlManager = AndroidAccessControlManager(
+          securityAvailabilityResolver
+        )
+
         Dependencies(
           context = ctx,
           storage = SecureStorage(ctx),
           cryptoManager = cryptoManager,
+          metadataManager = metadataManager,
+          authenticationManager = authenticationManager,
+          accessControlManager = accessControlManager,
           accessControlResolver = accessControlResolver,
           securityAvailabilityResolver = securityAvailabilityResolver,
           serviceNameResolver = serviceNameResolver,
@@ -655,15 +679,21 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       var reEncryptedCount = 0
       val errors = mutableListOf<ReEncryptError>()
 
-      // Step 4: Re-encrypt items that use old keys
+      // Step 4: Re-encrypt items that use old keys or have empty metadata alias
       for ((key, entry) in entries) {
         try {
-          if (entry.alias != currentKeyVersion && entry.ciphertext != null && entry.iv != null) {
+          // Re-encrypt if: (1) using old key, (2) metadata alias is empty, or (3) has ciphertext and iv
+          val shouldReEncrypt = (entry.metadata.alias != currentKeyVersion || entry.metadata.alias.isEmpty()) && 
+                                entry.ciphertext != null && entry.iv != null
+          
+          if (shouldReEncrypt) {
             // Get access control from persisted
             val accessControl = accessControlFromPersisted(entry.metadata.accessControl) ?: AccessControl.NONE
             val securityLevel = securityLevelFromPersisted(entry.metadata.securityLevel) ?: SecurityLevel.SOFTWARE
 
-            // Decrypt with old key
+            // Decrypt with old key (use metadata.alias or entry.alias as fallback)
+            val oldKeyAlias = entry.metadata.alias.takeIf { it.isNotEmpty() } ?: entry.alias
+            
             val resolution = deps.cryptoManager.buildResolutionForPersisted(
               accessControl = accessControl,
               securityLevel = securityLevel,
@@ -674,7 +704,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
             )
 
             val plaintext = deps.cryptoManager.decrypt(
-              entry.alias,
+              oldKeyAlias,
               entry.ciphertext,
               entry.iv,
               resolution,
@@ -698,7 +728,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
               null
             )
 
-            // Update storage
+            // Update storage with new key alias
             val updatedEntry = entry.copy(
               ciphertext = encryption.ciphertext,
               iv = encryption.iv,
@@ -797,12 +827,18 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
 
     for ((key, entry) in entries) {
       try {
-        if (entry.metadata.alias != newKeyVersion && entry.ciphertext != null && entry.iv != null) {
+        // Re-encrypt if: (1) using old key, (2) metadata alias is empty, or (3) has ciphertext and iv
+        val shouldReEncrypt = (entry.metadata.alias != newKeyVersion || entry.metadata.alias.isEmpty()) && 
+                              entry.ciphertext != null && entry.iv != null
+        
+        if (shouldReEncrypt) {
           // Get access control from persisted
           val accessControl = accessControlFromPersisted(entry.metadata.accessControl) ?: AccessControl.NONE
           val securityLevel = securityLevelFromPersisted(entry.metadata.securityLevel) ?: SecurityLevel.SOFTWARE
 
-          // Decrypt with old key
+          // Decrypt with old key (use metadata.alias or entry.alias as fallback)
+          val oldKeyAlias = entry.metadata.alias.takeIf { it.isNotEmpty() } ?: entry.alias
+          
           val resolution = deps.cryptoManager.buildResolutionForPersisted(
             accessControl = accessControl,
             securityLevel = securityLevel,
@@ -813,7 +849,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           )
 
           val plaintext = deps.cryptoManager.decrypt(
-            entry.metadata.alias,
+            oldKeyAlias,
             entry.ciphertext,
             entry.iv,
             resolution,
@@ -837,7 +873,7 @@ final class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
             null
           )
 
-          // Update storage
+          // Update storage with new key alias
           val updatedEntry = entry.copy(
             ciphertext = encryption.ciphertext,
             iv = encryption.iv,
