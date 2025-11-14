@@ -1798,17 +1798,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/compat@npm:^1.4.1":
-  version: 1.4.1
-  resolution: "@eslint/compat@npm:1.4.1"
+"@eslint/compat@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@eslint/compat@npm:2.0.0"
   dependencies:
-    "@eslint/core": "npm:^0.17.0"
+    "@eslint/core": "npm:^1.0.0"
   peerDependencies:
     eslint: ^8.40 || 9
   peerDependenciesMeta:
     eslint:
       optional: true
-  checksum: 10/2345ba0991aaf57f79feed0417eac61fd0e09fb1d2f5bc3f723d5790a4f0881cca16b7a48c82555ab907a3469dce7d3cb43cc5e5100c22e2a369a561f4b421cd
+  checksum: 10/b1f63053ac643d47ce44d354a65e095e2b59f6b6aee4d6ca08cfa3b0800fc784bbd6895494ba726479faf9591e8e2887dc13c7a776f0d9627f0fdbf7faa34fdb
   languageName: node
   linkType: hard
 
@@ -1838,6 +1838,15 @@ __metadata:
   dependencies:
     "@types/json-schema": "npm:^7.0.15"
   checksum: 10/f9a428cc651ec15fb60d7d60c2a7bacad4666e12508320eafa98258e976fafaa77d7be7be91519e75f801f15f830105420b14a458d4aab121a2b0a59bc43517b
+  languageName: node
+  linkType: hard
+
+"@eslint/core@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@eslint/core@npm:1.0.0"
+  dependencies:
+    "@types/json-schema": "npm:^7.0.15"
+  checksum: 10/0e2fc001ec3a12a9d6cd5de8eaf6c9eb1deec892777fed04e59eae0f3073c69988451eda32623524db76adaa7075747a8de5aa39b91b9084c711db452194eae9
   languageName: node
   linkType: hard
 
@@ -12086,7 +12095,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-native-sensitive-info@workspace:."
   dependencies:
-    "@eslint/compat": "npm:^1.4.1"
+    "@eslint/compat": "npm:^2.0.0"
     "@eslint/js": "npm:^9.39.0"
     "@jamesacarr/eslint-formatter-github-actions": "npm:^0.2.0"
     "@semantic-release/changelog": "npm:^6.0.3"
