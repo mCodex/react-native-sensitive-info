@@ -50,7 +50,10 @@
   "workspaces": [
     "example"
   ],
-  "repository": "https://github.com/mcodex/react-native-sensitive-info.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcodex/react-native-sensitive-info.git"
+  },
   "author": "Mateus Andrade",
   "license": "MIT",
   "bugs": "https://github.com/mcodex/react-native-sensitive-info/issues",
