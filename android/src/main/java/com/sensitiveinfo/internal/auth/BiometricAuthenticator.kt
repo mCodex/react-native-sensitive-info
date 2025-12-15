@@ -120,12 +120,22 @@ internal class BiometricAuthenticator {
     val builder = BiometricPrompt.PromptInfo.Builder()
       .setTitle(prompt.title)
 
+    // Prefer disabling confirmation on supported devices to streamline UX while maintaining
+    // biometric security. Newer Biometric APIs support `setConfirmationRequired`.
+    try {
+      builder.setConfirmationRequired(false)
+    } catch (_: Throwable) {
+      // Ignore if the platform/library doesn't support this method.
+    }
+
     prompt.subtitle?.let(builder::setSubtitle)
     prompt.description?.let(builder::setDescription)
 
     var promptAuthenticators = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      // Newer biometric library versions (1.4.x+) prefer `setAllowedAuthenticators`.
       allowedAuthenticators
     } else {
+      // On older platforms fall back to the legacy flags.
       allowedAuthenticators and (BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
     }
 
