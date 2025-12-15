@@ -1,0 +1,23 @@
+{
+  "git": {
+    "commitMessage": "chore(release): v${version}",
+    "tagName": "v${version}",
+    "requireCleanWorkingDir": true,
+    "push": true,
+    "requireUpstream": false
+  },
+  "npm": {
+    "publish": true,
+    "verifyAccess": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "tokenRef": "GITHUB_TOKEN"
+  },
+  "hooks": {
+    "before:init": ["npm run typecheck", "npm run build", "npm run codegen"],
+    "after:bump": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0 && git add CHANGELOG.md",
+    "after:release": "git push --follow-tags"
+  }
+}
