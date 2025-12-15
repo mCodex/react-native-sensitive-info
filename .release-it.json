@@ -8,7 +8,8 @@
   },
   "npm": {
     "publish": true,
-    "verifyAccess": true
+    "verifyAccess": true,
+    "tokenRef": "NPM_TOKEN"
   },
   "github": {
     "release": true,
