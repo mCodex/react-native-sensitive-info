@@ -21,7 +21,7 @@ private struct ResolvedAccessControl {
 /// The Swift bridge runs keychain queries on a dedicated queue, encodes consistent metadata, and
 /// returns results that mirror the TypeScript types shipped in the package across iOS, macOS,
 /// visionOS, and watchOS.
-final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
+public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   private let workQueue = DispatchQueue(label: "com.mcodex.sensitiveinfo.keychain", qos: .userInitiated)
   private let encoder: JSONEncoder = {
     let encoder = JSONEncoder()
@@ -47,7 +47,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   /// Stores or replaces an item in the Keychain, returning metadata describing the applied
   /// security policy. If the requested hardware policy is unavailable (for example, simulators with
   /// no passcode), we fall back to a software-only accessibility to keep the call successful.
-  func setItem(request: SensitiveInfoSetRequest) throws -> Promise<MutationResult> {
+  public func setItem(request: SensitiveInfoSetRequest) throws -> Promise<MutationResult> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let resolved = try resolveAccessControl(preferred: request.accessControl)
@@ -105,7 +105,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Fetches a single item and optionally includes the plaintext value if the client requested it.
-  func getItem(request: SensitiveInfoGetRequest) throws -> Promise<SensitiveInfoItem?> {
+  public func getItem(request: SensitiveInfoGetRequest) throws -> Promise<Variant_NullType_SensitiveInfoItem> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let includeValue = request.includeValue ?? true
@@ -123,15 +123,16 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       }
 
       guard let raw = try copyMatching(query: query, prompt: request.authenticationPrompt) as? NSDictionary else {
-        return nil
+        return Variant_NullType_SensitiveInfoItem.first(NullType.null)
       }
 
-      return try makeItem(from: raw, includeValue: includeValue)
+      let item = try makeItem(from: raw, includeValue: includeValue)
+      return Variant_NullType_SensitiveInfoItem.second(item)
     }
   }
 
   /// Removes a specific key/service pair from the Keychain.
-  func deleteItem(request: SensitiveInfoDeleteRequest) throws -> Promise<Bool> {
+  public func deleteItem(request: SensitiveInfoDeleteRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let query = makeBaseQuery(
@@ -154,7 +155,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Checks for existence without allocating an item payload.
-  func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
+  public func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       var query = makeBaseQuery(
@@ -176,7 +177,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   /// ```ts
   /// const items = await SensitiveInfo.getAllItems({ service: 'vault', includeValues: true })
   /// ```
-  func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
+  public func getAllItems(request: SensitiveInfoEnumerateRequest?) throws -> Promise<[SensitiveInfoItem]> {
     Promise.parallel(workQueue) { [self] in
       let includeValues = request?.includeValues ?? false
       let service = normalizedService(request?.service)
@@ -205,7 +206,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   /// Deletes all items for the requested service.
-  func clearService(request: SensitiveInfoOptions?) throws -> Promise<Void> {
+  public func clearService(request: SensitiveInfoOptions?) throws -> Promise<Void> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request?.service)
       let query = makeBaseQuery(
@@ -225,7 +226,7 @@ final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
   }
 
-  func getSupportedSecurityLevels() throws -> Promise<SecurityAvailability> {
+  public func getSupportedSecurityLevels() throws -> Promise<SecurityAvailability> {
     Promise.resolved(withResult: resolveAvailability())
   }
 

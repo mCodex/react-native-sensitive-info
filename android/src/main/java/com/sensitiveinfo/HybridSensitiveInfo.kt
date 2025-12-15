@@ -1,5 +1,8 @@
 package com.sensitiveinfo
 
+import androidx.annotation.Keep
+import com.facebook.proguard.annotations.DoNotStrip
+
 import android.content.Context
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.sensitiveinfo.*
@@ -24,6 +27,8 @@ import kotlin.jvm.Volatile
  * This class provides secure storage for sensitive data on Android using the Android Keystore
  * for key management and SharedPreferences for encrypted data persistence.
  */
+@DoNotStrip
+@Keep
 class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   private data class Dependencies(
     val context: Context,
@@ -98,14 +103,33 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     }
   }
 
-  override fun getItem(request: SensitiveInfoGetRequest): Promise<SensitiveInfoItem?> {
+  override fun getItem(request: SensitiveInfoGetRequest): Promise<Variant_NullType_SensitiveInfoItem> {
     return Promise.async(coroutineScope) {
       val deps = ensureInitialized()
       val service = deps.serviceNameResolver.resolve(request.service)
 
       val entry = deps.storage.read(service, request.key)
+      
       if (entry == null) {
-        return@async null
+        try {
+          val ctor = com.margelo.nitro.core.NullType::class.java.getDeclaredConstructor()
+          ctor.isAccessible = true
+          val nullTypeInstance = ctor.newInstance()
+          return@async Variant_NullType_SensitiveInfoItem.create(nullTypeInstance)
+        } catch (e: Throwable) {
+          // Fallback: create a null-type via unsafe camino — return a Second with empty SensitiveInfoItem omitted
+          return@async Variant_NullType_SensitiveInfoItem.create(com.margelo.nitro.sensitiveinfo.SensitiveInfoItem(
+            key = request.key,
+            service = service,
+            value = null,
+            metadata = StorageMetadata(
+              securityLevel = SecurityLevel.SOFTWARE,
+              backend = StorageBackend.ANDROIDKEYSTORE,
+              accessControl = AccessControl.NONE,
+              timestamp = System.currentTimeMillis() / 1000.0
+            )
+          ))
+        }
       }
 
       val metadata = entry.metadata.toStorageMetadata()
@@ -131,15 +155,17 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         null
       }
 
-      SensitiveInfoItem(
-        key = request.key,
-        service = service,
-        value = value,
-        metadata = metadata ?: StorageMetadata(
-          securityLevel = SecurityLevel.SOFTWARE,
-          backend = StorageBackend.ANDROIDKEYSTORE,
-          accessControl = AccessControl.NONE,
-          timestamp = System.currentTimeMillis() / 1000.0
+      Variant_NullType_SensitiveInfoItem.create(
+        SensitiveInfoItem(
+          key = request.key,
+          service = service,
+          value = value,
+          metadata = metadata ?: StorageMetadata(
+            securityLevel = SecurityLevel.SOFTWARE,
+            backend = StorageBackend.ANDROIDKEYSTORE,
+            accessControl = AccessControl.NONE,
+            timestamp = System.currentTimeMillis() / 1000.0
+          )
         )
       )
     }
