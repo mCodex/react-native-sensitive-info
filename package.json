@@ -1,6 +1,6 @@
 {
   "name": "react-native-sensitive-info",
-  "version": "6.0.0-rc.11",
+  "version": "6.0.0-rc.12",
   "description": "🔐 React Native secure storage, rebuilt with Nitro Modules ⚡️ Biometric-ready, StrongBox-aware, and metadata-rich for modern mobile apps",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
