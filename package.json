@@ -95,7 +95,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.83",
-    "react-native-builder-bob": "^0.40.17",
+    "react-native-builder-bob": "^0.41.0",
     "react-native-nitro-modules": "0.31.10",
     "release-it": "^19.1.0",
     "semantic-release": "^25.0.2",
