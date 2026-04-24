@@ -1,24 +1,18 @@
 {
-  "$schema": "https://nitro.margelo.com/nitro.schema.json",
-  "cxxNamespace": [
-    "sensitiveinfo"
-  ],
-  "ios": {
-    "iosModuleName": "SensitiveInfo"
-  },
-  "android": {
-    "androidNamespace": [
-      "sensitiveinfo"
-    ],
-    "androidCxxLibName": "SensitiveInfo"
-  },
-  "autolinking": {
-    "SensitiveInfo": {
-      "swift": "HybridSensitiveInfo",
-      "kotlin": "HybridSensitiveInfo"
-    }
-  },
-  "ignorePaths": [
-    "**/node_modules"
-  ]
+	"$schema": "https://nitro.margelo.com/nitro.schema.json",
+	"cxxNamespace": ["sensitiveinfo"],
+	"ios": {
+		"iosModuleName": "SensitiveInfo"
+	},
+	"android": {
+		"androidNamespace": ["sensitiveinfo"],
+		"androidCxxLibName": "SensitiveInfo"
+	},
+	"autolinking": {
+		"SensitiveInfo": {
+			"swift": "HybridSensitiveInfo",
+			"kotlin": "HybridSensitiveInfo"
+		}
+	},
+	"ignorePaths": ["**/node_modules"]
 }

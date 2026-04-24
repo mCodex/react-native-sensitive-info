@@ -1,15 +1,15 @@
-import { useCallback, useState } from 'react';
-import { createInitialVoidState } from './types';
-import type { VoidAsyncState } from './types';
-import useAsyncLifecycle from './useAsyncLifecycle';
-import createHookError, { isAuthenticationCanceledError } from './error-utils';
+import { useCallback, useState } from 'react'
+import createHookError, { isAuthenticationCanceledError } from './error-utils'
+import type { VoidAsyncState } from './types'
+import { createInitialVoidState } from './types'
+import useAsyncLifecycle from './useAsyncLifecycle'
 
 /**
  * Result returned by {@link useSecureOperation}.
  */
 export interface UseSecureOperationResult extends VoidAsyncState {
-  /** Executes the secured procedure while tracking loading and error state. */
-  readonly execute: (operation: () => Promise<void>) => Promise<void>;
+	/** Executes the secured procedure while tracking loading and error state. */
+	readonly execute: (operation: () => Promise<void>) => Promise<void>
 }
 
 /**
@@ -23,56 +23,56 @@ export interface UseSecureOperationResult extends VoidAsyncState {
  * ```
  */
 export function useSecureOperation(): UseSecureOperationResult {
-  const [state, setState] = useState<VoidAsyncState>(createInitialVoidState());
-  const { begin, mountedRef } = useAsyncLifecycle();
+	const [state, setState] = useState<VoidAsyncState>(createInitialVoidState())
+	const { begin, mountedRef } = useAsyncLifecycle()
 
-  const execute = useCallback(
-    async (operation: () => Promise<void>) => {
-      const controller = begin();
+	const execute = useCallback(
+		async (operation: () => Promise<void>) => {
+			const controller = begin()
 
-      setState({
-        error: null,
-        isLoading: true,
-        isPending: true,
-      });
+			setState({
+				error: null,
+				isLoading: true,
+				isPending: true,
+			})
 
-      try {
-        await operation();
+			try {
+				await operation()
 
-        if (mountedRef.current && !controller.signal.aborted) {
-          setState({
-            error: null,
-            isLoading: false,
-            isPending: false,
-          });
-        }
-      } catch (errorLike) {
-        if (mountedRef.current && !controller.signal.aborted) {
-          if (isAuthenticationCanceledError(errorLike)) {
-            setState({
-              error: null,
-              isLoading: false,
-              isPending: false,
-            });
-          } else {
-            setState({
-              error: createHookError(
-                'useSecureOperation.execute',
-                errorLike,
-                'Review the async callback passed to execute() for thrown errors.'
-              ),
-              isLoading: false,
-              isPending: false,
-            });
-          }
-        }
-      }
-    },
-    [begin, mountedRef]
-  );
+				if (mountedRef.current && !controller.signal.aborted) {
+					setState({
+						error: null,
+						isLoading: false,
+						isPending: false,
+					})
+				}
+			} catch (errorLike) {
+				if (mountedRef.current && !controller.signal.aborted) {
+					if (isAuthenticationCanceledError(errorLike)) {
+						setState({
+							error: null,
+							isLoading: false,
+							isPending: false,
+						})
+					} else {
+						setState({
+							error: createHookError(
+								'useSecureOperation.execute',
+								errorLike,
+								'Review the async callback passed to execute() for thrown errors.'
+							),
+							isLoading: false,
+							isPending: false,
+						})
+					}
+				}
+			}
+		},
+		[begin, mountedRef]
+	)
 
-  return {
-    ...state,
-    execute,
-  };
+	return {
+		...state,
+		execute,
+	}
 }

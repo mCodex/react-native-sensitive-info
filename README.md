@@ -32,6 +32,9 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 - [📚 API reference](#-api-reference)
 - [🔐 Access control & metadata](#-access-control--metadata)
 - [❗ Error handling](#-error-handling)
+- [🔁 Key rotation](#-key-rotation)
+- [🛡️ Security model](#-security-model)
+- [🌳 Tree-shaking](#-tree-shaking)
 - [🧪 Simulators and emulators](#-simulators-and-emulators)
 - [📈 Performance benchmarks](#-performance-benchmarks)
 - [🎮 Example application](#-example-application)
@@ -150,7 +153,7 @@ import { Text, View, ActivityIndicator } from 'react-native'
 import {
   useSecureStorage,
   useSecurityAvailability,
-} from 'react-native-sensitive-info'
+} from 'react-native-sensitive-info/hooks'
 
 // Use hooks directly in any component - no provider needed!
 function YourComponent() {
@@ -193,6 +196,7 @@ function YourComponent() {
 | `useSecret()` | Single secret + mutations | `{ data, isLoading, error, saveSecret, deleteSecret, refetch }` |
 | `useHasSecret()` | Check if secret exists (lightweight) | `{ data (boolean), isLoading, error, refetch }` |
 | `useSecurityAvailability()` | Query device capabilities (cached) | `{ data, isLoading, error, refetch }` |
+| `useKeyRotation()` | Rotate the master key for a service | `{ lastResult, error, isRotating, rotate, readVersion }` |
 
 ### Best practices
 
@@ -232,7 +236,7 @@ Biometric or device-credential prompts cancelled by the user now surface as a fr
 
 ```tsx
 import { Text } from 'react-native'
-import { useSecureStorage } from 'react-native-sensitive-info'
+import { useSecureStorage } from 'react-native-sensitive-info/hooks'
 
 function SecretsList() {
   const { items, error } = useSecureStorage({ service: 'auth', includeValues: true })
@@ -260,6 +264,88 @@ function SecretsList() {
 
 > [!TIP]
 > When using the imperative API, look for the `[E_AUTH_CANCELED]` marker in the thrown error message to detect cancellations.
+
+## 🔁 Key rotation
+
+The library supports **versioned master keys** with lazy re-encryption. Each stored entry is tagged with the `keyVersion` that produced its ciphertext. Calling `rotateKeys()` bumps the active version; subsequent reads transparently re-encrypt entries that were stored under older versions.
+
+```tsx
+import { rotateKeys, getKeyVersion } from 'react-native-sensitive-info'
+
+// Lazy rotation — new writes use v+1, reads upgrade older entries as they happen
+await rotateKeys({ service: 'auth' })
+
+// Eager rotation — walks every entry in the service and re-encrypts in one go
+await rotateKeys({ service: 'auth', reEncryptEagerly: true })
+
+// Inspect the currently active version for telemetry
+const version = await getKeyVersion({ service: 'auth' })
+```
+
+Or with the hook:
+
+```tsx
+import { useKeyRotation } from 'react-native-sensitive-info/hooks'
+
+function RotationButton() {
+  const { rotate, isRotating, lastResult, error } = useKeyRotation({
+    service: 'auth',
+  })
+
+  return (
+    <Button
+      title={isRotating ? 'Rotating…' : 'Rotate master key'}
+      onPress={rotate}
+      disabled={isRotating}
+    />
+  )
+}
+```
+
+## 🛡️ Security model
+
+| Concern | Android | iOS / Apple platforms |
+| --- | --- | --- |
+| Master key | Android Keystore (`AES/GCM`, StrongBox when available) | Secure Enclave-gated (P-256) + AES-GCM |
+| Authentication | BiometricPrompt (Class 3 preferred), device credential fallback | LAContext / Face ID / Touch ID / Optic ID |
+| At-rest integrity | AES-GCM authentication tag | AES-GCM authentication tag |
+| Key rotation | Versioned Keystore aliases, lazy re-encryption | Versioned KEKs, lazy re-wrap |
+| Error classification | Typed `SensitiveInfoError` subclasses via `/errors` subpath | Same |
+
+Typed errors can be imported from the `/errors` subpath for tree-shakeable error handling:
+
+```tsx
+import {
+  isNotFoundError,
+  isAuthenticationCanceledError,
+  isIntegrityViolationError,
+  isKeyInvalidatedError,
+} from 'react-native-sensitive-info/errors'
+
+try {
+  await getItem('token', { service: 'auth' })
+} catch (error) {
+  if (isAuthenticationCanceledError(error)) return
+  if (isKeyInvalidatedError(error)) {
+    // The hardware key was invalidated (e.g. biometrics re-enrolled).
+    // Delete the affected entry and ask the user to re-enter.
+    await deleteItem('token', { service: 'auth' })
+  }
+  throw error
+}
+```
+
+## 🌳 Tree-shaking
+
+Every entry point is side-effect-free (`"sideEffects": false`) and split into focused subpaths:
+
+| Import | Contents |
+| --- | --- |
+| `react-native-sensitive-info` | `setItem`, `getItem`, `hasItem`, `deleteItem`, `getAllItems`, `clearService`, `getSupportedSecurityLevels`, `rotateKeys`, `getKeyVersion`, type exports |
+| `react-native-sensitive-info/hooks` | Every React hook (`useSecret`, `useSecureStorage`, `useKeyRotation`, …) |
+| `react-native-sensitive-info/errors` | Typed error classes + `instanceof` predicates |
+
+There is **no default export** — import only the helpers you use and modern bundlers (Metro, Webpack, Rollup, esbuild) will drop the rest.
 
 ## Imperative API
 

@@ -1,10 +1,10 @@
 export interface HookErrorOptions {
-  /** Root cause object forwarded from the underlying API. */
-  readonly cause?: unknown;
-  /** Identifier describing the hook operation that failed (for example, `useSecretItem.fetch`). */
-  readonly operation?: string;
-  /** Human-friendly hint rendered alongside the message. */
-  readonly hint?: string;
+	/** Root cause object forwarded from the underlying API. */
+	readonly cause?: unknown
+	/** Identifier describing the hook operation that failed (for example, `useSecretItem.fetch`). */
+	readonly operation?: string
+	/** Human-friendly hint rendered alongside the message. */
+	readonly hint?: string
 }
 
 /**
@@ -12,94 +12,94 @@ export interface HookErrorOptions {
  * Carries additional metadata to help debug issues in VS Code tooltips.
  */
 export class HookError extends Error {
-  readonly operation?: string;
+	readonly operation?: string
 
-  readonly hint?: string;
+	readonly hint?: string
 
-  constructor(
-    message: string,
-    { cause, operation, hint }: HookErrorOptions = {}
-  ) {
-    super(message, { cause });
-    this.name = 'HookError';
-    this.operation = operation;
-    this.hint = hint;
-  }
+	constructor(
+		message: string,
+		{ cause, operation, hint }: HookErrorOptions = {}
+	) {
+		super(message, { cause })
+		this.name = 'HookError'
+		this.operation = operation
+		this.hint = hint
+	}
 }
 
 /**
  * Canonical async state contract returned by most hooks.
  */
 export interface AsyncState<T> {
-  readonly data: T | null;
-  readonly error: HookError | null;
-  readonly isLoading: boolean;
-  readonly isPending: boolean;
+	readonly data: T | null
+	readonly error: HookError | null
+	readonly isLoading: boolean
+	readonly isPending: boolean
 }
 
 /**
  * Async state contract used by operations that do not emit data.
  */
 export interface VoidAsyncState {
-  readonly error: HookError | null;
-  readonly isLoading: boolean;
-  readonly isPending: boolean;
+	readonly error: HookError | null
+	readonly isLoading: boolean
+	readonly isPending: boolean
 }
 
 /**
  * Successful outcome produced by hook mutation helpers.
  */
 export interface HookSuccessResult {
-  readonly success: true;
-  readonly error?: undefined;
+	readonly success: true
+	readonly error?: undefined
 }
 
 /**
  * Failure outcome produced by hook mutation helpers.
  */
 export interface HookFailureResult {
-  readonly success: false;
-  readonly error: HookError;
+	readonly success: false
+	readonly error: HookError
 }
 
 /**
  * Combined type returned by hook mutation helpers (`saveSecret`, `clearAll`, ...).
  */
-export type HookMutationResult = HookSuccessResult | HookFailureResult;
+export type HookMutationResult = HookSuccessResult | HookFailureResult
 
 /**
  * Factory used to initialise {@link AsyncState} values.
  */
 export function createInitialAsyncState<T>(): AsyncState<T> {
-  return {
-    data: null,
-    error: null,
-    isLoading: true,
-    isPending: false,
-  };
+	return {
+		data: null,
+		error: null,
+		isLoading: true,
+		isPending: false,
+	}
 }
 
 /**
  * Factory used to initialise {@link VoidAsyncState} values.
  */
 export function createInitialVoidState(): VoidAsyncState {
-  return {
-    error: null,
-    isLoading: false,
-    isPending: false,
-  };
+	return {
+		error: null,
+		isLoading: false,
+		isPending: false,
+	}
 }
 
 /**
  * Helper used to return a canonical success result from mutation helpers.
  */
 export function createHookSuccessResult(): HookSuccessResult {
-  return { success: true };
+	return { success: true }
 }
 
 /**
  * Helper used to return a canonical failure result from mutation helpers.
  */
 export function createHookFailureResult(error: HookError): HookFailureResult {
-  return { success: false, error };
+	return { success: false, error }
 }

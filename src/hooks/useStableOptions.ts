@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react'
 
 /**
  * Ensures that option objects remain referentially stable between renders without sacrificing readability.
@@ -13,23 +13,23 @@ import { useMemo, useRef } from 'react';
  * ```
  */
 const useStableOptions = <T extends object>(
-  defaults: Partial<T>,
-  options?: Partial<T> | null
+	defaults: Partial<T>,
+	options?: Partial<T> | null
 ): T => {
-  const cacheKeyRef = useRef<string>('');
-  const valueRef = useRef<T | null>(null);
+	const cacheKeyRef = useRef<string>('')
+	const valueRef = useRef<T | null>(null)
 
-  return useMemo(() => {
-    const serialized = JSON.stringify(options ?? null);
-    if (serialized === cacheKeyRef.current && valueRef.current != null) {
-      return valueRef.current;
-    }
+	return useMemo(() => {
+		const serialized = JSON.stringify(options ?? null)
+		if (serialized === cacheKeyRef.current && valueRef.current != null) {
+			return valueRef.current
+		}
 
-    const merged = { ...defaults, ...(options ?? {}) } as T;
-    cacheKeyRef.current = serialized;
-    valueRef.current = merged;
-    return merged;
-  }, [options, defaults]);
-};
+		const merged = { ...defaults, ...(options ?? {}) } as T
+		cacheKeyRef.current = serialized
+		valueRef.current = merged
+		return merged
+	}, [options, defaults])
+}
 
-export default useStableOptions;
+export default useStableOptions

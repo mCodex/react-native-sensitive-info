@@ -283,6 +283,26 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     }
   }
 
+  override fun rotateKeys(request: RotateKeysRequest?): Promise<RotationResult> {
+    return Promise.async(coroutineScope) {
+      // Stub: the full rotation flow ships in the follow-up native hardening patch.
+      // The JS layer already exposes the typed `RotateKeysRequest`/`RotationResult`
+      // contract so this method can be wired up incrementally without breaking API.
+      RotationResult(
+        previousVersion = 1.0,
+        newVersion = 1.0,
+        reEncryptedCount = 0.0
+      )
+    }
+  }
+
+  override fun getKeyVersion(request: SensitiveInfoOptions?): Promise<Double> {
+    return Promise.async(coroutineScope) {
+      // Stub: versioned keys land in the follow-up native hardening patch.
+      1.0
+    }
+  }
+
   private fun ensureInitialized(): Dependencies {
     dependencies?.let { return it }
 

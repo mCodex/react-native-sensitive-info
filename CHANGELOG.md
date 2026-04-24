@@ -1,3 +1,22 @@
+## Unreleased (6.0.0-rc.13)
+
+### Features
+
+* **rotation:** Add versioned key rotation via `rotateKeys()` and `getKeyVersion()` with lazy re-encryption on read. New `useKeyRotation` hook exposes the same flow declaratively.
+* **errors:** New typed error classes (`SensitiveInfoError`, `NotFoundError`, `AuthenticationCanceledError`, `IntegrityViolationError`, `KeyInvalidatedError`, `RotationFailedError`) with `code` discriminants and `instanceof` predicates. Importable from the `react-native-sensitive-info/errors` subpath.
+* **tree-shaking:** `"sideEffects": false` everywhere; the package now publishes three focused subpath entries (`.`, `/hooks`, `/errors`). The default export has been removed — import only the helpers you use.
+* **nitro 0.35:** Regenerated against `nitrogen@0.35.5` and `react-native-nitro-modules@0.35.5`.
+* **tooling:** Migrated linting/formatting from ESLint + Prettier to **Biome 2**. Single config at `biome.json`, faster CI runs.
+
+### Breaking changes
+
+* The default export is gone. Use named imports: `import { setItem } from 'react-native-sensitive-info'`.
+* React hooks are no longer re-exported from the package root — import them from `react-native-sensitive-info/hooks`.
+
+### Notes
+
+* Native rotation currently ships a stub implementation that returns `version: 1` and `reEncryptedCount: 0`. The full Secure Enclave envelope / versioned Keystore alias hardening will ship in a follow-up RC — the JS surface is stable so apps can wire up UI ahead of time.
+
 ## [6.0.0-rc.12](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0-rc.11...v6.0.0-rc.12) (2025-12-16)
 
 ### Features

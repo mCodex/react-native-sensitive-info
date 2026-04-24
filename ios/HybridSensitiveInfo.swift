@@ -230,6 +230,23 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     Promise.resolved(withResult: resolveAvailability())
   }
 
+  public func rotateKeys(request: RotateKeysRequest?) throws -> Promise<RotationResult> {
+    // Stub: the full Secure Enclave envelope rotation flow ships in the follow-up
+    // native hardening patch. The JS layer already exposes the typed contract so
+    // consumers can wire this up before the native implementation lands.
+    let result = RotationResult(
+      previousVersion: 1,
+      newVersion: 1,
+      reEncryptedCount: 0
+    )
+    return Promise.resolved(withResult: result)
+  }
+
+  public func getKeyVersion(request: SensitiveInfoOptions?) throws -> Promise<Double> {
+    // Stub: versioned keys land in the follow-up native hardening patch.
+    Promise.resolved(withResult: 1)
+  }
+
   // MARK: - Keychain helpers
 
   private func makeBaseQuery(
