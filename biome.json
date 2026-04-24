@@ -1,0 +1,69 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+	"files": {
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/lib",
+			"!**/build",
+			"!**/dist",
+			"!**/coverage",
+			"!**/nitrogen/generated",
+			"!**/android",
+			"!**/ios",
+			"!example/vendor",
+			"!example/ios",
+			"!example/android",
+			"!**/*.min.js",
+			"!**/*.bundle.js"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"indentWidth": 2,
+		"lineWidth": 80
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"correctness": {
+				"noUnusedImports": "error",
+				"noUnusedVariables": "error",
+				"noUnusedFunctionParameters": "warn",
+				"noUnusedPrivateClassMembers": "error"
+			},
+			"style": {
+				"useImportType": "error",
+				"useConsistentArrayType": "error"
+			},
+			"suspicious": {
+				"noExplicitAny": "warn"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"semicolons": "asNeeded",
+			"trailingCommas": "es5",
+			"quoteProperties": "preserve"
+		}
+	},
+	"assist": {
+		"enabled": true,
+		"actions": { "source": { "organizeImports": "on" } }
+	},
+	"overrides": [
+		{
+			"includes": ["src/sensitive-info.nitro.ts", "src/__tests__/**"],
+			"linter": {
+				"rules": {
+					"suspicious": { "noExplicitAny": "off" }
+				}
+			}
+		}
+	]
+}
