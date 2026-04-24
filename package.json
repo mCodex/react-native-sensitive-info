@@ -7,6 +7,31 @@
 	"types": "./lib/typescript/src/index.d.ts",
 	"react-native": "src/index",
 	"source": "src/index",
+	"sideEffects": false,
+	"exports": {
+		".": {
+			"types": "./lib/typescript/src/index.d.ts",
+			"react-native": "./src/index.ts",
+			"import": "./lib/module/index.js",
+			"require": "./lib/commonjs/index.js",
+			"default": "./lib/module/index.js"
+		},
+		"./hooks": {
+			"types": "./lib/typescript/src/hooks/index.d.ts",
+			"react-native": "./src/hooks/index.ts",
+			"import": "./lib/module/hooks/index.js",
+			"require": "./lib/commonjs/hooks/index.js",
+			"default": "./lib/module/hooks/index.js"
+		},
+		"./errors": {
+			"types": "./lib/typescript/src/errors.d.ts",
+			"react-native": "./src/errors.ts",
+			"import": "./lib/module/errors.js",
+			"require": "./lib/commonjs/errors.js",
+			"default": "./lib/module/errors.js"
+		},
+		"./package.json": "./package.json"
+	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"clean": "git clean -dfX",
@@ -81,7 +106,7 @@
 		"jiti": "^2.6.1",
 		"nitrogen": "0.35.5",
 		"react": "19.2.3",
-		"react-dom": "19.2.5",
+		"react-dom": "19.2.3",
 		"react-native": "0.85.2",
 		"react-native-builder-bob": "^0.41.0",
 		"react-native-nitro-modules": "0.35.5",

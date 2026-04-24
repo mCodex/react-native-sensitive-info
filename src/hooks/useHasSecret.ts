@@ -1,117 +1,42 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { SensitiveInfoOptions } from '../sensitive-info.nitro';
-import { hasItem } from '../core/storage';
-import { createInitialAsyncState } from './types';
-import type { AsyncState } from './types';
-import useAsyncLifecycle from './useAsyncLifecycle';
-import useStableOptions from './useStableOptions';
-import createHookError, { isAuthenticationCanceledError } from './error-utils';
+import { useCallback, useMemo } from 'react'
+import { hasItem } from '../core/storage'
+import type { SensitiveInfoOptions } from '../sensitive-info.nitro'
+import type { AsyncState } from './types'
+import useAsync from './useAsync'
+import useStableOptions from './useStableOptions'
 
-/**
- * Options accepted by {@link useHasSecret}.
- */
 export interface UseHasSecretOptions extends SensitiveInfoOptions {
-  /** Disable the automatic existence check while still exposing {@link UseHasSecretResult.refetch}. */
-  readonly skip?: boolean;
+	/** Disable the automatic existence check while still exposing `refetch`. */
+	readonly skip?: boolean
 }
 
-const DEFAULTS: Required<Pick<UseHasSecretOptions, 'skip'>> = {
-  skip: false,
-};
+const DEFAULTS: Required<Pick<UseHasSecretOptions, 'skip'>> = { skip: false }
 
-/**
- * Result bag returned by {@link useHasSecret}.
- */
 export interface UseHasSecretResult extends AsyncState<boolean> {
-  /** Refresh the cached boolean value. */
-  refetch: () => Promise<void>;
+	readonly refetch: () => Promise<void>
 }
 
 /**
  * Checks if a secure item exists without fetching its payload.
- *
- * @example
- * ```tsx
- * const { data: exists } = useHasSecret('refreshToken', { service: 'com.example.session' })
- * ```
  */
 export function useHasSecret(
-  key: string,
-  options?: UseHasSecretOptions
+	key: string,
+	options?: UseHasSecretOptions
 ): UseHasSecretResult {
-  const [state, setState] = useState<AsyncState<boolean>>(
-    createInitialAsyncState<boolean>()
-  );
+	const stable = useStableOptions<UseHasSecretOptions>(DEFAULTS, options)
+	const { skip } = stable
+	const requestOptions = useMemo<SensitiveInfoOptions>(() => {
+		const { skip: _s, ...rest } = stable
+		return rest
+	}, [stable])
 
-  const { begin, mountedRef } = useAsyncLifecycle();
-  const stableOptions = useStableOptions<UseHasSecretOptions>(
-    DEFAULTS,
-    options
-  );
+	const run = useCallback(
+		() => hasItem(key, requestOptions),
+		[key, requestOptions]
+	)
 
-  const evaluate = useCallback(async () => {
-    const { skip, ...requestOptions } = stableOptions;
-
-    if (skip) {
-      setState({
-        data: null,
-        error: null,
-        isLoading: false,
-        isPending: false,
-      });
-      return;
-    }
-
-    const controller = begin();
-    setState((prev) => ({ ...prev, isLoading: true, isPending: true }));
-
-    try {
-      const exists = await hasItem(key, requestOptions);
-
-      if (mountedRef.current && !controller.signal.aborted) {
-        setState({
-          data: exists,
-          error: null,
-          isLoading: false,
-          isPending: false,
-        });
-      }
-    } catch (errorLike) {
-      if (mountedRef.current && !controller.signal.aborted) {
-        if (isAuthenticationCanceledError(errorLike)) {
-          setState((prev) => ({
-            data: prev.data,
-            error: null,
-            isLoading: false,
-            isPending: false,
-          }));
-        } else {
-          const hookError = createHookError(
-            'useHasSecret.evaluate',
-            errorLike,
-            'Most commonly triggered by an invalid key/service combination.'
-          );
-          setState({
-            data: null,
-            error: hookError,
-            isLoading: false,
-            isPending: false,
-          });
-        }
-      }
-    }
-  }, [begin, key, mountedRef, stableOptions]);
-
-  useEffect(() => {
-    evaluate().catch(() => {});
-  }, [evaluate]);
-
-  const refetch = useCallback(async () => {
-    await evaluate();
-  }, [evaluate]);
-
-  return {
-    ...state,
-    refetch,
-  };
+	return useAsync<boolean>(run, 'useHasSecret.evaluate', {
+		hint: 'Most commonly triggered by an invalid key/service combination.',
+		skip,
+	})
 }
