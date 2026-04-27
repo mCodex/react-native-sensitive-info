@@ -12,6 +12,7 @@ import {
 	type HookError,
 	type HookMutationResult,
 } from './types'
+import useMutation from './useMutation'
 
 export interface UseKeyRotationOptions extends SensitiveInfoOptions {
 	/** When `true`, rotations eagerly re-encrypt all entries. Defaults to `false` (lazy). */
@@ -38,39 +39,38 @@ export interface UseKeyRotationResult {
 export function useKeyRotation(
 	options?: UseKeyRotationOptions
 ): UseKeyRotationResult {
-	const [isRotating, setIsRotating] = useState(false)
-	const [error, setError] = useState<HookError | null>(null)
 	const [lastResult, setLastResult] = useState<RotationResult | null>(null)
+	const [readError, setReadError] = useState<HookError | null>(null)
 
-	const rotate = useCallback(async () => {
-		setIsRotating(true)
-		setError(null)
-		try {
-			const request: RotateKeysRequest = {
-				...options,
-				reEncryptEagerly: options?.reEncryptEagerly ?? false,
-			}
-			const result = await rotateKeys(request)
-			setLastResult(result)
-			setIsRotating(false)
-			return createHookSuccessResult()
-		} catch (errorLike) {
-			const hookError = createHookError(
-				'useKeyRotation.rotate',
-				errorLike,
-				'Check that the service exists and that no auth-gated entries are blocking eager rotation.'
-			)
-			setError(hookError)
-			setIsRotating(false)
-			return createHookFailureResult(hookError)
+	const {
+		error: mutateError,
+		isLoading,
+		mutate,
+	} = useMutation(
+		'useKeyRotation.rotate',
+		'Check that the service exists and that no auth-gated entries are blocking eager rotation.'
+	)
+
+	const rotate = useCallback(async (): Promise<HookMutationResult> => {
+		const request: RotateKeysRequest = {
+			...options,
+			reEncryptEagerly: options?.reEncryptEagerly ?? false,
 		}
-	}, [options])
+		const outcome = await mutate(() => rotateKeys(request))
+		if (outcome.success) {
+			setLastResult(outcome.data)
+			return createHookSuccessResult()
+		}
+		return createHookFailureResult(outcome.error)
+	}, [mutate, options])
 
 	const readVersion = useCallback(async () => {
 		try {
-			return await getKeyVersion(options)
+			const version = await getKeyVersion(options)
+			setReadError(null)
+			return version
 		} catch (errorLike) {
-			setError(
+			setReadError(
 				createHookError(
 					'useKeyRotation.readVersion',
 					errorLike,
@@ -83,8 +83,8 @@ export function useKeyRotation(
 
 	return {
 		lastResult,
-		error,
-		isRotating,
+		error: mutateError ?? readError,
+		isRotating: isLoading,
 		rotate,
 		readVersion,
 	}

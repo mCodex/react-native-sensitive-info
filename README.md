@@ -224,6 +224,18 @@ function YourComponent() {
 
 For comprehensive examples and advanced patterns, see [`HOOKS.md`](./HOOKS.md).
 
+### 🧱 Hook architecture (DRY · KISS · SRP)
+
+Every hook in this package is a thin choreography layer over three internal primitives, so adding or auditing a hook stays a single-file change:
+
+| Primitive | Responsibility |
+| --- | --- |
+| `useAsyncLifecycle` | Mount tracking + `AbortController` plumbing — _one job, no React state of its own_. |
+| `useAsync` / `useAsyncQuery` | The shared "stable options → strip `skip` → memoize → fetch" recipe used by every read-only hook (`useHasSecret`, `useSecretItem`, `useSecret`, `useSecureStorage`, `useSecurityAvailability`). |
+| `useMutation` | The imperative state machine (loading + error + auth-cancel handling) reused by every mutation-style hook (`useSecureOperation`, `useKeyRotation`, plus the `saveSecret`/`removeSecret`/`clearAll` helpers in `useSecureStorage`). |
+
+Net effect: the data-fetching hooks are 25–35 lines each, mutations are ~10 lines, and the abort/cancel/error contract is identical across the surface — there is no place where a bug fix has to be repeated.
+
 ## ❗ Error handling
 
 Every public hook returns failures as `HookError` instances. Besides `message`, each error carries:

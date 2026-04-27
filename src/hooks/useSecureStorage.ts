@@ -4,15 +4,14 @@ import type {
 	SensitiveInfoItem,
 	SensitiveInfoOptions,
 } from '../sensitive-info.nitro'
-import createHookError, { isAuthenticationCanceledError } from './error-utils'
 import {
 	createHookFailureResult,
 	createHookSuccessResult,
 	type HookError,
 	type HookMutationResult,
 } from './types'
-import useAsyncLifecycle from './useAsyncLifecycle'
-import useStableOptions from './useStableOptions'
+import useAsyncQuery from './useAsyncQuery'
+import useMutation from './useMutation'
 
 /**
  * Options accepted by {@link useSecureStorage}.
@@ -34,11 +33,11 @@ const DEFAULTS: Required<
 /**
  * Removes hook-only flags so that mutation helpers receive pristine {@link SensitiveInfoOptions}.
  */
-const extractCoreOptions = (
-	options: UseSecureStorageOptions
+const stripIncludeValues = (
+	request: SensitiveInfoOptions & { includeValues?: boolean }
 ): SensitiveInfoOptions => {
-	const { skip: _skip, includeValues: _includeValues, ...core } = options
-	return core as SensitiveInfoOptions
+	const { includeValues: _includeValues, ...core } = request
+	return core
 }
 
 /**
@@ -67,159 +66,109 @@ export interface UseSecureStorageResult {
 /**
  * Manages a collection of secure items, exposing read/write helpers and render-ready state.
  *
+ * Internally composes {@link useAsyncQuery} for the initial fetch and {@link useMutation} for
+ * the imperative helpers, so the hook stays a thin choreography layer over the shared
+ * lifecycle/abort/error machinery.
+ *
  * @example
  * ```tsx
- * const {
- *   items,
- *   saveSecret,
- *   removeSecret,
- *   clearAll,
- * } = useSecureStorage({ service: 'com.example.session', includeValues: true })
+ * const { items, saveSecret, removeSecret, clearAll } = useSecureStorage({
+ *   service: 'com.example.session',
+ *   includeValues: true,
+ * })
  * ```
  */
 export function useSecureStorage(
 	options?: UseSecureStorageOptions
 ): UseSecureStorageResult {
-	const [items, setItems] = useState<SensitiveInfoItem[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<HookError | null>(null)
+	const fetchRunner = useCallback(
+		(request: SensitiveInfoOptions) => getAllItems(request),
+		[]
+	)
 
-	const { begin, mountedRef } = useAsyncLifecycle()
-	const stableOptions = useStableOptions<UseSecureStorageOptions>(
+	const fetchQuery = useAsyncQuery<
+		SensitiveInfoItem[],
+		UseSecureStorageOptions
+	>(
+		fetchRunner,
 		DEFAULTS,
-		options
+		'useSecureStorage.fetchItems',
+		options,
+		'Ensure the service name matches the one used when storing the items.'
 	)
 
-	const applyError = useCallback(
-		(operation: string, errorLike: unknown, hint: string): HookError => {
-			const hookError = createHookError(operation, errorLike, hint)
+	const [localItems, setLocalItems] = useState<SensitiveInfoItem[] | null>(null)
 
-			if (isAuthenticationCanceledError(errorLike)) {
-				if (mountedRef.current) {
-					setError(null)
-				}
-				return hookError
-			}
-
-			if (mountedRef.current) {
-				setError(hookError)
-			}
-			return hookError
-		},
-		[mountedRef]
-	)
-
-	const fetchItems = useCallback(async () => {
-		const { skip, ...requestOptions } = stableOptions
-
-		if (skip) {
-			setItems([])
-			setIsLoading(false)
-			setError(null)
-			return
-		}
-
-		const controller = begin()
-		setIsLoading(true)
-
-		try {
-			const result = await getAllItems(requestOptions)
-
-			if (mountedRef.current && !controller.signal.aborted) {
-				setItems(result)
-				setError(null)
-			}
-		} catch (errorLike) {
-			if (mountedRef.current && !controller.signal.aborted) {
-				const canceled = isAuthenticationCanceledError(errorLike)
-
-				applyError(
-					'useSecureStorage.fetchItems',
-					errorLike,
-					'Ensure the service name matches the one used when storing the items.'
-				)
-
-				if (!canceled) {
-					setItems([])
-				}
-			}
-		} finally {
-			if (mountedRef.current && !controller.signal.aborted) {
-				setIsLoading(false)
-			}
-		}
-	}, [begin, mountedRef, stableOptions, applyError])
-
+	// Reset any local override whenever a fresh fetch lands.
 	useEffect(() => {
-		fetchItems().catch(() => {})
-	}, [fetchItems])
+		setLocalItems(null)
+	}, [])
 
-	const refreshItems = useCallback(async () => {
-		await fetchItems()
-	}, [fetchItems])
+	const items = localItems ?? fetchQuery.data ?? []
+
+	const {
+		error: mutationError,
+		mutate,
+		clearError,
+	} = useMutation('useSecureStorage.mutate', '')
+
+	const coreOptions: SensitiveInfoOptions = stripIncludeValues({ ...options })
 
 	const saveSecret = useCallback(
-		async (key: string, value: string) => {
-			try {
-				await setItem(key, value, extractCoreOptions(stableOptions))
-				if (mountedRef.current) {
-					await fetchItems()
-				}
-				return createHookSuccessResult()
-			} catch (errorLike) {
-				const hookError = applyError(
-					'useSecureStorage.saveSecret',
-					errorLike,
-					'Check for duplicate keys or permission prompts that might have been dismissed.'
-				)
-				return createHookFailureResult(hookError)
+		async (key: string, value: string): Promise<HookMutationResult> => {
+			const outcome = await mutate(() => setItem(key, value, coreOptions), {
+				operation: 'useSecureStorage.saveSecret',
+				hint: 'Check for duplicate keys or permission prompts that might have been dismissed.',
+			})
+			if (!outcome.success) {
+				return createHookFailureResult(outcome.error)
 			}
+			setLocalItems(null)
+			await fetchQuery.refetch()
+			return createHookSuccessResult()
 		},
-		[applyError, fetchItems, mountedRef, stableOptions]
+		[mutate, coreOptions, fetchQuery.refetch]
 	)
 
 	const removeSecret = useCallback(
-		async (key: string) => {
-			try {
-				await deleteItem(key, extractCoreOptions(stableOptions))
-				if (mountedRef.current) {
-					setItems((prev) => prev.filter((item) => item.key !== key))
-				}
-				return createHookSuccessResult()
-			} catch (errorLike) {
-				const hookError = applyError(
-					'useSecureStorage.removeSecret',
-					errorLike,
-					'Confirm the item still exists or that the user completed biometric prompts.'
-				)
-				return createHookFailureResult(hookError)
+		async (key: string): Promise<HookMutationResult> => {
+			const outcome = await mutate(() => deleteItem(key, coreOptions), {
+				operation: 'useSecureStorage.removeSecret',
+				hint: 'Confirm the item still exists or that the user completed biometric prompts.',
+			})
+			if (!outcome.success) {
+				return createHookFailureResult(outcome.error)
 			}
+			setLocalItems((prev) =>
+				(prev ?? fetchQuery.data ?? []).filter((item) => item.key !== key)
+			)
+			return createHookSuccessResult()
 		},
-		[applyError, mountedRef, stableOptions]
+		[mutate, coreOptions, fetchQuery.data]
 	)
 
-	const clearAll = useCallback(async () => {
-		try {
-			await clearService(extractCoreOptions(stableOptions))
-			if (mountedRef.current) {
-				setItems([])
-				setError(null)
-			}
-			return createHookSuccessResult()
-		} catch (errorLike) {
-			const hookError = applyError(
-				'useSecureStorage.clearAll',
-				errorLike,
-				'Inspect whether another process holds a lock on the secure storage.'
-			)
-			return createHookFailureResult(hookError)
+	const clearAll = useCallback(async (): Promise<HookMutationResult> => {
+		const outcome = await mutate(() => clearService(coreOptions), {
+			operation: 'useSecureStorage.clearAll',
+			hint: 'Inspect whether another process holds a lock on the secure storage.',
+		})
+		if (!outcome.success) {
+			return createHookFailureResult(outcome.error)
 		}
-	}, [applyError, mountedRef, stableOptions])
+		setLocalItems([])
+		clearError()
+		return createHookSuccessResult()
+	}, [mutate, coreOptions, clearError])
+
+	const refreshItems = useCallback(async () => {
+		setLocalItems(null)
+		await fetchQuery.refetch()
+	}, [fetchQuery.refetch])
 
 	return {
 		items,
-		isLoading,
-		error,
+		isLoading: fetchQuery.isLoading,
+		error: mutationError ?? fetchQuery.error,
 		saveSecret,
 		removeSecret,
 		clearAll,

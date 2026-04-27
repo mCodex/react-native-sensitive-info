@@ -15,6 +15,13 @@
 * **nitro 0.35:** Regenerated against `nitrogen@0.35.5` and `react-native-nitro-modules@0.35.5`.
 * **tooling:** Migrated linting/formatting from ESLint + Prettier to **Biome 2**. Single config at `biome.json`, faster CI runs.
 
+### Refactor (KISS · DRY · SRP)
+
+* Introduced `useAsyncQuery` (read-only hooks) and `useMutation` (mutation hooks) primitives. `useHasSecret`, `useSecretItem`, `useSecureOperation`, `useKeyRotation`, and `useSecureStorage` now compose the same lifecycle/abort/error-handling pipeline — no duplicated state machines.
+* `useSecureStorage` shrunk from ~230 LOC to ~180 LOC and reuses the shared abort + auth-cancel semantics; behaviour is unchanged.
+* Test fixtures consolidated in `src/__tests__/__mocks__/fixtures.ts` (`buildTestItem`, `buildTestMetadata`).
+* Removed redundant re-exports from `src/internal/errors.ts`.
+
 ### Breaking changes
 
 * The default export is gone. Use named imports: `import { setItem } from 'react-native-sensitive-info'`.

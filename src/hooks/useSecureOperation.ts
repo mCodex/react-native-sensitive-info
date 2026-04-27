@@ -1,8 +1,6 @@
-import { useCallback, useState } from 'react'
-import createHookError, { isAuthenticationCanceledError } from './error-utils'
+import { useCallback } from 'react'
 import type { VoidAsyncState } from './types'
-import { createInitialVoidState } from './types'
-import useAsyncLifecycle from './useAsyncLifecycle'
+import useMutation from './useMutation'
 
 /**
  * Result returned by {@link useSecureOperation}.
@@ -23,56 +21,17 @@ export interface UseSecureOperationResult extends VoidAsyncState {
  * ```
  */
 export function useSecureOperation(): UseSecureOperationResult {
-	const [state, setState] = useState<VoidAsyncState>(createInitialVoidState())
-	const { begin, mountedRef } = useAsyncLifecycle()
+	const { error, isLoading, isPending, mutate } = useMutation(
+		'useSecureOperation.execute',
+		'Review the async callback passed to execute() for thrown errors.'
+	)
 
 	const execute = useCallback(
 		async (operation: () => Promise<void>) => {
-			const controller = begin()
-
-			setState({
-				error: null,
-				isLoading: true,
-				isPending: true,
-			})
-
-			try {
-				await operation()
-
-				if (mountedRef.current && !controller.signal.aborted) {
-					setState({
-						error: null,
-						isLoading: false,
-						isPending: false,
-					})
-				}
-			} catch (errorLike) {
-				if (mountedRef.current && !controller.signal.aborted) {
-					if (isAuthenticationCanceledError(errorLike)) {
-						setState({
-							error: null,
-							isLoading: false,
-							isPending: false,
-						})
-					} else {
-						setState({
-							error: createHookError(
-								'useSecureOperation.execute',
-								errorLike,
-								'Review the async callback passed to execute() for thrown errors.'
-							),
-							isLoading: false,
-							isPending: false,
-						})
-					}
-				}
-			}
+			await mutate(() => operation())
 		},
-		[begin, mountedRef]
+		[mutate]
 	)
 
-	return {
-		...state,
-		execute,
-	}
+	return { error, isLoading, isPending, execute }
 }
