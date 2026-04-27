@@ -11,7 +11,10 @@ module.exports = (api) => {
 				{
 					extensions: ['.js', '.ts', '.json', '.jsx', '.tsx'],
 					alias: {
-						[pak.name]: path.join(__dirname, '../', pak.source),
+						// Map to the source directory (not `src/index`) so that subpath
+						// imports like `react-native-sensitive-info/hooks` resolve to
+						// `src/hooks/index.ts` instead of `src/index/hooks`.
+						[pak.name]: path.join(__dirname, '..', 'src'),
 					},
 				},
 			],
