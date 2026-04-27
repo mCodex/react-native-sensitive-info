@@ -1,11 +1,30 @@
 /**
- * Typed error classes surfaced by the `react-native-sensitive-info` library.
+ * # Typed errors
  *
- * These are the canonical way to classify failures. String-based markers still work for backward
- * compatibility but are considered legacy.
+ * Canonical error surface for `react-native-sensitive-info`. Every failure thrown by the library
+ * is an instance of {@link SensitiveInfoError} or one of its subclasses, classified by a stable
+ * {@link ErrorCode} discriminant.
+ *
+ * Use `instanceof` (preferred) or the `is*Error` predicates to branch in catch blocks. Legacy
+ * string-marker matching (`error.message.includes('[E_NOT_FOUND]')`) is still supported via
+ * {@link toSensitiveInfoError} but considered legacy.
+ *
+ * @packageDocumentation
  */
 
-/** Stable discriminant codes emitted by the native layer. */
+/**
+ * Stable discriminant codes emitted by the native layer.
+ *
+ * @remarks
+ * | Code                       | Meaning                                                              |
+ * | -------------------------- | -------------------------------------------------------------------- |
+ * | `E_NOT_FOUND`              | The requested key does not exist.                                    |
+ * | `E_AUTH_CANCELED`          | User dismissed the biometric / device-credential prompt.             |
+ * | `E_INTEGRITY_VIOLATION`    | HMAC verification failed — entry should be treated as tampered.      |
+ * | `E_KEY_INVALIDATED`        | Hardware key was invalidated (e.g. biometric re-enrollment).         |
+ * | `E_ROTATION_FAILED`        | `rotateKeys()` could not complete.                                   |
+ * | `E_UNKNOWN`                | Catch-all for unclassified failures.                                 |
+ */
 export const ErrorCode = {
 	NotFound: 'E_NOT_FOUND',
 	AuthenticationCanceled: 'E_AUTH_CANCELED',
@@ -15,12 +34,38 @@ export const ErrorCode = {
 	Unknown: 'E_UNKNOWN',
 } as const
 
+/**
+ * Union of every value in {@link ErrorCode}. Use this to type variables that hold an error code.
+ *
+ * @see {@link ErrorCode}
+ */
 export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode]
 
-/** Base class for every typed error thrown by the library. */
+/**
+ * Base class for every typed error thrown by the library.
+ *
+ * All `is*Error` predicates and the `toSensitiveInfoError` adapter funnel into subclasses of this
+ * type, so a single `instanceof SensitiveInfoError` check is sufficient to identify any failure
+ * originating from secure storage.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await getItem('session-token', { service: 'com.example.auth' })
+ * } catch (e) {
+ *   if (e instanceof SensitiveInfoError) console.log(e.code)
+ * }
+ * ```
+ */
 export class SensitiveInfoError extends Error {
+	/** Stable discriminant identifying the failure mode. */
 	readonly code: ErrorCodeValue
 
+	/**
+	 * @param code    - Stable {@link ErrorCodeValue} for the failure.
+	 * @param message - Human-readable description.
+	 * @param options - Optional `cause` for error chaining (see ECMAScript 2022 `Error` cause).
+	 */
 	constructor(
 		code: ErrorCodeValue,
 		message: string,
@@ -32,16 +77,47 @@ export class SensitiveInfoError extends Error {
 	}
 }
 
-/** The requested key does not exist in the secure store. */
+/**
+ * The requested key does not exist in the secure store.
+ *
+ * Note: {@link getItem} swallows this error and returns `null` instead. You will only observe
+ * `NotFoundError` directly when bypassing the wrapper or when implementing a custom layer atop
+ * the native HybridObject.
+ *
+ * @example
+ * ```ts
+ * try { await native.getItem({ key: 'missing' }) }
+ * catch (e) { if (isNotFoundError(e)) return null }
+ * ```
+ */
 export class NotFoundError extends SensitiveInfoError {
+	/**
+	 * @param message - Defaults to `'Secret not found.'`.
+	 * @param options - Optional `cause` for error chaining.
+	 */
 	constructor(message = 'Secret not found.', options?: { cause?: unknown }) {
 		super(ErrorCode.NotFound, message, options)
 		this.name = 'NotFoundError'
 	}
 }
 
-/** The user dismissed the biometric / device-credential prompt. */
+/**
+ * The user dismissed the biometric / device-credential prompt.
+ *
+ * @remarks Treat this as a normal user gesture rather than a bug — do not retry automatically;
+ * surface a clear UI affordance for the user to re-attempt.
+ *
+ * @example
+ * ```ts
+ * try { await getItem('token', { service: 'auth' }) }
+ * catch (e) { if (isAuthenticationCanceledError(e)) showUnlockButton() }
+ * ```
+ */
 export class AuthenticationCanceledError extends SensitiveInfoError {
+	/**
+	 * @param message - Defaults to `'Authentication prompt canceled by the user.'`.
+	 * @param options - Optional `cause` for error chaining.
+	 */
 	constructor(
 		message = 'Authentication prompt canceled by the user.',
 		options?: { cause?: unknown }
@@ -54,9 +130,28 @@ export class AuthenticationCanceledError extends SensitiveInfoError {
 /**
  * HMAC verification of the stored metadata/ciphertext failed. This strongly suggests tampering at
  * rest and the affected entry should be treated as untrustworthy.
+ *
+ * @remarks Recommended remediation: delete the affected entry, force the user to re-authenticate
+ * with the upstream service, and report telemetry so you can detect device-level compromise.
+ *
+ * @example
+ * ```ts
+ * try { await getItem('token', { service: 'auth' }) }
+ * catch (e) {
+ *   if (isIntegrityViolationError(e)) {
+ *     await deleteItem('token', { service: 'auth' })
+ *     forceReauth()
+ *   }
+ * }
+ * ```
  */
 export class IntegrityViolationError extends SensitiveInfoError {
+	/** Key whose ciphertext failed verification, when known. */
 	readonly key?: string
+	/**
+	 * @param message - Defaults to `'Integrity check failed for stored secret.'`.
+	 * @param options - `cause` for error chaining and `key` for the affected identifier.
+	 */
 	constructor(
 		message = 'Integrity check failed for stored secret.',
 		options?: { cause?: unknown; key?: string }
@@ -70,9 +165,28 @@ export class IntegrityViolationError extends SensitiveInfoError {
 /**
  * The hardware-backed key tied to this entry was permanently invalidated (for example, because
  * biometrics were re-enrolled). The entry must be deleted and re-created.
+ *
+ * @remarks This is the expected error after a user adds/removes a fingerprint or re-enrolls Face
+ * ID on entries written with `accessControl: 'biometryCurrentSet'` or `'secureEnclaveBiometry'`.
+ *
+ * @example
+ * ```ts
+ * try { await getItem('token', { service: 'auth' }) }
+ * catch (e) {
+ *   if (isKeyInvalidatedError(e)) {
+ *     await deleteItem('token', { service: 'auth' })
+ *     promptUserToSetUpAgain()
+ *   }
+ * }
+ * ```
  */
 export class KeyInvalidatedError extends SensitiveInfoError {
+	/** Native keystore alias that was invalidated, when known. */
 	readonly alias?: string
+	/**
+	 * @param message - Defaults to `'The hardware key backing this entry was permanently invalidated.'`.
+	 * @param options - `cause` for error chaining and `alias` for the affected keystore entry.
+	 */
 	constructor(
 		message = 'The hardware key backing this entry was permanently invalidated.',
 		options?: { cause?: unknown; alias?: string }
@@ -83,8 +197,20 @@ export class KeyInvalidatedError extends SensitiveInfoError {
 	}
 }
 
-/** `rotateKeys()` could not complete for the given service. */
+/**
+ * {@link rotateKeys} could not complete for the given service.
+ *
+ * @example
+ * ```ts
+ * try { await rotateKeys({ service: 'auth' }) }
+ * catch (e) { if (isRotationFailedError(e)) reportTelemetry(e) }
+ * ```
+ */
 export class RotationFailedError extends SensitiveInfoError {
+	/**
+	 * @param message - Defaults to `'Key rotation failed.'`.
+	 * @param options - Optional `cause` for error chaining.
+	 */
 	constructor(message = 'Key rotation failed.', options?: { cause?: unknown }) {
 		super(ErrorCode.RotationFailed, message, options)
 		this.name = 'RotationFailedError'
@@ -142,7 +268,27 @@ const extractMessage = (error: unknown, fallback: string): string => {
 
 /**
  * Convert a raw native/unknown error into a typed {@link SensitiveInfoError} subclass.
- * Returns the original error untouched if it cannot be classified.
+ *
+ * @param error - Anything caught from a native call — typically an `Error` with a `code` field or
+ *   a legacy string-marker message such as `'[E_NOT_FOUND] missing key'`.
+ * @returns The corresponding typed error subclass when classifiable, otherwise the original
+ * error untouched (so consumers can decide how to handle unknown failures).
+ *
+ * @remarks Already-typed `SensitiveInfoError` instances are returned as-is. The legacy
+ * string-marker path exists purely for back-compat with pre-typed-error releases; new code should
+ * rely on `instanceof` against the exported subclasses.
+ *
+ * @example
+ * ```ts
+ * try { await native.setItem(req) }
+ * catch (raw) {
+ *   const e = toSensitiveInfoError(raw)
+ *   if (e instanceof KeyInvalidatedError) await reset()
+ *   else throw e
+ * }
+ * ```
+ *
+ * @see {@link SensitiveInfoError}
  */
 export function toSensitiveInfoError(error: unknown): unknown {
 	if (error instanceof SensitiveInfoError) return error
@@ -165,28 +311,104 @@ export function toSensitiveInfoError(error: unknown): unknown {
 	}
 }
 
-/** Predicate helpers — prefer `instanceof` when you already have a typed error. */
+/**
+ * Type guard that narrows `error` to {@link NotFoundError}.
+ *
+ * @param error - Anything thrown from a `react-native-sensitive-info` call.
+ * @returns `true` when the error matches the {@link ErrorCode.NotFound} discriminant.
+ *
+ * @example
+ * ```ts
+ * try { await native.getItem({ key: 'missing' }) }
+ * catch (e) { if (isNotFoundError(e)) return null; throw e }
+ * ```
+ *
+ * @see {@link NotFoundError}
+ */
 export const isNotFoundError = (error: unknown): error is NotFoundError =>
 	error instanceof NotFoundError || extractCode(error) === ErrorCode.NotFound
 
+/**
+ * Type guard that narrows `error` to {@link AuthenticationCanceledError}.
+ *
+ * @param error - Anything thrown from a `react-native-sensitive-info` call.
+ * @returns `true` when the user dismissed the biometric / device-credential prompt.
+ *
+ * @example
+ * ```ts
+ * try { await getItem('token', { service: 'auth' }) }
+ * catch (e) { if (isAuthenticationCanceledError(e)) showRetry(); else throw e }
+ * ```
+ *
+ * @see {@link AuthenticationCanceledError}
+ */
 export const isAuthenticationCanceledError = (
 	error: unknown
 ): error is AuthenticationCanceledError =>
 	error instanceof AuthenticationCanceledError ||
 	extractCode(error) === ErrorCode.AuthenticationCanceled
 
+/**
+ * Type guard that narrows `error` to {@link IntegrityViolationError}.
+ *
+ * @param error - Anything thrown from a `react-native-sensitive-info` call.
+ * @returns `true` when HMAC verification failed for the stored ciphertext.
+ *
+ * @example
+ * ```ts
+ * try { await getItem('token', { service: 'auth' }) }
+ * catch (e) {
+ *   if (isIntegrityViolationError(e)) await deleteItem('token', { service: 'auth' })
+ *   else throw e
+ * }
+ * ```
+ *
+ * @see {@link IntegrityViolationError}
+ */
 export const isIntegrityViolationError = (
 	error: unknown
 ): error is IntegrityViolationError =>
 	error instanceof IntegrityViolationError ||
 	extractCode(error) === ErrorCode.IntegrityViolation
 
+/**
+ * Type guard that narrows `error` to {@link KeyInvalidatedError}.
+ *
+ * @param error - Anything thrown from a `react-native-sensitive-info` call.
+ * @returns `true` when the hardware key backing the entry was invalidated (e.g. biometric
+ * re-enrollment).
+ *
+ * @example
+ * ```ts
+ * try { await getItem('token', { service: 'auth' }) }
+ * catch (e) {
+ *   if (isKeyInvalidatedError(e)) await deleteItem('token', { service: 'auth' })
+ *   else throw e
+ * }
+ * ```
+ *
+ * @see {@link KeyInvalidatedError}
+ */
 export const isKeyInvalidatedError = (
 	error: unknown
 ): error is KeyInvalidatedError =>
 	error instanceof KeyInvalidatedError ||
 	extractCode(error) === ErrorCode.KeyInvalidated
 
+/**
+ * Type guard that narrows `error` to {@link RotationFailedError}.
+ *
+ * @param error - Anything thrown from a `react-native-sensitive-info` call.
+ * @returns `true` when {@link rotateKeys} could not complete.
+ *
+ * @example
+ * ```ts
+ * try { await rotateKeys({ service: 'auth' }) }
+ * catch (e) { if (isRotationFailedError(e)) report(e); else throw e }
+ * ```
+ *
+ * @see {@link RotationFailedError}
+ */
 export const isRotationFailedError = (
 	error: unknown
 ): error is RotationFailedError =>

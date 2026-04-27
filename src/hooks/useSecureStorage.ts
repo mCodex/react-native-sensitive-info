@@ -70,13 +70,29 @@ export interface UseSecureStorageResult {
  * the imperative helpers, so the hook stays a thin choreography layer over the shared
  * lifecycle/abort/error machinery.
  *
+ * @param options - Storage scoping plus hook-only flags (`includeValues`, `skip`).
+ * @returns A {@link UseSecureStorageResult} with the cached `items`, lifecycle flags, and
+ * imperative mutation helpers (`saveSecret`, `removeSecret`, `clearAll`, `refreshItems`).
+ *
+ * @remarks
+ * - Mutations refresh the local cache automatically \u2014 you do **not** need to call `refreshItems`
+ *   after `saveSecret`/`removeSecret`/`clearAll`.
+ * - `clearAll` is **non-recoverable** \u2014 confirm intent in the UI before invoking.
+ * - For single-key reads prefer {@link useSecret} or {@link useSecretItem}; this hook is optimized
+ *   for managing a list of entries.
+ *
  * @example
  * ```tsx
  * const { items, saveSecret, removeSecret, clearAll } = useSecureStorage({
  *   service: 'com.example.session',
  *   includeValues: true,
  * })
+ *
+ * await saveSecret('session-token', token)
  * ```
+ *
+ * @see {@link getAllItems}
+ * @see {@link useSecret}
  */
 export function useSecureStorage(
 	options?: UseSecureStorageOptions
