@@ -10,8 +10,14 @@
 	},
 	"autolinking": {
 		"SensitiveInfo": {
-			"swift": "HybridSensitiveInfo",
-			"kotlin": "HybridSensitiveInfo"
+			"ios": {
+				"language": "swift",
+				"implementationClassName": "HybridSensitiveInfo"
+			},
+			"android": {
+				"language": "kotlin",
+				"implementationClassName": "HybridSensitiveInfo"
+			}
 		}
 	},
 	"ignorePaths": ["**/node_modules"]
