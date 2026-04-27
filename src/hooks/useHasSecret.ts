@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { hasItem } from '../core/storage'
 import type { SensitiveInfoOptions } from '../sensitive-info.nitro'
 import type { AsyncState } from './types'
@@ -21,8 +22,12 @@ export function useHasSecret(
 	key: string,
 	options?: UseHasSecretOptions
 ): UseHasSecretResult {
+	const runner = useCallback(
+		(request: SensitiveInfoOptions) => hasItem(key, request),
+		[key]
+	)
 	return useAsyncQuery<boolean, UseHasSecretOptions>(
-		(request) => hasItem(key, request),
+		runner,
 		DEFAULTS,
 		'useHasSecret.evaluate',
 		options,

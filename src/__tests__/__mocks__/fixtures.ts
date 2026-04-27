@@ -27,7 +27,7 @@ export const buildTestMetadata = (
  * @internal
  */
 export const buildTestItem = (
-	overrides: Partial<SensitiveInfoItem> & {
+	overrides: Partial<Omit<SensitiveInfoItem, 'metadata'>> & {
 		readonly metadata?: MetadataOverrides
 	} = {}
 ): SensitiveInfoItem => {

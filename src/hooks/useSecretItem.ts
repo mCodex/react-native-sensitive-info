@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { getItem } from '../core/storage'
 import type {
 	SensitiveInfoItem,
@@ -30,8 +31,12 @@ export function useSecretItem(
 	key: string,
 	options?: UseSecretItemOptions
 ): UseSecretItemResult {
+	const runner = useCallback(
+		(request: SensitiveInfoOptions) => getItem(key, request),
+		[key]
+	)
 	return useAsyncQuery<SensitiveInfoItem, UseSecretItemOptions>(
-		(request) => getItem(key, request),
+		runner,
 		DEFAULTS,
 		'useSecretItem.fetch',
 		options,
