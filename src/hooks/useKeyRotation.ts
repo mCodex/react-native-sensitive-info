@@ -45,6 +45,30 @@ export interface UseKeyRotationResult {
 /**
  * Provides a minimal wrapper around {@link rotateKeys} / {@link getKeyVersion} with loading,
  * result, and error state wired up for UI consumption.
+ *
+ * @param options - Storage scoping plus a `reEncryptEagerly` default for the `rotate()` helper.
+ * @returns A {@link UseKeyRotationResult} with `lastResult`, `error`, `isRotating`, and the
+ * imperative `rotate` / `readVersion` helpers.
+ *
+ * @remarks
+ * - `rotate({ reEncryptEagerly: true })` may trigger one biometric prompt **per protected entry**.
+ *   Prefer the default lazy rotation unless you have a compliance reason to migrate ciphertext
+ *   immediately.
+ * - `rotate()` never throws \u2014 it resolves with a {@link HookMutationResult}.
+ *
+ * @example
+ * ```tsx
+ * const { rotate, readVersion, isRotating, lastResult } = useKeyRotation({
+ *   service: 'com.example.auth',
+ * })
+ *
+ * await rotate()                          // lazy: returns immediately
+ * await rotate({ reEncryptEagerly: true }) // eager: re-encrypts every entry now
+ * const version = await readVersion()
+ * ```
+ *
+ * @see {@link rotateKeys}
+ * @see {@link getKeyVersion}
  */
 export function useKeyRotation(
 	options?: UseKeyRotationOptions

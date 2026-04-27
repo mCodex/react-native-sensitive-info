@@ -11,6 +11,29 @@ export interface UseSecurityAvailabilityResult
 
 /**
  * Queries which security primitives are available on the current device and caches the outcome.
+ *
+ * @returns A {@link UseSecurityAvailabilityResult} with `data` (the latest snapshot),
+ * `error`/`isLoading`/`isPending` flags, and a `refetch` helper that bypasses the cache.
+ *
+ * @remarks
+ * - The hook caches the first successful response per component instance \u2014 subsequent renders
+ *   reuse the cached value without hitting the native module.
+ * - `refetch()` forces a fresh native call \u2014 use it after the user changes biometric enrollment
+ *   in system settings.
+ * - On error, the previously cached `data` is preserved so you can render fallback UI without
+ *   losing capability info.
+ *
+ * @example
+ * ```tsx
+ * const { data: caps, isLoading } = useSecurityAvailability()
+ *
+ * if (isLoading || !caps) return null
+ * return caps.biometry
+ *   ? <EnableFaceIdToggle />
+ *   : <Text>Biometrics unavailable on this device.</Text>
+ * ```
+ *
+ * @see {@link getSupportedSecurityLevels}
  */
 export function useSecurityAvailability(): UseSecurityAvailabilityResult {
 	const cacheRef = useRef<SecurityAvailability | null>(null)

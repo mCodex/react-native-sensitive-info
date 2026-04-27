@@ -17,6 +17,26 @@ export interface UseHasSecretResult extends AsyncState<boolean> {
 
 /**
  * Checks if a secure item exists without fetching its payload.
+ *
+ * @param key     - Identifier to look up. Changing the key triggers a fresh check.
+ * @param options - Storage scoping plus a `skip` flag.
+ * @returns A {@link UseHasSecretResult} where `data` is the boolean existence flag and `refetch`
+ * re-runs the check on demand.
+ *
+ * @remarks Prefer this over {@link useSecret} / {@link useSecretItem} when you only need to know
+ * whether a key exists \u2014 it never decrypts and never triggers biometric prompts.
+ *
+ * @example
+ * ```tsx
+ * const { data: hasToken, isLoading } = useHasSecret('session-token', {
+ *   service: 'com.example.auth',
+ * })
+ *
+ * if (isLoading) return null
+ * return hasToken ? <Dashboard /> : <Onboarding />
+ * ```
+ *
+ * @see {@link hasItem}
  */
 export function useHasSecret(
 	key: string,
