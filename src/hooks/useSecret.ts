@@ -45,10 +45,32 @@ const normalizeMutationOptions = (
 /**
  * Maintains a secure item while exposing imperative helpers to mutate or refresh it.
  *
+ * Combines a read subscription (via {@link useSecretItem}) with `saveSecret` / `deleteSecret`
+ * helpers that automatically refresh the cached entry on success.
+ *
+ * @param key     - Identifier of the secret to track. Changing the key triggers a fresh fetch.
+ * @param options - Storage scoping plus hook flags (`skip`, `includeValue`).
+ * @returns A {@link UseSecretResult} with `data`/`error`/`isLoading`/`isPending` state and the
+ * `saveSecret`, `deleteSecret`, `refetch` helpers.
+ *
+ * @remarks
+ * - Mutation helpers never throw \u2014 they resolve with a {@link HookMutationResult} discriminated
+ *   union. Branch with `if (!result.success)`.
+ * - If you only need read access, prefer {@link useSecretItem} \u2014 lighter result shape.
+ *
  * @example
  * ```tsx
- * const secret = useSecret('refreshToken', { service: 'com.example.session' })
+ * const { data, isLoading, saveSecret, deleteSecret } = useSecret('refreshToken', {
+ *   service: 'com.example.session',
+ * })
+ *
+ * await saveSecret(nextToken)
+ * await deleteSecret()
  * ```
+ *
+ * @see {@link useSecretItem}
+ * @see {@link setItem}
+ * @see {@link deleteItem}
  */
 export function useSecret(
 	key: string,
