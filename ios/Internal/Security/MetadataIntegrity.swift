@@ -144,9 +144,6 @@ struct MetadataIntegrity {
   }
 
   private func zeroize(_ data: inout Data) {
-    data.withUnsafeMutableBytes { buffer in
-      guard let base = buffer.baseAddress else { return }
-      memset_s(base, buffer.count, 0, buffer.count)
-    }
+    data.resetBytes(in: 0..<data.count)
   }
 }

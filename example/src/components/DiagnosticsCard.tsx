@@ -1,32 +1,38 @@
 import { useEffect, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import type { SensitiveInfoOptions } from 'react-native-sensitive-info'
-import { getKeyVersion } from 'react-native-sensitive-info'
+import {
+	getKeyVersion,
+	type SensitiveInfoOptions,
+} from 'react-native-sensitive-info'
 import { useSecurityAvailability } from 'react-native-sensitive-info/hooks'
 import Section from './Section'
 
 interface DiagnosticsCardProps {
-	readonly options: SensitiveInfoOptions
+	readonly readOptions: SensitiveInfoOptions
 }
 
 const formatBoolean = (value: boolean) => (value ? '✓' : '—')
 
-const DiagnosticsCard = ({ options }: DiagnosticsCardProps) => {
+const DiagnosticsCard = ({ readOptions }: DiagnosticsCardProps) => {
 	const { data: availability } = useSecurityAvailability()
 	const [version, setVersion] = useState<number | null>(null)
 
 	useEffect(() => {
 		let cancelled = false
-		getKeyVersion(options).then((v) => {
-			if (!cancelled) setVersion(v)
-		})
+		getKeyVersion(readOptions)
+			.then((v) => {
+				if (!cancelled) setVersion(v)
+			})
+			.catch(() => {
+				if (!cancelled) setVersion(null)
+			})
 		return () => {
 			cancelled = true
 		}
-	}, [options])
+	}, [readOptions])
 
 	const rows: Array<readonly [string, string]> = [
-		['Service', options.service ?? 'default'],
+		['Service', readOptions.service ?? 'default'],
 		['Active key version', version != null ? `v${version}` : '—'],
 		['Biometry', formatBoolean(availability?.biometry ?? false)],
 		['Secure Enclave', formatBoolean(availability?.secureEnclave ?? false)],

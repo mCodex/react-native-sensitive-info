@@ -1,22 +1,47 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import type { SensitiveInfoOptions } from 'react-native-sensitive-info'
+import { StyleSheet, View } from 'react-native'
+import {
+	getKeyVersion,
+	type SensitiveInfoOptions,
+} from 'react-native-sensitive-info'
 import { useKeyRotation } from 'react-native-sensitive-info/hooks'
+import Button from './Button'
 import Section from './Section'
 import StatusLine from './StatusLine'
 
 interface KeyRotationCardProps {
-	readonly options: SensitiveInfoOptions
+	readonly readOptions: SensitiveInfoOptions
+	readonly writeOptions: SensitiveInfoOptions
 }
 
-const KeyRotationCard = ({ options }: KeyRotationCardProps) => {
-	const { rotate, readVersion, lastResult, isRotating, error } =
-		useKeyRotation(options)
+const formatSummary = (
+	lastResult: ReturnType<typeof useKeyRotation>['lastResult'],
+	version: number | null
+) => {
+	if (lastResult)
+		return `v${lastResult.previousVersion} → v${lastResult.newVersion} · re-encrypted ${lastResult.reEncryptedCount}`
+	return version != null
+		? `Active version: v${version}`
+		: 'Reading active version…'
+}
+
+const KeyRotationCard = ({
+	readOptions,
+	writeOptions,
+}: KeyRotationCardProps) => {
+	// Bind the hook to `writeOptions` so `rotate` carries the full policy, but
+	// read the version through the bare imperative API + `readOptions` to avoid
+	// an unnecessary auth prompt on iOS during the initial render.
+	const { rotate, lastResult, isRotating, error } = useKeyRotation(writeOptions)
 	const [version, setVersion] = useState<number | null>(null)
 
 	const refresh = useCallback(async () => {
-		setVersion(await readVersion())
-	}, [readVersion])
+		try {
+			setVersion(await getKeyVersion(readOptions))
+		} catch {
+			setVersion(null)
+		}
+	}, [readOptions])
 
 	useEffect(() => {
 		void refresh()
@@ -30,31 +55,20 @@ const KeyRotationCard = ({ options }: KeyRotationCardProps) => {
 		[refresh, rotate]
 	)
 
-	const summary = lastResult
-		? `v${lastResult.previousVersion} → v${lastResult.newVersion} · re-encrypted ${lastResult.reEncryptedCount}`
-		: version != null
-			? `Active version: v${version}`
-			: 'Reading active version…'
-
 	return (
-		<Section title="Key rotation" subtitle={summary}>
+		<Section title="Key rotation" subtitle={formatSummary(lastResult, version)}>
 			<View style={styles.row}>
-				<Pressable
+				<Button
+					label="Rotate (lazy)"
 					onPress={() => handleRotate(false)}
-					disabled={isRotating}
-					style={[styles.button, isRotating && styles.disabled]}
-				>
-					<Text style={styles.label}>Rotate (lazy)</Text>
-				</Pressable>
-				<Pressable
+					isPending={isRotating}
+				/>
+				<Button
+					label="Rotate + re-encrypt"
 					onPress={() => handleRotate(true)}
-					disabled={isRotating}
-					style={[styles.button, styles.primary, isRotating && styles.disabled]}
-				>
-					<Text style={[styles.label, styles.labelInverted]}>
-						Rotate + re-encrypt
-					</Text>
-				</Pressable>
+					isPending={isRotating}
+					variant="primary"
+				/>
 			</View>
 			<StatusLine error={error} />
 		</Section>
@@ -63,18 +77,6 @@ const KeyRotationCard = ({ options }: KeyRotationCardProps) => {
 
 const styles = StyleSheet.create({
 	row: { flexDirection: 'row', gap: 8 },
-	button: {
-		flex: 1,
-		paddingVertical: 10,
-		borderRadius: 10,
-		borderWidth: 1,
-		borderColor: '#cbd5e1',
-		alignItems: 'center',
-	},
-	primary: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
-	disabled: { opacity: 0.4 },
-	label: { fontSize: 13, fontWeight: '600', color: '#0f172a' },
-	labelInverted: { color: '#ffffff' },
 })
 
 export default KeyRotationCard
