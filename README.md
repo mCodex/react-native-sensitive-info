@@ -308,9 +308,14 @@ function RotationButton() {
 | --- | --- | --- |
 | Master key | Android Keystore (`AES/GCM`, StrongBox when available) | Secure Enclave-gated (P-256) + AES-GCM |
 | Authentication | BiometricPrompt (Class 3 preferred), device credential fallback | LAContext / Face ID / Touch ID / Optic ID |
-| At-rest integrity | AES-GCM authentication tag | AES-GCM authentication tag |
+| At-rest integrity | AES-GCM tag **+** HMAC-SHA256 metadata tag (Keystore-bound) | AES-GCM tag **+** HMAC-SHA256 metadata tag (Keychain-stored, after-first-unlock) |
+| Replay / swap defense | AES-GCM AAD bound to `service\|key\|v<version>` | Keychain `kSecAttrService` + `kSecAttrAccount` binding |
+| Device-state gating | `setUnlockedDeviceRequired(true)` on every key (API 28+) | `kSecAttrAccessibleWhenUnlocked*` defaults |
+| Plaintext lifetime | Buffers zeroized after encrypt/decrypt | `Data` buffers zeroized via `memset_s` |
 | Key rotation | Versioned Keystore aliases, lazy re-encryption | Versioned Keychain metadata, lazy re-wrap (preserves original access control) |
 | Error classification | Typed `SensitiveInfoError` subclasses via `/errors` subpath | Same |
+
+> **Tamper detection:** every read recomputes the HMAC over the persisted `(service, key, version, accessControl, securityLevel, timestamp, ciphertext, iv)` tuple. A mismatch raises `IntegrityViolationError` (`E_INTEGRITY_VIOLATION`) **before** any biometric prompt fires, so spoofed entries can never trigger user authentication. Entries written by older library versions (no `integrityTag`) are accepted on first read and upgraded on the next write or rotation.
 
 Typed errors can be imported from the `/errors` subpath for tree-shakeable error handling:
 

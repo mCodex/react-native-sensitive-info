@@ -17,5 +17,10 @@ sealed class SensitiveInfoException(
     code = "E_AUTH_CANCELED",
     message = "[E_AUTH_CANCELED] Authentication prompt canceled by the user."
   )
+
+  class IntegrityViolation(key: String, service: String) : SensitiveInfoException(
+    code = "E_INTEGRITY_VIOLATION",
+    message = "[E_INTEGRITY_VIOLATION] Tampering detected for key \"$key\" in service \"$service\"."
+  )
 }
 

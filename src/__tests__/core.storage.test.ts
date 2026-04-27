@@ -141,6 +141,40 @@ describe('core/storage', () => {
 		expect(item?.metadata.keyVersion).toBe(3)
 	})
 
+	it('surfaces integrityTag from native metadata', async () => {
+		const { getItem } = await loadModule()
+
+		nativeHandle.getItem.mockResolvedValueOnce({
+			key: 'token',
+			service: 'normalized',
+			value: 'secret',
+			metadata: {
+				securityLevel: 'biometry',
+				backend: 'keychain',
+				accessControl: 'biometryAny',
+				timestamp: 123,
+				keyVersion: 1,
+				integrityTag: 'aGVsbG8=',
+			},
+		})
+
+		const item = await getItem('token')
+
+		expect(item?.metadata.integrityTag).toBe('aGVsbG8=')
+	})
+
+	it('propagates native integrity-violation errors', async () => {
+		const { getItem } = await loadModule()
+
+		nativeHandle.getItem.mockRejectedValueOnce(
+			new Error(
+				'[E_INTEGRITY_VIOLATION] Tampering detected for key "token" in service "auth".'
+			)
+		)
+
+		await expect(getItem('token')).rejects.toThrow(/E_INTEGRITY_VIOLATION/)
+	})
+
 	it('delegates hasItem to the native layer', async () => {
 		const { hasItem } = await loadModule()
 

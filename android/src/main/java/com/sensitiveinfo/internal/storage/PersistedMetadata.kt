@@ -15,7 +15,8 @@ internal data class PersistedMetadata(
   val backend: String,
   val accessControl: String,
   val timestamp: Double,
-  val keyVersion: Int? = null
+  val keyVersion: Int? = null,
+  val integrityTag: String? = null
 ) {
   fun toStorageMetadata(): StorageMetadata? {
     val level = securityLevelFromPersisted(securityLevel) ?: return null
@@ -27,18 +28,19 @@ internal data class PersistedMetadata(
       accessControl = control,
       timestamp = timestamp,
       keyVersion = keyVersion?.toDouble(),
-      integrityTag = null
+      integrityTag = integrityTag
     )
   }
 
   companion object {
-    fun from(metadata: StorageMetadata): PersistedMetadata {
+    fun from(metadata: StorageMetadata, integrityTag: String? = null): PersistedMetadata {
       return PersistedMetadata(
         securityLevel = metadata.securityLevel.persistedName(),
         backend = metadata.backend.persistedName(),
         accessControl = metadata.accessControl.persistedName(),
         timestamp = metadata.timestamp,
-        keyVersion = metadata.keyVersion?.toInt()
+        keyVersion = metadata.keyVersion?.toInt(),
+        integrityTag = integrityTag ?: metadata.integrityTag
       )
     }
 

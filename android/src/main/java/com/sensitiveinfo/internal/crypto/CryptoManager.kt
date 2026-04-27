@@ -39,7 +39,8 @@ internal class CryptoManager(
     alias: String,
     plaintext: ByteArray,
     resolution: AccessResolution,
-    prompt: AuthenticationPrompt?
+    prompt: AuthenticationPrompt?,
+    aad: ByteArray? = null
   ): EncryptionResult {
     val key = getOrCreateKey(alias, resolution)
     val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -74,8 +75,15 @@ internal class CryptoManager(
       throw error
     }
 
-    val ciphertext = readyCipher.doFinal(plaintext)
-    return EncryptionResult(ciphertext = ciphertext, iv = readyCipher.iv)
+    if (aad != null) {
+      readyCipher.updateAAD(aad)
+    }
+    return try {
+      val ciphertext = readyCipher.doFinal(plaintext)
+      EncryptionResult(ciphertext = ciphertext, iv = readyCipher.iv)
+    } finally {
+      plaintext.fill(0)
+    }
   }
 
   /** Decrypts an item using the preconfigured alias, IV, and policy. */
@@ -84,7 +92,8 @@ internal class CryptoManager(
     ciphertext: ByteArray,
     iv: ByteArray,
     resolution: AccessResolution,
-    prompt: AuthenticationPrompt?
+    prompt: AuthenticationPrompt?,
+    aad: ByteArray? = null
   ): ByteArray {
     val key = getOrCreateKey(alias, resolution)
     val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -134,6 +143,9 @@ internal class CryptoManager(
       throw error
     }
 
+    if (aad != null) {
+      readyCipher.updateAAD(aad)
+    }
     return readyCipher.doFinal(ciphertext)
   }
 
@@ -196,6 +208,16 @@ internal class CryptoManager(
         builder.setIsStrongBoxBacked(true)
       } catch (_: Throwable) {
         // Devices may report support but disallow allocation at runtime. We silently continue.
+      }
+    }
+
+    // Defense in depth: require the device to be unlocked at the moment of use, mirroring iOS's
+    // `kSecAttrAccessibleWhenUnlocked` default. Available on API 28+.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      try {
+        builder.setUnlockedDeviceRequired(true)
+      } catch (_: Throwable) {
+        // Older OEM forks may reject this on devices without a screen lock. Best-effort.
       }
     }
 

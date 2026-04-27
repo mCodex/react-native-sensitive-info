@@ -10,6 +10,8 @@ import com.sensitiveinfo.internal.auth.BiometricAuthenticator
 import com.sensitiveinfo.internal.crypto.AccessControlResolver
 import com.sensitiveinfo.internal.crypto.AccessResolution
 import com.sensitiveinfo.internal.crypto.CryptoManager
+import com.sensitiveinfo.internal.crypto.IntegrityInput
+import com.sensitiveinfo.internal.crypto.MetadataIntegrity
 import com.sensitiveinfo.internal.crypto.SecurityAvailabilityResolver
 import com.sensitiveinfo.internal.storage.KeyVersionRegistry
 import com.sensitiveinfo.internal.storage.PersistedEntry
@@ -17,7 +19,9 @@ import com.sensitiveinfo.internal.storage.PersistedMetadata
 import com.sensitiveinfo.internal.storage.SecureStorage
 import com.sensitiveinfo.internal.util.AliasGenerator
 import com.sensitiveinfo.internal.util.ReactContextHolder
+import com.sensitiveinfo.internal.util.SensitiveInfoException
 import com.sensitiveinfo.internal.util.ServiceNameResolver
+import com.sensitiveinfo.internal.util.persistedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -41,7 +45,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     val accessControlResolver: AccessControlResolver,
     val securityAvailabilityResolver: SecurityAvailabilityResolver,
     val serviceNameResolver: ServiceNameResolver,
-    val keyVersionRegistry: KeyVersionRegistry
+    val keyVersionRegistry: KeyVersionRegistry,
+    val integrity: MetadataIntegrity
   )
 
   @Volatile
@@ -67,7 +72,8 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
           accessControlResolver = accessControlResolver,
           securityAvailabilityResolver = securityAvailabilityResolver,
           serviceNameResolver = serviceNameResolver,
-          keyVersionRegistry = KeyVersionRegistry(ctx)
+          keyVersionRegistry = KeyVersionRegistry(ctx),
+          integrity = MetadataIntegrity()
         ).also { built ->
           dependencies = built
         }
@@ -84,10 +90,26 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       val alias = AliasGenerator.aliasFor(service, request.key, version)
 
       val plaintext = request.value.toByteArray(Charsets.UTF_8)
-      val encryption = deps.cryptoManager.encrypt(alias, plaintext, resolved, request.authenticationPrompt)
+      val aad = aadFor(service, request.key, version)
+      val encryption = deps.cryptoManager.encrypt(
+        alias, plaintext, resolved, request.authenticationPrompt, aad
+      )
 
-      val metadata = buildMetadata(resolved.securityLevel, resolved.accessControl, version)
-      val entry = buildEntry(alias, encryption.ciphertext, encryption.iv, metadata, resolved, version)
+      val timestamp = System.currentTimeMillis() / 1000.0
+      val tag = deps.integrity.sign(
+        integrityInputFor(
+          service, request.key, version,
+          resolved.accessControl, resolved.securityLevel,
+          timestamp, encryption.iv, encryption.ciphertext
+        )
+      )
+      val metadata = buildMetadata(
+        resolved.securityLevel, resolved.accessControl, version, timestamp, tag
+      )
+      val entry = buildEntry(
+        alias, encryption.ciphertext, encryption.iv, metadata, resolved, version,
+        usesAad = true, integrityTag = tag
+      )
 
       deps.storage.save(service, request.key, entry)
 
@@ -104,7 +126,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         ?: return@async emptyItem(request.key, service)
 
       val includeValue = request.includeValue == true
-      val decrypted = if (includeValue) decryptEntry(deps, entry, request.authenticationPrompt) else null
+      val decrypted = if (includeValue) decryptEntry(deps, entry, request.authenticationPrompt, service, request.key) else null
       val upgraded = if (includeValue && decrypted != null) {
         maybeReEncrypt(deps, service, request.key, entry, decrypted, request.authenticationPrompt)
       } else {
@@ -155,7 +177,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       entries.mapNotNull { (key, entry) ->
         try {
           val value = if (includeValues) {
-            runCatching { decryptEntry(deps, entry, request?.authenticationPrompt) }.getOrNull()
+            runCatching { decryptEntry(deps, entry, request?.authenticationPrompt, service, key) }.getOrNull()
           } else {
             null
           }
@@ -240,18 +262,44 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   private fun buildMetadata(
     securityLevel: SecurityLevel,
     accessControl: AccessControl,
-    keyVersion: Int
+    keyVersion: Int,
+    timestamp: Double = System.currentTimeMillis() / 1000.0,
+    integrityTag: String? = null
   ): StorageMetadata = StorageMetadata(
     securityLevel = securityLevel,
     backend = StorageBackend.ANDROIDKEYSTORE,
     accessControl = accessControl,
-    timestamp = System.currentTimeMillis() / 1000.0,
+    timestamp = timestamp,
     keyVersion = keyVersion.toDouble(),
-    integrityTag = null
+    integrityTag = integrityTag
   )
 
   private fun fallbackMetadata(keyVersion: Int = KeyVersionRegistry.INITIAL_VERSION): StorageMetadata =
     buildMetadata(SecurityLevel.SOFTWARE, AccessControl.NONE, keyVersion)
+
+  private fun aadFor(service: String, key: String, version: Int): ByteArray =
+    "$service|$key|v$version".toByteArray(Charsets.UTF_8)
+
+  /** Single source of truth for HMAC integrity inputs. */
+  private fun integrityInputFor(
+    service: String,
+    key: String,
+    version: Int,
+    accessControl: AccessControl,
+    securityLevel: SecurityLevel,
+    timestamp: Double,
+    iv: ByteArray,
+    ciphertext: ByteArray
+  ): IntegrityInput = IntegrityInput(
+    service = service,
+    key = key,
+    keyVersion = version,
+    accessControl = accessControl.persistedName(),
+    securityLevel = securityLevel.persistedName(),
+    timestamp = timestamp,
+    iv = iv,
+    ciphertext = ciphertext
+  )
 
   private fun buildEntry(
     alias: String,
@@ -259,17 +307,21 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     iv: ByteArray,
     metadata: StorageMetadata,
     resolved: AccessResolution,
-    keyVersion: Int
+    keyVersion: Int,
+    usesAad: Boolean = false,
+    integrityTag: String? = null
   ): PersistedEntry = PersistedEntry(
     alias = alias,
     ciphertext = ciphertext,
     iv = iv,
-    metadata = PersistedMetadata.from(metadata),
+    metadata = PersistedMetadata.from(metadata, integrityTag),
     authenticators = resolved.allowedAuthenticators,
     requiresAuthentication = resolved.requiresAuthentication,
     invalidateOnEnrollment = resolved.invalidateOnEnrollment,
     useStrongBox = resolved.useStrongBox,
-    keyVersion = keyVersion
+    keyVersion = keyVersion,
+    usesAad = usesAad,
+    integrityTag = integrityTag
   )
 
   private fun emptyItem(key: String, service: String): Variant_NullType_SensitiveInfoItem {
@@ -292,7 +344,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   private suspend fun decryptEntry(
     deps: Dependencies,
     entry: PersistedEntry,
-    prompt: AuthenticationPrompt?
+    prompt: AuthenticationPrompt?,
+    service: String,
+    key: String
   ): String? {
     if (entry.ciphertext == null || entry.iv == null) return null
     val metadata = entry.metadata.toStorageMetadata()
@@ -304,8 +358,33 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       invalidateOnEnrollment = entry.invalidateOnEnrollment,
       useStrongBox = entry.useStrongBox
     )
-    val plaintext = deps.cryptoManager.decrypt(entry.alias, entry.ciphertext, entry.iv, resolution, prompt)
-    return String(plaintext, Charsets.UTF_8)
+
+    // Verify integrity *before* decrypting so a tampered envelope never reaches AES-GCM and never
+    // triggers a biometric prompt. Legacy entries (integrityTag == null) are accepted and will be
+    // upgraded on next write/rotation.
+    if (entry.integrityTag != null && metadata != null) {
+      val ok = deps.integrity.verify(
+        integrityInputFor(
+          service, key, entry.keyVersion,
+          metadata.accessControl, metadata.securityLevel,
+          metadata.timestamp, entry.iv, entry.ciphertext
+        ),
+        entry.integrityTag
+      )
+      if (!ok) {
+        throw SensitiveInfoException.IntegrityViolation(key, service)
+      }
+    }
+
+    val aad = if (entry.usesAad) aadFor(service, key, entry.keyVersion) else null
+    val plaintext = deps.cryptoManager.decrypt(
+      entry.alias, entry.ciphertext, entry.iv, resolution, prompt, aad
+    )
+    return try {
+      String(plaintext, Charsets.UTF_8)
+    } finally {
+      plaintext.fill(0)
+    }
   }
 
   private suspend fun maybeReEncrypt(
@@ -343,9 +422,25 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       invalidateOnEnrollment = entry.invalidateOnEnrollment,
       useStrongBox = entry.useStrongBox
     )
-    val encryption = deps.cryptoManager.encrypt(newAlias, plaintext.toByteArray(Charsets.UTF_8), resolved, prompt)
-    val metadata = buildMetadata(resolved.securityLevel, resolved.accessControl, targetVersion)
-    val upgraded = buildEntry(newAlias, encryption.ciphertext, encryption.iv, metadata, resolved, targetVersion)
+    val encryption = deps.cryptoManager.encrypt(
+      newAlias, plaintext.toByteArray(Charsets.UTF_8), resolved, prompt,
+      aadFor(service, key, targetVersion)
+    )
+    val timestamp = System.currentTimeMillis() / 1000.0
+    val tag = deps.integrity.sign(
+      integrityInputFor(
+        service, key, targetVersion,
+        resolved.accessControl, resolved.securityLevel,
+        timestamp, encryption.iv, encryption.ciphertext
+      )
+    )
+    val metadata = buildMetadata(
+      resolved.securityLevel, resolved.accessControl, targetVersion, timestamp, tag
+    )
+    val upgraded = buildEntry(
+      newAlias, encryption.ciphertext, encryption.iv, metadata, resolved, targetVersion,
+      usesAad = true, integrityTag = tag
+    )
     deps.storage.save(service, key, upgraded)
     if (newAlias != entry.alias) {
       deps.cryptoManager.deleteKey(entry.alias)
@@ -362,7 +457,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     var count = 0
     for ((key, entry) in deps.storage.readAll(service)) {
       if (entry.keyVersion >= targetVersion) continue
-      val plaintext = runCatching { decryptEntry(deps, entry, prompt) }.getOrNull() ?: continue
+      val plaintext = runCatching { decryptEntry(deps, entry, prompt, service, key) }.getOrNull() ?: continue
       runCatching {
         reEncryptEntry(deps, service, key, entry, plaintext, targetVersion, prompt)
         count += 1
