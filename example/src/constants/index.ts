@@ -1,30 +1,26 @@
-import type { AccessControl } from 'react-native-sensitive-info'
+import type {
+	AccessControl,
+	AuthenticationPrompt,
+} from 'react-native-sensitive-info'
 
 export type ModeKey = 'open' | 'biometric'
 
 export interface AccessMode {
 	readonly key: ModeKey
 	readonly label: string
-	readonly description: string
 	readonly accessControl: AccessControl
 }
 
-export const ACCESS_MODES: AccessMode[] = [
-	{
-		key: 'open',
-		label: 'No Lock',
-		description: 'Stores the value without requiring authentication.',
-		accessControl: 'none',
-	},
-	{
-		key: 'biometric',
-		label: 'Biometric Lock',
-		description: 'Requires the current biometric enrollment to unlock.',
-		accessControl: 'biometryCurrentSet',
-	},
+export const ACCESS_MODES: readonly AccessMode[] = [
+	{ key: 'open', label: 'No lock', accessControl: 'none' },
+	{ key: 'biometric', label: 'Biometric', accessControl: 'biometryCurrentSet' },
 ]
 
 export const DEFAULT_SERVICE = 'demo-safe'
-export const DEFAULT_KEY = 'favorite-color'
-export const DEFAULT_SECRET = 'ultramarine'
-export const INITIAL_STATUS = 'Ready to tuck away a secret.'
+
+export const BIOMETRIC_PROMPT: AuthenticationPrompt = {
+	title: 'Unlock your secret',
+	subtitle: 'Biometric authentication is required',
+	description: 'This demo stores data behind your biometric enrollment.',
+	cancel: 'Cancel',
+}
