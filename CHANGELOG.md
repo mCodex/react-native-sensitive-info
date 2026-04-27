@@ -15,7 +15,9 @@
 
 ### Notes
 
-* Native rotation currently ships a stub implementation that returns `version: 1` and `reEncryptedCount: 0`. The full Secure Enclave envelope / versioned Keystore alias hardening will ship in a follow-up RC — the JS surface is stable so apps can wire up UI ahead of time.
+* **iOS rotation** updates the Keychain metadata via `SecItemUpdate`, preserving the original access-control attributes while bumping `keyVersion`.
+* **Android rotation** mints a fresh per-entry Keystore alias (`SensitiveInfo_<hash>_v<version>`) during lazy or eager re-encryption and deletes the stale alias after a successful rewrite.
+* Version state lives in a non-secret registry (`SharedPreferences` on Android, `UserDefaults` on iOS). Delete the app's data to reset.
 
 ## [6.0.0-rc.12](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0-rc.11...v6.0.0-rc.12) (2025-12-16)
 

@@ -309,7 +309,7 @@ function RotationButton() {
 | Master key | Android Keystore (`AES/GCM`, StrongBox when available) | Secure Enclave-gated (P-256) + AES-GCM |
 | Authentication | BiometricPrompt (Class 3 preferred), device credential fallback | LAContext / Face ID / Touch ID / Optic ID |
 | At-rest integrity | AES-GCM authentication tag | AES-GCM authentication tag |
-| Key rotation | Versioned Keystore aliases, lazy re-encryption | Versioned KEKs, lazy re-wrap |
+| Key rotation | Versioned Keystore aliases, lazy re-encryption | Versioned Keychain metadata, lazy re-wrap (preserves original access control) |
 | Error classification | Typed `SensitiveInfoError` subclasses via `/errors` subpath | Same |
 
 Typed errors can be imported from the `/errors` subpath for tree-shakeable error handling:

@@ -31,6 +31,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   private let decoder = JSONDecoder()
   private let defaultService = Bundle.main.bundleIdentifier ?? "default"
   private let availabilityResolver = SecurityAvailabilityResolver()
+  private let keyVersionRegistry = KeyVersionRegistry()
   private lazy var accessControlResolver = AccessControlResolver { [weak self] in
     guard let self else {
       return (secureEnclave: false, strongBox: false, biometry: false, deviceCredential: false)
@@ -51,12 +52,12 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
       let resolved = try resolveAccessControl(preferred: request.accessControl)
+      let keyVersion = keyVersionRegistry.get(service: service)
 
-      let metadata = StorageMetadata(
+      let metadata = buildMetadata(
         securityLevel: resolved.securityLevel,
-        backend: .keychain,
         accessControl: resolved.accessControl,
-        timestamp: Date().timeIntervalSince1970
+        keyVersion: keyVersion
       )
 
       let query = makeBaseQuery(
@@ -82,11 +83,10 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       }
 
       if status == errSecParam, resolved.accessControlRef != nil {
-        let fallbackMetadata = StorageMetadata(
+        let fallbackMetadata = buildMetadata(
           securityLevel: .software,
-          backend: .keychain,
           accessControl: .none,
-          timestamp: Date().timeIntervalSince1970
+          keyVersion: keyVersion
         )
 
         var fallbackAttributes = query
@@ -126,7 +126,10 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         return Variant_NullType_SensitiveInfoItem.first(NullType.null)
       }
 
-      let item = try makeItem(from: raw, includeValue: includeValue)
+      var item = try makeItem(from: raw, includeValue: includeValue)
+      if let upgraded = reEncryptIfStale(item: item, request: request) {
+        item = upgraded
+      }
       return Variant_NullType_SensitiveInfoItem.second(item)
     }
   }
@@ -231,20 +234,31 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   public func rotateKeys(request: RotateKeysRequest?) throws -> Promise<RotationResult> {
-    // Stub: the full Secure Enclave envelope rotation flow ships in the follow-up
-    // native hardening patch. The JS layer already exposes the typed contract so
-    // consumers can wire this up before the native implementation lands.
-    let result = RotationResult(
-      previousVersion: 1,
-      newVersion: 1,
-      reEncryptedCount: 0
-    )
-    return Promise.resolved(withResult: result)
+    Promise.parallel(workQueue) { [self] in
+      let service = normalizedService(request?.service)
+      let previous = keyVersionRegistry.get(service: service)
+      let next = keyVersionRegistry.bump(service: service)
+
+      var reEncrypted = 0
+      if request?.reEncryptEagerly == true {
+        reEncrypted = reEncryptAll(
+          service: service,
+          request: request,
+          targetVersion: next
+        )
+      }
+
+      return RotationResult(
+        previousVersion: Double(previous),
+        newVersion: Double(next),
+        reEncryptedCount: Double(reEncrypted)
+      )
+    }
   }
 
   public func getKeyVersion(request: SensitiveInfoOptions?) throws -> Promise<Double> {
-    // Stub: versioned keys land in the follow-up native hardening patch.
-    Promise.resolved(withResult: 1)
+    let service = normalizedService(request?.service)
+    return Promise.resolved(withResult: Double(keyVersionRegistry.get(service: service)))
   }
 
   // MARK: - Keychain helpers
@@ -316,12 +330,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       throw RuntimeError.error(withMessage: "Unexpected keychain payload shape")
     }
 
-    let metadata = decodeMetadata(from: dictionary) ?? StorageMetadata(
-      securityLevel: .software,
-      backend: .keychain,
-      accessControl: .none,
-      timestamp: Date().timeIntervalSince1970
-    )
+    let metadata = decodeMetadata(from: dictionary) ?? fallbackMetadata()
 
     var value: String?
     if includeValue {
@@ -331,6 +340,119 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     }
 
     return SensitiveInfoItem(key: key, service: service, value: value, metadata: metadata)
+  }
+
+  // MARK: - Key rotation helpers
+
+  private func buildMetadata(
+    securityLevel: SecurityLevel,
+    accessControl: AccessControl,
+    keyVersion: Int
+  ) -> StorageMetadata {
+    StorageMetadata(
+      securityLevel: securityLevel,
+      backend: .keychain,
+      accessControl: accessControl,
+      timestamp: Date().timeIntervalSince1970,
+      keyVersion: Double(keyVersion),
+      integrityTag: nil
+    )
+  }
+
+  private func fallbackMetadata(keyVersion: Int = KeyVersionRegistry.initialVersion) -> StorageMetadata {
+    buildMetadata(securityLevel: .software, accessControl: .none, keyVersion: keyVersion)
+  }
+
+  private func reEncryptIfStale(
+    item: SensitiveInfoItem,
+    request: SensitiveInfoGetRequest
+  ) -> SensitiveInfoItem? {
+    let activeVersion = keyVersionRegistry.get(service: item.service)
+    let currentVersion = item.metadata.keyVersion.map { Int($0) } ?? 0
+    if currentVersion >= activeVersion { return nil }
+
+    let refreshedMetadata = buildMetadata(
+      securityLevel: item.metadata.securityLevel,
+      accessControl: item.metadata.accessControl,
+      keyVersion: activeVersion
+    )
+    guard (try? refreshMetadata(
+      key: item.key,
+      service: item.service,
+      metadata: refreshedMetadata,
+      synchronizable: request.iosSynchronizable,
+      accessGroup: request.keychainGroup
+    )) == true else { return nil }
+
+    return SensitiveInfoItem(
+      key: item.key,
+      service: item.service,
+      value: item.value,
+      metadata: refreshedMetadata
+    )
+  }
+
+  private func reEncryptAll(
+    service: String,
+    request: RotateKeysRequest?,
+    targetVersion: Int
+  ) -> Int {
+    var query = makeBaseQuery(
+      key: nil,
+      service: service,
+      synchronizable: request?.iosSynchronizable,
+      accessGroup: request?.keychainGroup
+    )
+    query[kSecMatchLimit as String] = kSecMatchLimitAll
+    query[kSecReturnAttributes as String] = kCFBooleanTrue
+
+    let result = (try? copyMatching(query: query, prompt: request?.authenticationPrompt)) ?? nil
+    guard let array = result as? [NSDictionary] else { return 0 }
+
+    var count = 0
+    for dictionary in array {
+      guard let key = dictionary[kSecAttrAccount as String] as? String else { continue }
+      let currentMetadata = decodeMetadata(from: dictionary) ?? fallbackMetadata()
+      let currentVersion = currentMetadata.keyVersion.map { Int($0) } ?? 0
+      if currentVersion >= targetVersion { continue }
+
+      let refreshedMetadata = buildMetadata(
+        securityLevel: currentMetadata.securityLevel,
+        accessControl: currentMetadata.accessControl,
+        keyVersion: targetVersion
+      )
+      let ok = (try? refreshMetadata(
+        key: key,
+        service: service,
+        metadata: refreshedMetadata,
+        synchronizable: request?.iosSynchronizable,
+        accessGroup: request?.keychainGroup
+      )) ?? false
+      if ok { count += 1 }
+    }
+    return count
+  }
+
+  /// Updates only the `kSecAttrGeneric` metadata blob for an existing Keychain item, preserving the
+  /// original access-control and accessibility attributes set at creation time.
+  private func refreshMetadata(
+    key: String,
+    service: String,
+    metadata: StorageMetadata,
+    synchronizable: Bool?,
+    accessGroup: String?
+  ) throws -> Bool {
+    let query = makeBaseQuery(
+      key: key,
+      service: service,
+      synchronizable: synchronizable,
+      accessGroup: accessGroup
+    )
+    let attributes: [String: Any] = [
+      kSecAttrGeneric as String: try encoder.encode(PersistedMetadata(metadata: metadata))
+    ]
+    let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+    return status == errSecSuccess
   }
 
   private func decodeMetadata(from dictionary: NSDictionary) -> StorageMetadata? {
