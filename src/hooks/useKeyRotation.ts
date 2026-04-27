@@ -19,6 +19,11 @@ export interface UseKeyRotationOptions extends SensitiveInfoOptions {
 	readonly reEncryptEagerly?: boolean
 }
 
+/** Per-call overrides accepted by {@link UseKeyRotationResult.rotate}. */
+export interface RotateCallOptions {
+	readonly reEncryptEagerly?: boolean
+}
+
 export interface UseKeyRotationResult {
 	/** Most recent rotation result, if any. */
 	readonly lastResult: RotationResult | null
@@ -26,8 +31,13 @@ export interface UseKeyRotationResult {
 	readonly error: HookError | null
 	/** True while a rotation call is in flight. */
 	readonly isRotating: boolean
-	/** Trigger a master-key rotation for the configured service. */
-	readonly rotate: () => Promise<HookMutationResult>
+	/**
+	 * Trigger a master-key rotation for the configured service. Pass
+	 * `{ reEncryptEagerly: true }` to override the hook-level default for this call only.
+	 */
+	readonly rotate: (
+		overrides?: RotateCallOptions
+	) => Promise<HookMutationResult>
 	/** Imperatively read the active key version from the native module. */
 	readonly readVersion: () => Promise<number | null>
 }
@@ -51,18 +61,22 @@ export function useKeyRotation(
 		'Check that the service exists and that no auth-gated entries are blocking eager rotation.'
 	)
 
-	const rotate = useCallback(async (): Promise<HookMutationResult> => {
-		const request: RotateKeysRequest = {
-			...options,
-			reEncryptEagerly: options?.reEncryptEagerly ?? false,
-		}
-		const outcome = await mutate(() => rotateKeys(request))
-		if (outcome.success) {
-			setLastResult(outcome.data)
-			return createHookSuccessResult()
-		}
-		return createHookFailureResult(outcome.error)
-	}, [mutate, options])
+	const rotate = useCallback(
+		async (overrides?: RotateCallOptions): Promise<HookMutationResult> => {
+			const request: RotateKeysRequest = {
+				...options,
+				reEncryptEagerly:
+					overrides?.reEncryptEagerly ?? options?.reEncryptEagerly ?? false,
+			}
+			const outcome = await mutate(() => rotateKeys(request))
+			if (outcome.success) {
+				setLastResult(outcome.data)
+				return createHookSuccessResult()
+			}
+			return createHookFailureResult(outcome.error)
+		},
+		[mutate, options]
+	)
 
 	const readVersion = useCallback(async () => {
 		try {

@@ -59,7 +59,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       var valueData = Data(request.value.utf8)
       defer { zeroize(&valueData) }
 
-      let tag = (try? integrity.sign(
+      let tag = try integrity.sign(
         integrityInput(
           service: service,
           account: request.key,
@@ -69,7 +69,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
           timestamp: timestamp,
           value: valueData
         )
-      ))
+      )
 
       let metadata = buildMetadata(
         securityLevel: resolved.securityLevel,
@@ -104,7 +104,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       }
 
       if status == errSecParam, resolved.accessControlRef != nil {
-        let fallbackTag = (try? integrity.sign(
+        let fallbackTag = try integrity.sign(
           integrityInput(
             service: service,
             account: request.key,
@@ -114,7 +114,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
             timestamp: timestamp,
             value: valueData
           )
-        ))
+        )
         let fallbackMetadata = buildMetadata(
           securityLevel: .software,
           accessControl: .none,

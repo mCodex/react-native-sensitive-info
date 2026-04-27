@@ -32,7 +32,7 @@ const KeyRotationPanel: React.FC<KeyRotationPanelProps> = ({ service }) => {
 	}, [refreshVersion, rotate])
 
 	const handleRotateEager = useCallback(async () => {
-		const ack = await rotate()
+		const ack = await rotate({ reEncryptEagerly: true })
 		if (ack.success) {
 			await refreshVersion()
 		}

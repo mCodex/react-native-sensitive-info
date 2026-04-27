@@ -99,7 +99,8 @@ export function useSecureStorage(
 
 	const [localItems, setLocalItems] = useState<SensitiveInfoItem[] | null>(null)
 
-	// Reset any local override whenever a fresh fetch lands.
+	// Drop the local override whenever a fresh fetch result arrives, so the next
+	// `refetch()` (or option change) is always reflected in the rendered list.
 	useEffect(() => {
 		setLocalItems(null)
 	}, [])

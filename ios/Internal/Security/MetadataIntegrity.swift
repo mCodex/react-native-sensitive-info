@@ -28,7 +28,7 @@ struct MetadataIntegrity {
   }
 
   /// Process-local cache so we don't pay a Keychain round-trip on every read. Guarded by a
-  /// recursive lock — first-touch creation is rare, but reads are on the hot path.
+  /// non-recursive lock — first-touch creation is rare, callers must not re-enter `getOrCreateKey`.
   private static let cacheLock = NSLock()
   private static var keyCache: [String: SymmetricKey] = [:]
 
@@ -121,10 +121,23 @@ struct MetadataIntegrity {
     addAttributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
     addAttributes[kSecValueData as String] = rawKey
     let addStatus = SecItemAdd(addAttributes as CFDictionary, nil)
+
+    if addStatus == errSecDuplicateItem {
+      // Cross-process race: another writer added the key between our lookup and add.
+      // Re-fetch the canonical stored key so HMACs stay consistent across producers.
+      zeroize(&rawKey)
+      var raceResult: CFTypeRef?
+      let raceStatus = SecItemCopyMatching(fetchQuery as CFDictionary, &raceResult)
+      if raceStatus == errSecSuccess, let data = raceResult as? Data {
+        return SymmetricKey(data: data)
+      }
+      throw IntegrityError.keyUnavailable(service: service)
+    }
+
     let key = SymmetricKey(data: rawKey)
     zeroize(&rawKey)
 
-    if addStatus != errSecSuccess && addStatus != errSecDuplicateItem {
+    if addStatus != errSecSuccess {
       throw IntegrityError.keyUnavailable(service: service)
     }
     return key

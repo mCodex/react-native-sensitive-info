@@ -133,6 +133,10 @@ const extractCode = (error: unknown): ErrorCodeValue | null => {
 const extractMessage = (error: unknown, fallback: string): string => {
 	if (error instanceof Error && error.message) return error.message
 	if (typeof error === 'string' && error.length > 0) return error
+	if (error !== null && typeof error === 'object' && 'message' in error) {
+		const candidate = (error as { message?: unknown }).message
+		if (typeof candidate === 'string' && candidate.length > 0) return candidate
+	}
 	return fallback
 }
 
