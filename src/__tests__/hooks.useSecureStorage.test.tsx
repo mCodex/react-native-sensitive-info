@@ -6,6 +6,7 @@ import {
 	type UseSecureStorageOptions,
 	useSecureStorage,
 } from '../hooks/useSecureStorage'
+import { buildTestItem, buildTestMetadata } from './__mocks__/fixtures'
 
 jest.mock('../core/storage', () => ({
 	...jest.requireActual('../core/storage'),
@@ -21,45 +22,6 @@ const mockedDeleteItem = deleteItem as jest.MockedFunction<typeof deleteItem>
 const mockedClearService = clearService as jest.MockedFunction<
 	typeof clearService
 >
-
-type MetadataOverrides = {
-	securityLevel?:
-		| 'secureEnclave'
-		| 'strongBox'
-		| 'biometry'
-		| 'deviceCredential'
-		| 'software'
-	backend?: 'keychain' | 'androidKeystore' | 'encryptedSharedPreferences'
-	accessControl?:
-		| 'secureEnclaveBiometry'
-		| 'biometryCurrentSet'
-		| 'biometryAny'
-		| 'devicePasscode'
-		| 'none'
-	timestamp?: number
-}
-
-function buildMetadata(overrides: MetadataOverrides = {}) {
-	return {
-		securityLevel: overrides.securityLevel ?? 'secureEnclave',
-		backend: overrides.backend ?? 'keychain',
-		accessControl: overrides.accessControl ?? 'secureEnclaveBiometry',
-		timestamp: overrides.timestamp ?? Date.now(),
-	}
-}
-
-const buildItem = (
-	overrides: MetadataOverrides & {
-		key?: string
-		service?: string
-		value?: string
-	} = {}
-) => ({
-	key: overrides.key ?? 'token',
-	service: overrides.service ?? 'auth',
-	value: overrides.value,
-	metadata: buildMetadata(overrides),
-})
 
 describe('useSecureStorage', () => {
 	beforeEach(() => {
@@ -79,7 +41,9 @@ describe('useSecureStorage', () => {
 		)
 
 	it('loads items on mount', async () => {
-		mockedGetAllItems.mockResolvedValueOnce([buildItem({ value: 'secret' })])
+		mockedGetAllItems.mockResolvedValueOnce([
+			buildTestItem({ value: 'secret' }),
+		])
 
 		const { result } = renderStorage({ service: 'auth', includeValues: true })
 
@@ -118,7 +82,7 @@ describe('useSecureStorage', () => {
 	it('exposes a refresh helper', async () => {
 		mockedGetAllItems
 			.mockResolvedValueOnce([])
-			.mockResolvedValueOnce([buildItem({ key: 'next' })])
+			.mockResolvedValueOnce([buildTestItem({ key: 'next' })])
 
 		const { result } = renderStorage({ service: 'auth' })
 
@@ -135,7 +99,7 @@ describe('useSecureStorage', () => {
 
 	it('saves items and refreshes the list', async () => {
 		mockedGetAllItems.mockResolvedValue([])
-		mockedSetItem.mockResolvedValueOnce({ metadata: buildMetadata() })
+		mockedSetItem.mockResolvedValueOnce({ metadata: buildTestMetadata() })
 
 		const { result } = renderStorage({ service: 'auth', includeValues: true })
 
@@ -171,7 +135,7 @@ describe('useSecureStorage', () => {
 
 	it('removes items locally when delete succeeds', async () => {
 		mockedGetAllItems.mockResolvedValueOnce([
-			buildItem({ key: 'token', value: 'secret' }),
+			buildTestItem({ key: 'token', value: 'secret' }),
 		])
 		mockedDeleteItem.mockResolvedValueOnce(true)
 
@@ -208,7 +172,7 @@ describe('useSecureStorage', () => {
 
 	it('clears the service and resets local state', async () => {
 		mockedGetAllItems.mockResolvedValueOnce([
-			buildItem({ key: 'token', value: 'secret' }),
+			buildTestItem({ key: 'token', value: 'secret' }),
 		])
 		mockedClearService.mockResolvedValueOnce()
 

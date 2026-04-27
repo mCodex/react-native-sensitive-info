@@ -1,12 +1,10 @@
-import { useCallback, useMemo } from 'react'
 import { getItem } from '../core/storage'
 import type {
 	SensitiveInfoItem,
 	SensitiveInfoOptions,
 } from '../sensitive-info.nitro'
 import type { AsyncState } from './types'
-import useAsync from './useAsync'
-import useStableOptions from './useStableOptions'
+import useAsyncQuery from './useAsyncQuery'
 
 export interface UseSecretItemOptions extends SensitiveInfoOptions {
 	/** When `false`, skip decrypting the value and return metadata only. Defaults to `true`. */
@@ -32,20 +30,11 @@ export function useSecretItem(
 	key: string,
 	options?: UseSecretItemOptions
 ): UseSecretItemResult {
-	const stable = useStableOptions<UseSecretItemOptions>(DEFAULTS, options)
-	const { skip } = stable
-	const requestOptions = useMemo<SensitiveInfoOptions>(() => {
-		const { skip: _s, ...rest } = stable
-		return rest as SensitiveInfoOptions
-	}, [stable])
-
-	const run = useCallback(
-		() => getItem(key, requestOptions),
-		[key, requestOptions]
+	return useAsyncQuery<SensitiveInfoItem, UseSecretItemOptions>(
+		(request) => getItem(key, request),
+		DEFAULTS,
+		'useSecretItem.fetch',
+		options,
+		'Verify that the key/service pair exists and that includeValue is allowed for the caller.'
 	)
-
-	return useAsync<SensitiveInfoItem>(run, 'useSecretItem.fetch', {
-		hint: 'Verify that the key/service pair exists and that includeValue is allowed for the caller.',
-		skip,
-	})
 }

@@ -1,14 +1,8 @@
 /**
- * Legacy re-export surface kept for backward compatibility. New code should import from
- * `react-native-sensitive-info/errors` (or `src/errors.ts`) directly so that typed classes and
- * predicates tree-shake cleanly.
+ * Internal error helpers used by hook-side code paths. Public predicates and typed error classes
+ * live in `src/errors.ts` (exposed via the `react-native-sensitive-info/errors` subpath); import
+ * them from there directly.
  */
-
-export {
-	isAuthenticationCanceledError,
-	isNotFoundError,
-	toSensitiveInfoError,
-} from '../errors'
 
 /**
  * Extracts a human-readable message from arbitrary error values.

@@ -1,9 +1,7 @@
-import { useCallback, useMemo } from 'react'
 import { hasItem } from '../core/storage'
 import type { SensitiveInfoOptions } from '../sensitive-info.nitro'
 import type { AsyncState } from './types'
-import useAsync from './useAsync'
-import useStableOptions from './useStableOptions'
+import useAsyncQuery from './useAsyncQuery'
 
 export interface UseHasSecretOptions extends SensitiveInfoOptions {
 	/** Disable the automatic existence check while still exposing `refetch`. */
@@ -23,20 +21,11 @@ export function useHasSecret(
 	key: string,
 	options?: UseHasSecretOptions
 ): UseHasSecretResult {
-	const stable = useStableOptions<UseHasSecretOptions>(DEFAULTS, options)
-	const { skip } = stable
-	const requestOptions = useMemo<SensitiveInfoOptions>(() => {
-		const { skip: _s, ...rest } = stable
-		return rest
-	}, [stable])
-
-	const run = useCallback(
-		() => hasItem(key, requestOptions),
-		[key, requestOptions]
+	return useAsyncQuery<boolean, UseHasSecretOptions>(
+		(request) => hasItem(key, request),
+		DEFAULTS,
+		'useHasSecret.evaluate',
+		options,
+		'Most commonly triggered by an invalid key/service combination.'
 	)
-
-	return useAsync<boolean>(run, 'useHasSecret.evaluate', {
-		hint: 'Most commonly triggered by an invalid key/service combination.',
-		skip,
-	})
 }

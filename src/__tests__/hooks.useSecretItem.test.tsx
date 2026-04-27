@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react'
 import { getItem } from '../core/storage'
 import { HookError } from '../hooks/types'
 import { useSecretItem } from '../hooks/useSecretItem'
+import { buildTestItem } from './__mocks__/fixtures'
 
 jest.mock('../core/storage', () => ({
 	...jest.requireActual('../core/storage'),
@@ -17,17 +18,7 @@ describe('useSecretItem', () => {
 	})
 
 	it('returns the fetched item', async () => {
-		mockedGetItem.mockResolvedValueOnce({
-			key: 'token',
-			service: 'auth',
-			value: 'value',
-			metadata: {
-				securityLevel: 'secureEnclave',
-				backend: 'keychain',
-				accessControl: 'secureEnclaveBiometry',
-				timestamp: 1,
-			},
-		})
+		mockedGetItem.mockResolvedValueOnce(buildTestItem({ value: 'value' }))
 
 		const { result } = renderHook(
 			({ opts }: { opts: Parameters<typeof useSecretItem>[1] }) =>
@@ -82,16 +73,9 @@ describe('useSecretItem', () => {
 	})
 
 	it('allows manual refetching', async () => {
-		mockedGetItem.mockResolvedValueOnce(null).mockResolvedValueOnce({
-			key: 'token',
-			service: 'auth',
-			metadata: {
-				securityLevel: 'secureEnclave',
-				backend: 'keychain',
-				accessControl: 'secureEnclaveBiometry',
-				timestamp: 2,
-			},
-		})
+		mockedGetItem
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(buildTestItem({ metadata: { timestamp: 2 } }))
 
 		const { result } = renderHook(
 			({ opts }: { opts: Parameters<typeof useSecretItem>[1] }) =>

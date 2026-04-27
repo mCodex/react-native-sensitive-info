@@ -1,7 +1,5 @@
-import {
-	getErrorMessage,
-	isAuthenticationCanceledError as internalIsAuthenticationCanceledError,
-} from '../internal/errors'
+import { isAuthenticationCanceledError as internalIsAuthenticationCanceledError } from '../errors'
+import { getErrorMessage } from '../internal/errors'
 import { HookError } from './types'
 
 /**
