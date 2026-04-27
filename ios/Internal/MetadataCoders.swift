@@ -8,12 +8,16 @@ struct PersistedMetadata: Codable {
   let backend: String
   let accessControl: String
   let timestamp: Double
+  let keyVersion: Int?
+  let integrityTag: String?
 
-  init(metadata: StorageMetadata) {
+  init(metadata: StorageMetadata, integrityTag: String? = nil) {
     securityLevel = metadata.securityLevel.stringValue
     backend = metadata.backend.stringValue
     accessControl = metadata.accessControl.stringValue
     timestamp = metadata.timestamp
+    keyVersion = metadata.keyVersion.map { Int($0) }
+    self.integrityTag = integrityTag ?? metadata.integrityTag
   }
 
   func toStorageMetadata() -> StorageMetadata? {
@@ -28,7 +32,9 @@ struct PersistedMetadata: Codable {
       securityLevel: level,
       backend: backendValue,
       accessControl: control,
-      timestamp: timestamp
+      timestamp: timestamp,
+      keyVersion: keyVersion.map { Double($0) },
+      integrityTag: integrityTag
     )
   }
 }

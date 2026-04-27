@@ -1,67 +1,100 @@
-/* eslint-disable no-restricted-exports -- Preserve the default export for backwards compatibility. */
+/**
+ * # react-native-sensitive-info
+ *
+ * 🔐 React Native secure storage rebuilt on Nitro Modules — biometric-ready,
+ * StrongBox-aware, and metadata-rich for modern mobile apps.
+ *
+ * @packageDocumentation
+ *
+ * ## Quick start
+ *
+ * ```ts
+ * import { setItem, getItem } from 'react-native-sensitive-info'
+ *
+ * await setItem('session-token', 'abc123', {
+ *   service: 'com.example.auth',
+ *   accessControl: 'secureEnclaveBiometry',
+ *   authenticationPrompt: { title: 'Unlock your session' },
+ * })
+ *
+ * const item = await getItem('session-token', { service: 'com.example.auth' })
+ * console.log(item?.value, item?.metadata.securityLevel)
+ * ```
+ *
+ * ## Subpath exports
+ *
+ * The library is split into three side-effect-free entry points so apps only
+ * pay for what they import:
+ *
+ * | Specifier                                  | Contents                                                      |
+ * | ------------------------------------------ | ------------------------------------------------------------- |
+ * | `react-native-sensitive-info`              | Imperative core (`setItem`, `getItem`, …) and types.          |
+ * | `react-native-sensitive-info/hooks`        | React hooks (`useSecureStorage`, `useSecret`, `useKeyRotation`, …). |
+ * | `react-native-sensitive-info/errors`       | Typed error classes and `instanceof`-friendly predicates.     |
+ *
+ * ## Defaults & gotchas
+ *
+ * - The default `service` is `'default'` — always set this explicitly per
+ *   feature (e.g. `'com.example.auth'`) to avoid leaking secrets across
+ *   modules.
+ * - The default `accessControl` is **`'secureEnclaveBiometry'`** — reads on
+ *   entries written with this policy will trigger a biometric prompt. Pass
+ *   `accessControl: 'none'` for non-sensitive caches, and **avoid sending
+ *   `accessControl` on read paths** (enumeration, `hasItem`, `getKeyVersion`)
+ *   to keep them silent on iOS.
+ * - All errors thrown from this module are subclasses of {@link SensitiveInfoError}.
+ *   Use `instanceof` or the `is*Error` predicates to branch safely.
+ *
+ * @see {@link setItem}
+ * @see {@link useSecureStorage}
+ * @see {@link SensitiveInfoError}
+ */
 
+export {
+	clearService,
+	deleteItem,
+	getAllItems,
+	getItem,
+	getKeyVersion,
+	getSupportedSecurityLevels,
+	hasItem,
+	rotateKeys,
+	SensitiveInfo,
+	type SensitiveInfoApi,
+	setItem,
+} from './core/storage'
+export {
+	AuthenticationCanceledError,
+	ErrorCode,
+	type ErrorCodeValue,
+	IntegrityViolationError,
+	isAuthenticationCanceledError,
+	isIntegrityViolationError,
+	isKeyInvalidatedError,
+	isNotFoundError,
+	isRotationFailedError,
+	KeyInvalidatedError,
+	NotFoundError,
+	RotationFailedError,
+	SensitiveInfoError,
+} from './errors'
 export type {
-  AccessControl,
-  AuthenticationPrompt,
-  MutationResult,
-  SecurityAvailability,
-  SecurityLevel,
-  SensitiveInfo as SensitiveInfoModule,
-  SensitiveInfoSpec,
-  SensitiveInfoDeleteRequest,
-  SensitiveInfoEnumerateRequest,
-  SensitiveInfoGetRequest,
-  SensitiveInfoHasRequest,
-  SensitiveInfoItem,
-  SensitiveInfoOptions,
-  SensitiveInfoSetRequest,
-  StorageBackend,
-  StorageMetadata,
-} from './sensitive-info.nitro';
-
-/**
- * Core storage helpers that mirror the native Nitro surface.
- */
-export {
-  SensitiveInfo,
-  clearService,
-  deleteItem,
-  getAllItems,
-  getItem,
-  getSupportedSecurityLevels,
-  hasItem,
-  setItem,
-  type SensitiveInfoApi,
-} from './core/storage';
-
-export { default } from './core/storage';
-
-/**
- * React hooks and utility types to integrate the secure store with React components.
- */
-export {
-  HookError,
-  createHookFailureResult,
-  createHookSuccessResult,
-  useHasSecret,
-  useSecret,
-  useSecretItem,
-  useSecureOperation,
-  useSecureStorage,
-  useSecurityAvailability,
-  type HookFailureResult,
-  type HookMutationResult,
-  type HookSuccessResult,
-  type UseHasSecretOptions,
-  type UseHasSecretResult,
-  type UseSecretItemOptions,
-  type UseSecretItemResult,
-  type UseSecretOptions,
-  type UseSecretResult,
-  type UseSecureOperationResult,
-  type UseSecureStorageOptions,
-  type UseSecureStorageResult,
-  type UseSecurityAvailabilityResult,
-  type AsyncState,
-  type VoidAsyncState,
-} from './hooks';
+	AccessControl,
+	AuthenticationPrompt,
+	MutationResult,
+	RotateKeysRequest,
+	RotationResult,
+	SecurityAvailability,
+	SecurityLevel,
+	SensitiveInfo as SensitiveInfoModule,
+	SensitiveInfoDeleteRequest,
+	SensitiveInfoEnumerateRequest,
+	SensitiveInfoGetRequest,
+	SensitiveInfoHasRequest,
+	SensitiveInfoItem,
+	SensitiveInfoOptions,
+	SensitiveInfoSetRequest,
+	SensitiveInfoSpec,
+	StorageBackend,
+	StorageMetadata,
+} from './sensitive-info.nitro'

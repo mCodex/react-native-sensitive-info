@@ -1,20 +1,14 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "module": "commonjs",
-    "jsx": "react-jsx",
-    "noEmit": false,
-    "emitDeclarationOnly": false,
-    "outDir": "./.ts-jest",
-    "verbatimModuleSyntax": false
-  },
-  "include": [
-    "src/**/*",
-    "jest.setup.ts"
-  ],
-  "exclude": [
-    "lib",
-    "example",
-    "nitrogen"
-  ]
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "commonjs",
+		"jsx": "react-jsx",
+		"noEmit": false,
+		"emitDeclarationOnly": false,
+		"outDir": "./.ts-jest",
+		"verbatimModuleSyntax": false,
+		"types": ["jest", "node"]
+	},
+	"include": ["src/**/*", "jest.setup.ts"],
+	"exclude": ["lib", "example", "nitrogen"]
 }

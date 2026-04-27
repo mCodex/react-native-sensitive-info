@@ -1,129 +1,70 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react'
+import { getItem } from '../core/storage'
 import type {
-  SensitiveInfoItem,
-  SensitiveInfoOptions,
-} from '../sensitive-info.nitro';
-import { getItem } from '../core/storage';
-import { createInitialAsyncState } from './types';
-import type { AsyncState } from './types';
-import useAsyncLifecycle from './useAsyncLifecycle';
-import useStableOptions from './useStableOptions';
-import createHookError, { isAuthenticationCanceledError } from './error-utils';
+	SensitiveInfoItem,
+	SensitiveInfoOptions,
+} from '../sensitive-info.nitro'
+import type { AsyncState } from './types'
+import useAsyncQuery from './useAsyncQuery'
 
-/**
- * Configuration accepted by {@link useSecretItem}.
- * Extends the core {@link SensitiveInfoOptions} while adding hook-only flags for reactiveness.
- */
 export interface UseSecretItemOptions extends SensitiveInfoOptions {
-  /** When `false`, skip decrypting the value and return metadata only. Defaults to `true`. */
-  readonly includeValue?: boolean;
-  /** Set to `true` to opt out of automatic fetching while keeping access to the imperative {@link UseSecretItemResult.refetch}. */
-  readonly skip?: boolean;
+	/** When `false`, skip decrypting the value and return metadata only. Defaults to `true`. */
+	readonly includeValue?: boolean
+	/** Set to `true` to opt out of automatic fetching. */
+	readonly skip?: boolean
 }
 
-const SECRET_ITEM_DEFAULTS: Required<
-  Pick<UseSecretItemOptions, 'includeValue' | 'skip'>
-> = {
-  includeValue: true,
-  skip: false,
-};
+const DEFAULTS: Required<Pick<UseSecretItemOptions, 'includeValue' | 'skip'>> =
+	{
+		includeValue: true,
+		skip: false,
+	}
 
-/**
- * Reactive state returned by {@link useSecretItem}.
- */
 export interface UseSecretItemResult extends AsyncState<SensitiveInfoItem> {
-  /** Manually re-run the underlying native call. Helpful after a mutation or when `skip` toggles. */
-  refetch: () => Promise<void>;
+	readonly refetch: () => Promise<void>
 }
 
 /**
- * Fetches a single entry from the secure store and keeps the result in sync with the component lifecycle.
+ * Fetches a single entry from the secure store and keeps the result in sync with the component.
+ *
+ * @param key     - Identifier of the entry to fetch. Changing the key triggers a fresh request.
+ * @param options - Storage scoping plus hook-only flags (`includeValue`, `skip`).
+ * @returns A {@link UseSecretItemResult} with `data`/`error`/`isLoading`/`isPending` state and a
+ * `refetch` helper.
+ *
+ * @remarks
+ * - Pass `includeValue: false` to fetch metadata only \u2014 cheaper, and on iOS this avoids the
+ *   biometric prompt. Use {@link useSecret} instead when you also need mutation helpers.
+ * - The hook absorbs `NotFoundError` from the underlying {@link getItem} call and surfaces it as
+ *   `data: null` \u2014 every other error appears in `error` as a {@link HookError}.
  *
  * @example
  * ```tsx
- * const { data, isLoading, error, refetch } = useSecretItem('refreshToken', {
- *   service: 'com.example.session',
- *   includeValue: true,
+ * const { data, isLoading, refetch } = useSecretItem('session-token', {
+ *   service: 'com.example.auth',
  * })
+ *
+ * if (isLoading) return <Spinner />
+ * if (!data) return <SignInScreen />
+ * return <Dashboard token={data.value!} backend={data.metadata.backend} />
  * ```
+ *
+ * @see {@link getItem}
+ * @see {@link useSecret}
  */
 export function useSecretItem(
-  key: string,
-  options?: UseSecretItemOptions
+	key: string,
+	options?: UseSecretItemOptions
 ): UseSecretItemResult {
-  const [state, setState] = useState<AsyncState<SensitiveInfoItem>>(
-    createInitialAsyncState<SensitiveInfoItem>()
-  );
-
-  const { begin, mountedRef } = useAsyncLifecycle();
-  const stableOptions = useStableOptions<UseSecretItemOptions>(
-    SECRET_ITEM_DEFAULTS,
-    options
-  );
-
-  const fetchItem = useCallback(async () => {
-    const { skip, ...requestOptions } = stableOptions;
-
-    if (skip) {
-      setState({
-        data: null,
-        error: null,
-        isLoading: false,
-        isPending: false,
-      });
-      return;
-    }
-
-    const controller = begin();
-    setState((prev) => ({ ...prev, isLoading: true, isPending: true }));
-
-    try {
-      const item = await getItem(key, requestOptions);
-
-      if (mountedRef.current && !controller.signal.aborted) {
-        setState({
-          data: item,
-          error: null,
-          isLoading: false,
-          isPending: false,
-        });
-      }
-    } catch (errorLike) {
-      if (mountedRef.current && !controller.signal.aborted) {
-        if (isAuthenticationCanceledError(errorLike)) {
-          setState((prev) => ({
-            data: prev.data,
-            error: null,
-            isLoading: false,
-            isPending: false,
-          }));
-        } else {
-          const hookError = createHookError(
-            'useSecretItem.fetch',
-            errorLike,
-            'Verify that the key/service pair exists and that includeValue is allowed for the caller.'
-          );
-          setState({
-            data: null,
-            error: hookError,
-            isLoading: false,
-            isPending: false,
-          });
-        }
-      }
-    }
-  }, [begin, key, mountedRef, stableOptions]);
-
-  useEffect(() => {
-    fetchItem().catch(() => {});
-  }, [fetchItem]);
-
-  const refetch = useCallback(async () => {
-    await fetchItem();
-  }, [fetchItem]);
-
-  return {
-    ...state,
-    refetch,
-  };
+	const runner = useCallback(
+		(request: SensitiveInfoOptions) => getItem(key, request),
+		[key]
+	)
+	return useAsyncQuery<SensitiveInfoItem, UseSecretItemOptions>(
+		runner,
+		DEFAULTS,
+		'useSecretItem.fetch',
+		options,
+		'Verify that the key/service pair exists and that includeValue is allowed for the caller.'
+	)
 }

@@ -352,6 +352,64 @@ function AccessControlSelector() {
 
 ---
 
+### `useKeyRotation`
+
+Manage versioned master-key rotation for a given service. Calls `rotateKeys()` under the hood and keeps the active version, last rotation result, and loading/error state.
+
+#### API
+
+```typescript
+function useKeyRotation(options?: UseKeyRotationOptions): {
+  lastResult: RotationResult | null
+  error: HookError | null
+  isRotating: boolean
+  rotate: () => Promise<HookMutationResult>
+  readVersion: () => Promise<number | null>
+}
+
+interface UseKeyRotationOptions extends SensitiveInfoOptions {
+  reEncryptEagerly?: boolean // default: false (lazy rotation)
+}
+
+interface RotationResult {
+  previousVersion: number
+  newVersion: number
+  reEncryptedCount: number
+}
+```
+
+#### Example
+
+```tsx
+import { useKeyRotation } from 'react-native-sensitive-info/hooks'
+
+function RotationButton() {
+  const { rotate, isRotating, lastResult, error } = useKeyRotation({
+    service: 'auth',
+  })
+
+  return (
+    <View>
+      <Button
+        title={isRotating ? 'Rotating…' : 'Rotate master key'}
+        onPress={rotate}
+        disabled={isRotating}
+      />
+      {lastResult && (
+        <Text>
+          v{lastResult.previousVersion} → v{lastResult.newVersion}
+        </Text>
+      )}
+      {error && <Text>{error.message}</Text>}
+    </View>
+  )
+}
+```
+
+> **Note:** Defaults to lazy rotation — entries are re-encrypted opportunistically when they are next read. Pass `reEncryptEagerly: true` to walk every entry up front.
+
+---
+
 ### `useSecureOperation`
 
 One-time operation hook for non-reactive operations (e.g., bulk operations, logout).

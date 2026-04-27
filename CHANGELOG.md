@@ -1,3 +1,38 @@
+## Unreleased (6.0.0-rc.13)
+
+### Features
+
+* **rotation:** Add versioned key rotation via `rotateKeys()` and `getKeyVersion()` with lazy re-encryption on read. New `useKeyRotation` hook exposes the same flow declaratively.
+* **security hardening:** Defense-in-depth pass — non-breaking, applied transparently to new writes and via lazy upgrade on rotation:
+  - HMAC-SHA256 integrity tag bound to every entry's metadata + ciphertext, surfaced on `StorageMetadata.integrityTag`. Tampering with SharedPreferences/Keychain attributes now raises `IntegrityViolationError` (`E_INTEGRITY_VIOLATION`) before any biometric prompt is shown.
+  - AES-GCM AAD on Android binds ciphertext to `service|key|v<version>`, defeating cross-entry swap attacks.
+  - `setUnlockedDeviceRequired(true)` on every Android Keystore key (API 28+), mirroring iOS's `kSecAttrAccessibleWhenUnlocked` semantics.
+  - Plaintext byte buffers are zeroized after use on both platforms.
+  - Constant-time HMAC comparison via `MessageDigest.isEqual` / manual `UInt8` XOR fold.
+  - Backwards compatible: entries written by earlier versions decode without verification and are upgraded on the next write or rotation.
+* **errors:** New typed error classes (`SensitiveInfoError`, `NotFoundError`, `AuthenticationCanceledError`, `IntegrityViolationError`, `KeyInvalidatedError`, `RotationFailedError`) with `code` discriminants and `instanceof` predicates. Importable from the `react-native-sensitive-info/errors` subpath.
+* **tree-shaking:** `"sideEffects": false` everywhere; the package now publishes three focused subpath entries (`.`, `/hooks`, `/errors`). The default export has been removed — import only the helpers you use.
+* **nitro 0.35:** Regenerated against `nitrogen@0.35.5` and `react-native-nitro-modules@0.35.5`.
+* **tooling:** Migrated linting/formatting from ESLint + Prettier to **Biome 2**. Single config at `biome.json`, faster CI runs.
+
+### Refactor (KISS · DRY · SRP)
+
+* Introduced `useAsyncQuery` (read-only hooks) and `useMutation` (mutation hooks) primitives. `useHasSecret`, `useSecretItem`, `useSecureOperation`, `useKeyRotation`, and `useSecureStorage` now compose the same lifecycle/abort/error-handling pipeline — no duplicated state machines.
+* `useSecureStorage` shrunk from ~230 LOC to ~180 LOC and reuses the shared abort + auth-cancel semantics; behaviour is unchanged.
+* Test fixtures consolidated in `src/__tests__/__mocks__/fixtures.ts` (`buildTestItem`, `buildTestMetadata`).
+* Removed redundant re-exports from `src/internal/errors.ts`.
+
+### Breaking changes
+
+* The default export is gone. Use named imports: `import { setItem } from 'react-native-sensitive-info'`.
+* React hooks are no longer re-exported from the package root — import them from `react-native-sensitive-info/hooks`.
+
+### Notes
+
+* **iOS rotation** updates the Keychain metadata via `SecItemUpdate`, preserving the original access-control attributes while bumping `keyVersion`.
+* **Android rotation** mints a fresh per-entry Keystore alias (`SensitiveInfo_<hash>_v<version>`) during lazy or eager re-encryption and deletes the stale alias after a successful rewrite.
+* Version state lives in a non-secret registry (`SharedPreferences` on Android, `UserDefaults` on iOS). Delete the app's data to reset.
+
 ## [6.0.0-rc.12](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0-rc.11...v6.0.0-rc.12) (2025-12-16)
 
 ### Features

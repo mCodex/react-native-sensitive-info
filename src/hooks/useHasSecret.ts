@@ -1,117 +1,56 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { SensitiveInfoOptions } from '../sensitive-info.nitro';
-import { hasItem } from '../core/storage';
-import { createInitialAsyncState } from './types';
-import type { AsyncState } from './types';
-import useAsyncLifecycle from './useAsyncLifecycle';
-import useStableOptions from './useStableOptions';
-import createHookError, { isAuthenticationCanceledError } from './error-utils';
+import { useCallback } from 'react'
+import { hasItem } from '../core/storage'
+import type { SensitiveInfoOptions } from '../sensitive-info.nitro'
+import type { AsyncState } from './types'
+import useAsyncQuery from './useAsyncQuery'
 
-/**
- * Options accepted by {@link useHasSecret}.
- */
 export interface UseHasSecretOptions extends SensitiveInfoOptions {
-  /** Disable the automatic existence check while still exposing {@link UseHasSecretResult.refetch}. */
-  readonly skip?: boolean;
+	/** Disable the automatic existence check while still exposing `refetch`. */
+	readonly skip?: boolean
 }
 
-const DEFAULTS: Required<Pick<UseHasSecretOptions, 'skip'>> = {
-  skip: false,
-};
+const DEFAULTS: Required<Pick<UseHasSecretOptions, 'skip'>> = { skip: false }
 
-/**
- * Result bag returned by {@link useHasSecret}.
- */
 export interface UseHasSecretResult extends AsyncState<boolean> {
-  /** Refresh the cached boolean value. */
-  refetch: () => Promise<void>;
+	readonly refetch: () => Promise<void>
 }
 
 /**
  * Checks if a secure item exists without fetching its payload.
  *
+ * @param key     - Identifier to look up. Changing the key triggers a fresh check.
+ * @param options - Storage scoping plus a `skip` flag.
+ * @returns A {@link UseHasSecretResult} where `data` is the boolean existence flag and `refetch`
+ * re-runs the check on demand.
+ *
+ * @remarks Prefer this over {@link useSecret} / {@link useSecretItem} when you only need to know
+ * whether a key exists \u2014 it never decrypts and never triggers biometric prompts.
+ *
  * @example
  * ```tsx
- * const { data: exists } = useHasSecret('refreshToken', { service: 'com.example.session' })
+ * const { data: hasToken, isLoading } = useHasSecret('session-token', {
+ *   service: 'com.example.auth',
+ * })
+ *
+ * if (isLoading) return null
+ * return hasToken ? <Dashboard /> : <Onboarding />
  * ```
+ *
+ * @see {@link hasItem}
  */
 export function useHasSecret(
-  key: string,
-  options?: UseHasSecretOptions
+	key: string,
+	options?: UseHasSecretOptions
 ): UseHasSecretResult {
-  const [state, setState] = useState<AsyncState<boolean>>(
-    createInitialAsyncState<boolean>()
-  );
-
-  const { begin, mountedRef } = useAsyncLifecycle();
-  const stableOptions = useStableOptions<UseHasSecretOptions>(
-    DEFAULTS,
-    options
-  );
-
-  const evaluate = useCallback(async () => {
-    const { skip, ...requestOptions } = stableOptions;
-
-    if (skip) {
-      setState({
-        data: null,
-        error: null,
-        isLoading: false,
-        isPending: false,
-      });
-      return;
-    }
-
-    const controller = begin();
-    setState((prev) => ({ ...prev, isLoading: true, isPending: true }));
-
-    try {
-      const exists = await hasItem(key, requestOptions);
-
-      if (mountedRef.current && !controller.signal.aborted) {
-        setState({
-          data: exists,
-          error: null,
-          isLoading: false,
-          isPending: false,
-        });
-      }
-    } catch (errorLike) {
-      if (mountedRef.current && !controller.signal.aborted) {
-        if (isAuthenticationCanceledError(errorLike)) {
-          setState((prev) => ({
-            data: prev.data,
-            error: null,
-            isLoading: false,
-            isPending: false,
-          }));
-        } else {
-          const hookError = createHookError(
-            'useHasSecret.evaluate',
-            errorLike,
-            'Most commonly triggered by an invalid key/service combination.'
-          );
-          setState({
-            data: null,
-            error: hookError,
-            isLoading: false,
-            isPending: false,
-          });
-        }
-      }
-    }
-  }, [begin, key, mountedRef, stableOptions]);
-
-  useEffect(() => {
-    evaluate().catch(() => {});
-  }, [evaluate]);
-
-  const refetch = useCallback(async () => {
-    await evaluate();
-  }, [evaluate]);
-
-  return {
-    ...state,
-    refetch,
-  };
+	const runner = useCallback(
+		(request: SensitiveInfoOptions) => hasItem(key, request),
+		[key]
+	)
+	return useAsyncQuery<boolean, UseHasSecretOptions>(
+		runner,
+		DEFAULTS,
+		'useHasSecret.evaluate',
+		options,
+		'Most commonly triggered by an invalid key/service combination.'
+	)
 }
