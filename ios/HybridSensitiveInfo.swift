@@ -97,8 +97,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         PersistedMetadata(metadata: metadata, integrityTag: tag)
       )
 
-      deleteExisting(query: query)
-      var status = SecItemAdd(attributes as CFDictionary, nil)
+      var status = upsertKeychainEntry(baseQuery: query, attributes: attributes)
       if status == errSecSuccess {
         return MutationResult(metadata: metadata)
       }
@@ -130,7 +129,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
           PersistedMetadata(metadata: fallbackMetadata, integrityTag: fallbackTag)
         )
 
-        status = SecItemAdd(fallbackAttributes as CFDictionary, nil)
+        status = upsertKeychainEntry(baseQuery: query, attributes: fallbackAttributes)
         if status == errSecSuccess {
           return MutationResult(metadata: fallbackMetadata)
         }
@@ -325,11 +324,47 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     return query
   }
 
-  private func deleteExisting(query: [String: Any]) {
+  /// Persists `attributes` for the slot identified by `baseQuery`, replacing
+  /// any prior entry — including an iCloud-synced sibling that the caller may
+  /// not currently be writing.
+  ///
+  /// Why a dedicated helper instead of a plain `SecItemAdd`?
+  /// 1. Keychain queries default to *non-synchronizable items only* when
+  ///    `kSecAttrSynchronizable` is omitted. A delete-then-add cycle that uses
+  ///    only the caller's `iosSynchronizable` flag can leave a stale entry in
+  ///    the opposite state, so the next `SecItemAdd` returns
+  ///    `errSecDuplicateItem`. We always force-delete with
+  ///    `kSecAttrSynchronizableAny` to avoid that trap.
+  /// 2. iCloud Keychain sync can re-insert an entry between our delete and our
+  ///    add. We absorb that race with a single bounded retry — `setItem`
+  ///    semantically means *"the slot now contains X"*, and the Keychain
+  ///    partition is already scoped to bundle ID + access group, so any
+  ///    matched entry is provably ours to overwrite.
+  private func upsertKeychainEntry(
+    baseQuery: [String: Any],
+    attributes: [String: Any]
+  ) -> OSStatus {
+    forceDeleteExisting(query: baseQuery)
+    var status = SecItemAdd(attributes as CFDictionary, nil)
+    guard status == errSecDuplicateItem else { return status }
+
+    // Race: another process (typically iCloud sync) restored the item between
+    // our delete and add. One bounded retry — Keychain calls on this queue are
+    // synchronous, so we cannot loop indefinitely.
+    forceDeleteExisting(query: baseQuery)
+    status = SecItemAdd(attributes as CFDictionary, nil)
+    return status
+  }
+
+  private func forceDeleteExisting(query: [String: Any]) {
     var deleteQuery = query
     deleteQuery[kSecReturnData as String] = nil
     deleteQuery[kSecReturnAttributes as String] = nil
-    deleteQuery[kSecMatchLimit as String] = kSecMatchLimitOne
+    // `kSecAttrSynchronizableAny` matches both local-only and iCloud-synced
+    // entries; without it the delete would silently miss the opposite-state
+    // sibling. `SecItemDelete` ignores `kSecMatchLimit` and removes every
+    // matching entry, which is exactly what we want for an upsert.
+    deleteQuery[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
     SecItemDelete(deleteQuery as CFDictionary)
   }
 
@@ -434,6 +469,19 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     let currentVersion = item.metadata.keyVersion.map { Int($0) } ?? 0
     if currentVersion >= activeVersion { return nil }
 
+    // Skip lazy re-encryption for biometry-protected entries. `SecItemUpdate`
+    // against a biometric Keychain item triggers a *second* Face ID / Touch ID
+    // prompt to authorize the mutation — even when we only intend to refresh
+    // the metadata blob. The user already authenticated for the read; queueing
+    // another prompt would be confusing and would also break flows where the
+    // caller renders UI between read and the next user gesture.
+    //
+    // These items are still upgraded by:
+    //   - the next explicit `setItem` (a full overwrite the caller initiates), or
+    //   - `rotateKeys({ reEncryptEagerly: true })`, where the rotation prompt is
+    //     expected by the caller.
+    if isBiometricallyProtected(item.metadata.accessControl) { return nil }
+
     let refreshedMetadata = buildMetadata(
       securityLevel: item.metadata.securityLevel,
       accessControl: item.metadata.accessControl,
@@ -453,6 +501,18 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       value: item.value,
       metadata: refreshedMetadata
     )
+  }
+
+  /// True for the access-control policies whose Keychain entries require a
+  /// biometric (or device-credential fallback) evaluation on every mutation.
+  /// `devicePasscode` and `none` writes can be refreshed silently.
+  private func isBiometricallyProtected(_ policy: AccessControl) -> Bool {
+    switch policy {
+    case .secureenclavebiometry, .biometrycurrentset, .biometryany:
+      return true
+    case .devicepasscode, .none:
+      return false
+    }
   }
 
   private func reEncryptAll(
@@ -552,10 +612,12 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   private func resolveAvailability() -> SecurityAvailability {
     let capabilities = availabilityResolver.resolve()
+    let status = BiometryStatus(fromString: capabilities.biometryStatus.rawValue) ?? .unknown
     return SecurityAvailability(
       secureEnclave: capabilities.secureEnclave,
       strongBox: capabilities.strongBox,
       biometry: capabilities.biometry,
+      biometryStatus: status,
       deviceCredential: capabilities.deviceCredential
     )
   }

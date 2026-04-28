@@ -103,6 +103,11 @@ export interface UseSecureStorageResult {
 export function useSecureStorage(
 	options?: UseSecureStorageOptions
 ): UseSecureStorageResult {
+	'use no memo'
+	// Intentional opt-out: this hook coordinates several refs (cache, abort,
+	// pending mutation) during render to keep the public API stable across
+	// option-object identity changes — a pattern the React Compiler cannot
+	// preserve without losing the deep-equality guarantees we ship.
 	const fetchRunner = useCallback(
 		(request: SensitiveInfoOptions) => getAllItems(request),
 		[]

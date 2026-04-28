@@ -35,6 +35,7 @@ const DiagnosticsCard = ({ readOptions }: DiagnosticsCardProps) => {
 		['Service', readOptions.service ?? 'default'],
 		['Active key version', version != null ? `v${version}` : '—'],
 		['Biometry', formatBoolean(availability?.biometry ?? false)],
+		['Biometry status', availability?.biometryStatus ?? '—'],
 		['Secure Enclave', formatBoolean(availability?.secureEnclave ?? false)],
 		['StrongBox', formatBoolean(availability?.strongBox ?? false)],
 		[

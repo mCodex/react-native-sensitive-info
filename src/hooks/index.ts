@@ -12,6 +12,11 @@ export {
 	type VoidAsyncState,
 } from './types'
 export {
+	type BiometryStatusChangeListener,
+	type UseBiometryStatusWatcherResult,
+	useBiometryStatusWatcher,
+} from './useBiometryStatusWatcher'
+export {
 	type UseHasSecretOptions,
 	type UseHasSecretResult,
 	useHasSecret,
@@ -41,6 +46,7 @@ export {
 	useSecureStorage,
 } from './useSecureStorage'
 export {
+	type UseSecurityAvailabilityOptions,
 	type UseSecurityAvailabilityResult,
 	useSecurityAvailability,
 } from './useSecurityAvailability'

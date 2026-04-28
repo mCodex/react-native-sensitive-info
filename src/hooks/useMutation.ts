@@ -95,6 +95,10 @@ const useMutation = (
 	defaultOperation: string,
 	defaultHint: string
 ): UseMutationResult => {
+	'use no memo'
+	// Intentional opt-out: the mutate path uses optional chaining inside
+	// try/catch (a value-block pattern the React Compiler does not yet
+	// support). Manual memoization below is correct.
 	const [state, dispatch] = useReducer(reducer, IDLE)
 	const { begin, mountedRef } = useAsyncLifecycle()
 

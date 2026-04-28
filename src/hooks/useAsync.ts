@@ -79,6 +79,10 @@ export default function useAsync<T>(
 		readonly preserveDataOnError?: boolean | undefined
 	} = {}
 ): UseAsyncResult<T> {
+	'use no memo'
+	// Intentional opt-out: the body uses optional chaining inside a try/catch
+	// (a value-block pattern the React Compiler does not yet support). The
+	// inner reducer + memoized callbacks already minimise re-renders.
 	const { hint, skip = false, preserveDataOnError = false } = options
 	const [state, dispatch] = useReducer(
 		reducer as (state: AsyncState<T>, action: AsyncAction<T>) => AsyncState<T>,

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AccessControlCard from './components/AccessControlCard'
+import BiometryStatusCard from './components/BiometryStatusCard'
 import DiagnosticsCard from './components/DiagnosticsCard'
 import Footer from './components/Footer'
 import KeyRotationCard from './components/KeyRotationCard'
@@ -27,6 +28,7 @@ const App = () => {
 					StrongBox-backed policies.
 				</Text>
 				<AccessControlCard mode={mode} onChange={setMode} />
+				<BiometryStatusCard />
 				<StorageCard readOptions={readOptions} writeOptions={writeOptions} />
 				<KeyRotationCard
 					readOptions={readOptions}

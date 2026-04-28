@@ -33,6 +33,11 @@ const useStableOptions = <T extends object>(
 	defaults: Partial<T>,
 	options?: Partial<T> | null
 ): T => {
+	'use no memo'
+	// Intentional opt-out: this hook reads multiple refs during render to compute
+	// a structurally-stable identity — a pattern the React Compiler cannot
+	// preserve. The whole point of the hook is to short-circuit re-derivation
+	// across renders, so manual memoization is the load-bearing implementation.
 	const cachedDefaultsRef = useRef<Partial<T> | null>(null)
 	const cachedOptionsRef = useRef<Partial<T> | null | undefined>(undefined)
 	const valueRef = useRef<T | null>(null)
