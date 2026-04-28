@@ -1,4 +1,6 @@
-## Unreleased (6.0.0-rc.13)
+## [6.0.0](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0-rc.12...v6.0.0) (2026-04-28)
+
+First stable release of the Nitro-based v6 line. Promotes `6.0.0-rc.12` to GA with no API changes — the release notes below summarize everything new since the v5 line.
 
 ### Features
 

@@ -2,10 +2,10 @@
 
 ## Compatibility matrix
 
-| Library version | Expo SDK | React Native | Notes                                  |
-| --------------- | -------- | ------------ | -------------------------------------- |
-| `6.0.x`         | 52+      | 0.80–0.85    | Nitro Modules, New Architecture only.  |
-| `5.6.x`         | 49–51    | 0.71–0.74    | Legacy bridge build, maintenance mode. |
+| Library version | Expo SDK | React Native | Notes                                                  |
+| --------------- | -------- | ------------ | ------------------------------------------------------ |
+| `6.0.x` (GA)    | 52+      | 0.80–0.85    | Nitro Modules, New Architecture only. Current stable.  |
+| `5.6.x`         | 49–51    | 0.71–0.74    | Legacy bridge build, maintenance mode (security only). |
 
 `react-native-sensitive-info` ships native code, so it cannot run inside **Expo Go**. You need
 either a **custom Dev Client** (`npx expo run:ios` / `npx expo run:android`) or an **EAS Build**.

@@ -13,15 +13,12 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 > [!WARNING]
 > Version 6 drops Windows support. The module now targets Android plus the Apple platforms (iOS, macOS, visionOS, watchOS).
 
-> [!IMPORTANT]
-> This README tracks the in-progress v6 work on `master`. For the stable legacy release, switch to the `v5.x` branch.
-
 > [!NOTE]
 > **Choosing between 5.6.x and 6.x**
 >
-> - **Need bridge stability?** `5.6.x` is the last pre-Nitro release with the latest biometric fixes, docs, and Android namespace cleanups. It’s drop-in for any `5.5.x` app already running on React Native’s Fabric architecture, but you keep the legacy JS bridge overhead—Paper is no longer supported.
-> - **Ready for Nitro speed?** `6.x` swaps in the Nitro hybrid core, auto-enforces Class 3/StrongBox biometrics, and ships the refreshed sample app plus richer metadata. Upgrade when you can adopt the Nitro toolchain (RN 0.76+, Node 18+, `react-native-nitro-modules`).
-> - **Staying back on 5.5.x?** You remain on the legacy (Paper) architecture and miss the Android 13 prompt fixes, the manual credential fallback restoration, and the new docs—migrate to `5.6.x` at minimum before planning the Nitro jump.
+> - **Want the latest stable?** `6.x` is the current GA line. It runs on the Nitro hybrid core, auto-enforces Class 3/StrongBox biometrics, ships first-class hooks, and exposes rich metadata for every entry. Requires the Nitro toolchain (RN 0.80+, Node 18+, `react-native-nitro-modules`, New Architecture enabled).
+> - **Need bridge stability?** `5.6.x` is the last pre-Nitro release on the legacy JS bridge. It still receives critical security fixes but no new features — pin to it only if you cannot enable the New Architecture yet.
+> - **Staying back on 5.5.x?** You miss the Android 13 prompt fixes and the manual credential fallback restoration — migrate to `5.6.x` at minimum before planning the jump to 6.x.
 
 ## Table of contents
 
@@ -70,13 +67,13 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 
 ```bash
 # with npm
-npm install react-native-sensitive-info@next react-native-nitro-modules
+npm install react-native-sensitive-info react-native-nitro-modules
 
 # or with yarn
-yarn add react-native-sensitive-info@next react-native-nitro-modules
+yarn add react-native-sensitive-info react-native-nitro-modules
 
 # or with pnpm
-pnpm add react-native-sensitive-info@next react-native-nitro-modules
+pnpm add react-native-sensitive-info react-native-nitro-modules
 ```
 
 No manual linking is required. Nitro handles platform registration via autolinking.
