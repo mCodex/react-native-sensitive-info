@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { VoidAsyncState } from './types'
 import useMutation from './useMutation'
 
@@ -45,5 +45,8 @@ export function useSecureOperation(): UseSecureOperationResult {
 		[mutate]
 	)
 
-	return { error, isLoading, isPending, execute }
+	return useMemo(
+		() => ({ error, isLoading, isPending, execute }),
+		[error, isLoading, isPending, execute]
+	)
 }

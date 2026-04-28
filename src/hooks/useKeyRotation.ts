@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getKeyVersion, rotateKeys } from '../core/storage'
 import type {
 	RotateKeysRequest,
@@ -119,11 +119,16 @@ export function useKeyRotation(
 		}
 	}, [options])
 
-	return {
-		lastResult,
-		error: mutateError ?? readError,
-		isRotating: isLoading,
-		rotate,
-		readVersion,
-	}
+	const error = mutateError ?? readError
+
+	return useMemo(
+		() => ({
+			lastResult,
+			error,
+			isRotating: isLoading,
+			rotate,
+			readVersion,
+		}),
+		[lastResult, error, isLoading, rotate, readVersion]
+	)
 }
