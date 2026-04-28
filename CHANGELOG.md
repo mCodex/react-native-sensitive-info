@@ -1,4 +1,4 @@
-## Unreleased
+## [6.1.0](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0...v6.1.0) (2026-04-28)
 
 ### Added
 
@@ -14,6 +14,12 @@ All additions are non-breaking; apps reading only the `biometry` boolean continu
 * **ios:** `getItem` no longer triggers a second Face ID / Touch ID prompt for biometry-protected entries. The lazy re-encryption path that runs after a successful authenticated read used to call `SecItemUpdate` against the same Keychain item to refresh its key-version metadata; iOS treats that as a separate authorization gate, prompting the user a second time. Biometric items now skip the lazy refresh entirely and are upgraded only by an explicit `setItem` (full overwrite, single user-initiated write) or by `rotateKeys({ reEncryptEagerly: true })`. Non-biometric items continue to be upgraded silently.
 * **android:** Same double-prompt regression on `getItem` for entries whose Keystore key was created with `setUserAuthenticationRequired(true)`. Lazy re-encryption inside `getItem` allocated a new key alias for the active version and `Cipher.init` on that fresh key required its own biometric authorization, surfacing as a second prompt right after the read. The lazy refresh now skips entries with `requiresAuthentication == true` (or any biometry-class access policy); explicit `setItem` and `rotateKeys({ reEncryptEagerly: true })` still upgrade them.
 * **ios:** `setItem` no longer returns `errSecDuplicateItem` ("The specified item already exists in the keychain") when the caller toggles `iosSynchronizable` between writes or when iCloud Keychain restores an entry between our delete and add. The internal upsert helper now wipes prior entries with `kSecAttrSynchronizableAny` and absorbs the iCloud-restore race with a single bounded retry. Bundle ID + access group already scope the partition, so the overwrite never crosses an app or sharing boundary.
+
+### Docs
+
+* Clarify `SecurityAvailability.secureEnclave` semantics: it now documents the cross-platform behaviour (Secure Enclave on iOS / mirrors `strongBox` on Android) so consumers can gate "hardware-backed key" UX without branching on `Platform.OS`.
+* Clarify that `canUseAccessControl(policy, levels?)` only skips the native call when a snapshot is supplied; if `levels` is omitted it fetches one via `getSupportedSecurityLevels()`.
+* Update the Android `requiresBiometricAuth` doc comment so it matches the actual classification (`devicePasscode` entries are auth-gated via `entry.requiresAuthentication` and are skipped by the lazy refresh).
 
 ## [6.0.0](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0-rc.12...v6.0.0) (2026-04-28)
 
