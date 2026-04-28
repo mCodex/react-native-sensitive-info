@@ -399,9 +399,39 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     val activeVersion = deps.keyVersionRegistry.get(service)
     if (entry.keyVersion >= activeVersion) return entry
 
+    // Skip lazy re-encryption for biometry-protected entries. Re-encryption
+    // creates a new Keystore key alias for `activeVersion` and `Cipher.init` on
+    // a `setUserAuthenticationRequired(true)` key requires its own biometric
+    // authorization — surfacing as a *second* Face/fingerprint prompt right
+    // after the user already authenticated for the read.
+    //
+    // These items are still upgraded by:
+    //   - the next explicit `setItem` (caller-initiated full overwrite), or
+    //   - `rotateKeys({ reEncryptEagerly: true })` where the prompt is expected.
+    if (requiresBiometricAuth(entry)) return entry
+
     return runCatching {
       reEncryptEntry(deps, service, key, entry, plaintext, activeVersion, prompt)
     }.getOrDefault(entry)
+  }
+
+  /**
+   * True when the persisted entry's Keystore key requires user authentication
+   * to authorize a `Cipher.init` (i.e. the access policy maps to a biometric
+   * or device-credential gate). `devicePasscode`/`none` writes can be
+   * re-encrypted silently with no prompt.
+   */
+  private fun requiresBiometricAuth(entry: PersistedEntry): Boolean {
+    if (entry.requiresAuthentication) return true
+    val accessControl = entry.metadata.toStorageMetadata()?.accessControl
+      ?: return false
+    return when (accessControl) {
+      AccessControl.SECUREENCLAVEBIOMETRY,
+      AccessControl.BIOMETRYCURRENTSET,
+      AccessControl.BIOMETRYANY -> true
+      AccessControl.DEVICEPASSCODE,
+      AccessControl.NONE -> false
+    }
   }
 
   private suspend fun reEncryptEntry(
