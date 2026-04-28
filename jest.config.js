@@ -29,7 +29,10 @@ const config = {
 			lines: 90,
 		},
 	},
-	testMatch: ['<rootDir>/src/**/?(*.)+(spec|test).ts?(x)'],
+	testMatch: [
+		'<rootDir>/src/**/?(*.)+(spec|test).ts?(x)',
+		'<rootDir>/__tests__/**/?(*.)+(spec|test).ts?(x)',
+	],
 }
 
 module.exports = config

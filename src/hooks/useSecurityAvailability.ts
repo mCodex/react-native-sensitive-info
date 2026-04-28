@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { getSupportedSecurityLevels } from '../core/storage'
 import type { SecurityAvailability } from '../sensitive-info.nitro'
 import type { AsyncState } from './types'
@@ -16,9 +16,10 @@ export interface UseSecurityAvailabilityResult
  * `error`/`isLoading`/`isPending` flags, and a `refetch` helper that bypasses the cache.
  *
  * @remarks
- * - The hook caches the first successful response per component instance \u2014 subsequent renders
- *   reuse the cached value without hitting the native module.
- * - `refetch()` forces a fresh native call \u2014 use it after the user changes biometric enrollment
+ * - The hook caches the first successful response **per component instance** — subsequent
+ *   renders of that same component reuse the cached value without hitting the native module.
+ *   Multiple component instances each maintain their own cache.
+ * - `refetch()` forces a fresh native call — use it after the user changes biometric enrollment
  *   in system settings.
  * - On error, the previously cached `data` is preserved so you can render fallback UI without
  *   losing capability info.
@@ -47,7 +48,7 @@ export function useSecurityAvailability(): UseSecurityAvailabilityResult {
 		return value
 	}, [])
 
-	const { refetch: innerRefetch, ...state } = useAsync<SecurityAvailability>(
+	const inner = useAsync<SecurityAvailability>(
 		run,
 		'useSecurityAvailability.fetch',
 		{
@@ -58,8 +59,17 @@ export function useSecurityAvailability(): UseSecurityAvailabilityResult {
 
 	const refetch = useCallback(async () => {
 		forceRef.current = true
-		await innerRefetch()
-	}, [innerRefetch])
+		await inner.refetch()
+	}, [inner.refetch])
 
-	return { ...state, refetch }
+	return useMemo(
+		() => ({
+			data: inner.data,
+			error: inner.error,
+			isLoading: inner.isLoading,
+			isPending: inner.isPending,
+			refetch,
+		}),
+		[inner.data, inner.error, inner.isLoading, inner.isPending, refetch]
+	)
 }

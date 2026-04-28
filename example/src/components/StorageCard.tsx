@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import {
 	clearService,
@@ -8,12 +8,14 @@ import {
 	type SensitiveInfoOptions,
 	setItem,
 } from 'react-native-sensitive-info'
-import { useSecureStorage } from 'react-native-sensitive-info/hooks'
+import {
+	useSecureOperation,
+	useSecureStorage,
+} from 'react-native-sensitive-info/hooks'
 import Button from './Button'
 import Field from './Field'
 import Section from './Section'
 import StatusLine from './StatusLine'
-import { useAsyncAction } from './useAsyncAction'
 
 interface StorageCardProps {
 	readonly readOptions: SensitiveInfoOptions
@@ -37,7 +39,11 @@ const StorageCard = ({ readOptions, writeOptions }: StorageCardProps) => {
 	const trimmedKey = keyName.trim()
 
 	// Listing only: bind the hook to `readOptions` to keep enumeration silent.
-	const storage = useSecureStorage({ ...readOptions, includeValues: false })
+	const storageOptions = useMemo(
+		() => ({ ...readOptions, includeValues: false }),
+		[readOptions]
+	)
+	const storage = useSecureStorage(storageOptions)
 	const exists =
 		trimmedKey.length > 0 &&
 		storage.items.some((item) => item.key === trimmedKey)
@@ -62,40 +68,52 @@ const StorageCard = ({ readOptions, writeOptions }: StorageCardProps) => {
 
 	const refresh = storage.refreshItems
 
-	const save = useAsyncAction(async () => {
-		if (!trimmedKey) return
-		await setItem(trimmedKey, value, writeOptions)
-		await refresh()
-		setStatus(`Saved “${trimmedKey}”.`)
-	})
+	const save = useSecureOperation()
+	const revealAction = useSecureOperation()
+	const remove = useSecureOperation()
+	const clearAll = useSecureOperation()
 
-	const revealAction = useAsyncAction(async () => {
-		if (!trimmedKey) return
-		// `getItem` is the only read needing `writeOptions` — it triggers the auth
-		// prompt for biometric-locked entries.
-		const item = await getItem(trimmedKey, writeOptions)
-		if (item?.value == null) return setStatus(`No value for “${trimmedKey}”.`)
-		setReveal({
-			key: trimmedKey,
-			value: item.value,
-			remaining: REVEAL_TTL_SECONDS,
+	const handleSave = () =>
+		void save.execute(async () => {
+			if (!trimmedKey) return
+			await setItem(trimmedKey, value, writeOptions)
+			await refresh()
+			setStatus(`Saved “${trimmedKey}”.`)
 		})
-	})
 
-	const remove = useAsyncAction(async () => {
-		if (!trimmedKey) return
-		await deleteItem(trimmedKey, writeOptions)
-		await refresh()
-		setReveal((prev) => (prev?.key === trimmedKey ? null : prev))
-		setStatus(`Deleted “${trimmedKey}”.`)
-	})
+	const handleReveal = () =>
+		void revealAction.execute(async () => {
+			if (!trimmedKey) return
+			// `getItem` is the only read needing `writeOptions` — it triggers the auth
+			// prompt for biometric-locked entries.
+			const item = await getItem(trimmedKey, writeOptions)
+			if (item?.value == null) {
+				setStatus(`No value for “${trimmedKey}”.`)
+				return
+			}
+			setReveal({
+				key: trimmedKey,
+				value: item.value,
+				remaining: REVEAL_TTL_SECONDS,
+			})
+		})
 
-	const clearAll = useAsyncAction(async () => {
-		await clearService(readOptions)
-		await refresh()
-		setReveal(null)
-		setStatus('Service cleared.')
-	})
+	const handleRemove = () =>
+		void remove.execute(async () => {
+			if (!trimmedKey) return
+			await deleteItem(trimmedKey, writeOptions)
+			await refresh()
+			setReveal((prev) => (prev?.key === trimmedKey ? null : prev))
+			setStatus(`Deleted “${trimmedKey}”.`)
+		})
+
+	const handleClearAll = () =>
+		void clearAll.execute(async () => {
+			await clearService(readOptions)
+			await refresh()
+			setReveal(null)
+			setStatus('Service cleared.')
+		})
 
 	const busy =
 		save.isPending ||
@@ -136,20 +154,20 @@ const StorageCard = ({ readOptions, writeOptions }: StorageCardProps) => {
 			<View style={styles.row}>
 				<Button
 					label="Save"
-					onPress={() => void save.run()}
+					onPress={handleSave}
 					disabled={!trimmedKey || busy}
 					isPending={save.isPending}
 					variant="primary"
 				/>
 				<Button
 					label={revealing ? `Hiding in ${reveal?.remaining}s` : 'Reveal'}
-					onPress={() => void revealAction.run()}
+					onPress={handleReveal}
 					disabled={!exists || busy || revealing}
 					isPending={revealAction.isPending}
 				/>
 				<Button
 					label="Delete"
-					onPress={() => void remove.run()}
+					onPress={handleRemove}
 					disabled={!exists || busy}
 					isPending={remove.isPending}
 					variant="danger"
@@ -157,7 +175,7 @@ const StorageCard = ({ readOptions, writeOptions }: StorageCardProps) => {
 			</View>
 
 			<Pressable
-				onPress={() => void clearAll.run()}
+				onPress={handleClearAll}
 				disabled={busy || empty}
 				style={({ pressed }) => [
 					styles.clearLink,

@@ -31,6 +31,7 @@ export const ErrorCode = {
 	IntegrityViolation: 'E_INTEGRITY_VIOLATION',
 	KeyInvalidated: 'E_KEY_INVALIDATED',
 	RotationFailed: 'E_ROTATION_FAILED',
+	InvalidArgument: 'E_INVALID_ARGUMENT',
 	Unknown: 'E_UNKNOWN',
 } as const
 
@@ -147,7 +148,7 @@ export class AuthenticationCanceledError extends SensitiveInfoError {
  */
 export class IntegrityViolationError extends SensitiveInfoError {
 	/** Key whose ciphertext failed verification, when known. */
-	readonly key?: string
+	readonly key?: string | undefined
 	/**
 	 * @param message - Defaults to `'Integrity check failed for stored secret.'`.
 	 * @param options - `cause` for error chaining and `key` for the affected identifier.
@@ -182,7 +183,7 @@ export class IntegrityViolationError extends SensitiveInfoError {
  */
 export class KeyInvalidatedError extends SensitiveInfoError {
 	/** Native keystore alias that was invalidated, when known. */
-	readonly alias?: string
+	readonly alias?: string | undefined
 	/**
 	 * @param message - Defaults to `'The hardware key backing this entry was permanently invalidated.'`.
 	 * @param options - `cause` for error chaining and `alias` for the affected keystore entry.
@@ -217,6 +218,38 @@ export class RotationFailedError extends SensitiveInfoError {
 	}
 }
 
+/**
+ * Indicates that a TS-side input violated the library's contract — for example, an empty `key`,
+ * a service name longer than the supported limit, or a value whose serialized size exceeds the
+ * configured ceiling.
+ *
+ * @remarks
+ * This error is raised **before** any native call is made, so no biometric prompt is shown and
+ * no on-disk state is touched. Treat it as a programmer error and fix the call site.
+ *
+ * @example
+ * ```ts
+ * try { await setItem('', value, { service: 'auth' }) }
+ * catch (e) { if (isInvalidArgumentError(e)) console.warn(e.argument, e.message) }
+ * ```
+ */
+export class InvalidArgumentError extends SensitiveInfoError {
+	/** Name of the argument that failed validation, when known (e.g. `'key'`, `'value'`). */
+	readonly argument?: string | undefined
+	/**
+	 * @param message - Human-readable description of the violation.
+	 * @param options - `cause` for error chaining and `argument` for the offending field name.
+	 */
+	constructor(
+		message = 'Invalid argument supplied to secure storage.',
+		options?: { cause?: unknown; argument?: string }
+	) {
+		super(ErrorCode.InvalidArgument, message, options)
+		this.name = 'InvalidArgumentError'
+		this.argument = options?.argument
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Adapters — bridge raw native errors (string markers + code fields) to typed
 // classes. Kept pure so consumers can tree-shake these helpers.
@@ -228,6 +261,7 @@ const MARKER_TO_CODE: readonly [string, ErrorCodeValue][] = [
 	['[E_INTEGRITY_VIOLATION]', ErrorCode.IntegrityViolation],
 	['[E_KEY_INVALIDATED]', ErrorCode.KeyInvalidated],
 	['[E_ROTATION_FAILED]', ErrorCode.RotationFailed],
+	['[E_INVALID_ARGUMENT]', ErrorCode.InvalidArgument],
 ]
 
 const extractCode = (error: unknown): ErrorCodeValue | null => {
@@ -306,6 +340,8 @@ export function toSensitiveInfoError(error: unknown): unknown {
 			return new KeyInvalidatedError(message, { cause: error })
 		case ErrorCode.RotationFailed:
 			return new RotationFailedError(message, { cause: error })
+		case ErrorCode.InvalidArgument:
+			return new InvalidArgumentError(message, { cause: error })
 		default:
 			return error
 	}
@@ -414,3 +450,23 @@ export const isRotationFailedError = (
 ): error is RotationFailedError =>
 	error instanceof RotationFailedError ||
 	extractCode(error) === ErrorCode.RotationFailed
+
+/**
+ * Type guard that narrows `error` to {@link InvalidArgumentError}.
+ *
+ * @param error - Anything thrown from a `react-native-sensitive-info` call.
+ * @returns `true` when a TS-side input violated the library's contract.
+ *
+ * @example
+ * ```ts
+ * try { await setItem('', value, { service: 'auth' }) }
+ * catch (e) { if (isInvalidArgumentError(e)) showFormError(e.argument) }
+ * ```
+ *
+ * @see {@link InvalidArgumentError}
+ */
+export const isInvalidArgumentError = (
+	error: unknown
+): error is InvalidArgumentError =>
+	error instanceof InvalidArgumentError ||
+	extractCode(error) === ErrorCode.InvalidArgument

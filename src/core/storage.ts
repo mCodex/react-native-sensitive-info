@@ -1,6 +1,11 @@
 import { isNotFoundError, toSensitiveInfoError } from '../errors'
 import getNativeInstance from '../internal/native'
 import { normalizeOptions } from '../internal/options'
+import {
+	validateKey,
+	validateService,
+	validateValue,
+} from '../internal/validate'
 import type {
 	MutationResult,
 	RotateKeysRequest,
@@ -14,14 +19,6 @@ import type {
 	SensitiveInfoOptions,
 	SensitiveInfoSetRequest,
 } from '../sensitive-info.nitro'
-
-/**
- * Wraps any native throw in a typed {@link SensitiveInfoError} subclass so consumers can rely on
- * `instanceof` checks without importing the legacy marker helpers.
- */
-const asTyped = (error: unknown): never => {
-	throw toSensitiveInfoError(error)
-}
 
 /**
  * Strongly typed façade around the underlying Nitro native object.
@@ -80,6 +77,9 @@ export async function setItem(
 	value: string,
 	options?: SensitiveInfoOptions
 ): Promise<MutationResult> {
+	validateKey(key)
+	validateValue(value)
+	validateService(options)
 	const native = getNativeInstance()
 	const payload: SensitiveInfoSetRequest = {
 		key,
@@ -89,7 +89,7 @@ export async function setItem(
 	try {
 		return await native.setItem(payload)
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -123,6 +123,8 @@ export async function getItem(
 	key: string,
 	options?: SensitiveInfoOptions & { includeValue?: boolean }
 ): Promise<SensitiveInfoItem | null> {
+	validateKey(key)
+	validateService(options)
 	const native = getNativeInstance()
 	const payload: SensitiveInfoGetRequest = {
 		key,
@@ -134,7 +136,7 @@ export async function getItem(
 		return await native.getItem(payload)
 	} catch (error) {
 		if (isNotFoundError(error)) return null
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -161,6 +163,8 @@ export async function hasItem(
 	key: string,
 	options?: SensitiveInfoOptions
 ): Promise<boolean> {
+	validateKey(key)
+	validateService(options)
 	const native = getNativeInstance()
 	const payload: SensitiveInfoHasRequest = {
 		key,
@@ -169,7 +173,7 @@ export async function hasItem(
 	try {
 		return await native.hasItem(payload)
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -195,6 +199,8 @@ export async function deleteItem(
 	key: string,
 	options?: SensitiveInfoOptions
 ): Promise<boolean> {
+	validateKey(key)
+	validateService(options)
 	const native = getNativeInstance()
 	const payload: SensitiveInfoDeleteRequest = {
 		key,
@@ -203,7 +209,7 @@ export async function deleteItem(
 	try {
 		return await native.deleteItem(payload)
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -228,6 +234,7 @@ export async function deleteItem(
 export async function getAllItems(
 	options?: SensitiveInfoEnumerateRequest
 ): Promise<SensitiveInfoItem[]> {
+	validateService(options)
 	const native = getNativeInstance()
 	const payload: SensitiveInfoEnumerateRequest = {
 		includeValues: options?.includeValues ?? false,
@@ -236,7 +243,7 @@ export async function getAllItems(
 	try {
 		return await native.getAllItems(payload)
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -259,11 +266,12 @@ export async function getAllItems(
 export async function clearService(
 	options?: SensitiveInfoOptions
 ): Promise<void> {
+	validateService(options)
 	const native = getNativeInstance()
 	try {
 		return await native.clearService(normalizeOptions(options))
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -291,7 +299,7 @@ export async function getSupportedSecurityLevels(): Promise<SecurityAvailability
 	try {
 		return await native.getSupportedSecurityLevels()
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -320,6 +328,7 @@ export async function getSupportedSecurityLevels(): Promise<SecurityAvailability
 export async function rotateKeys(
 	options?: RotateKeysRequest
 ): Promise<RotationResult> {
+	validateService(options)
 	const native = getNativeInstance()
 	const payload: RotateKeysRequest = {
 		reEncryptEagerly: options?.reEncryptEagerly ?? false,
@@ -328,7 +337,7 @@ export async function rotateKeys(
 	try {
 		return await native.rotateKeys(payload)
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 
@@ -352,11 +361,12 @@ export async function rotateKeys(
 export async function getKeyVersion(
 	options?: SensitiveInfoOptions
 ): Promise<number> {
+	validateService(options)
 	const native = getNativeInstance()
 	try {
 		return await native.getKeyVersion(normalizeOptions(options))
 	} catch (error) {
-		return asTyped(error)
+		throw toSensitiveInfoError(error)
 	}
 }
 

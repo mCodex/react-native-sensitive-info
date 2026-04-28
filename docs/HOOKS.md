@@ -322,9 +322,9 @@ interface SecurityAvailability {
 
 #### Features
 
-- ✅ Results automatically cached
-- ✅ Single native call per app lifecycle
-- ✅ Refetch on demand
+- ✅ Result cached **per component instance** — no native call on re-render
+- ✅ `refetch()` available to bypass the cache after settings changes
+- ✅ Previous data preserved on error
 
 #### Example
 
@@ -469,29 +469,19 @@ function LogoutButton() {
 All hooks work independently without any provider. Just import and use them directly in your components:
 
 ```tsx
-import { 
-  useSecureStorage, 
-  useSecurityAvailability 
-} from 'react-native-sensitive-info'
+import {
+  useSecureStorage,
+  useSecurityAvailability,
+} from 'react-native-sensitive-info/hooks'
 
 function MyComponent() {
   const { items } = useSecureStorage({ service: 'myapp' })
   const { data: capabilities } = useSecurityAvailability()
-  
-  // Results are cached automatically - no duplicate native calls
-  // even if used in multiple components
+
+  // Each hook instance keeps its own cache. Mounting `useSecurityAvailability`
+  // in two components issues two native reads (one per instance), but neither
+  // re-runs across re-renders unless you call `refetch()`.
 }
-```
-
-**Automatic caching:**
-```tsx
-// Component A
-const { data: cap1 } = useSecurityAvailability()
-
-// Component B  
-const { data: cap2 } = useSecurityAvailability()
-
-// Both get the SAME cached result - only one native call made!
 ```
 
 ---
@@ -577,24 +567,19 @@ const refresh = useSecretItem('refreshToken')
 const apiKey = useSecretItem('apiKey')
 ```
 
-### 6. Share Capabilities Without Context
+### 6. Capability Caching Is Per-Instance
 
-Results are cached automatically - no duplicate native calls:
+Each `useSecurityAvailability` mount keeps its own cache, so re-renders never trigger a fresh
+native call. Multiple components mounting the hook will each issue one read — if you need a
+single source of truth, lift the hook into a parent and pass `data` down via props.
 
 ```tsx
-// ✅ GOOD: Multiple independent queries
-function ComponentA() {
-  const { data: cap1 } = useSecurityAvailability()
-  // Native call happens
-}
-
-function ComponentB() {
-  const { data: cap2 } = useSecurityAvailability()
-  // Returns cached result from ComponentA - no new native call!
+// ✅ Re-renders are free — first mount caches, subsequent renders reuse the value.
+function Capabilities() {
+  const { data, isLoading, refetch } = useSecurityAvailability()
+  // Call refetch() after the user changes biometric enrollment in system settings.
 }
 ```
-
-### 7. Optional Context for Deep Trees (if needed)
 
 ### 7. Accessing Security Capabilities
 
@@ -768,8 +753,8 @@ function Component() {
 ```tsx
 import {
   useSecret,
-  useSecurityAvailability
-} from 'react-native-sensitive-info'
+  useSecurityAvailability,
+} from 'react-native-sensitive-info/hooks'
 
 function AuthenticationFlow() {
   const {

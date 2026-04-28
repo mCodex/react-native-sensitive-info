@@ -2,6 +2,8 @@ export {
 	type AsyncState,
 	createHookFailureResult,
 	createHookSuccessResult,
+	createInitialAsyncState,
+	createInitialVoidState,
 	HookError,
 	type HookErrorOptions,
 	type HookFailureResult,

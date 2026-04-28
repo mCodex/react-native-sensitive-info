@@ -55,7 +55,9 @@
 		"build": "npm run typecheck && bob build",
 		"codegen": "nitrogen --logLevel=\"debug\" && npm run build && node post-script.js",
 		"lint": "biome check --write .",
+		"lint:fix": "biome check --write .",
 		"lint:ci": "biome ci .",
+		"prelint": "node -e \"const p=require('./package.json');const d={...p.dependencies,...p.devDependencies};const f=Object.keys(d).filter(x=>x.startsWith('eslint')||x.startsWith('@eslint/')||x.startsWith('@typescript-eslint/')||x.startsWith('prettier')||x.startsWith('@trivago/prettier'));if(f.length){console.error('[prelint] Forbidden lint/format tools detected: '+f.join(', ')+'. This project uses Biome only.');process.exit(1)}\"",
 		"format": "biome format --write .",
 		"test": "jest",
 		"test:coverage": "jest --coverage"

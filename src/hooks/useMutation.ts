@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useReducer } from 'react'
 import createHookError, { isAuthenticationCanceledError } from './error-utils'
 import {
 	createHookFailureResult,
@@ -53,6 +53,36 @@ const IDLE: UseMutationState = {
 	isPending: false,
 }
 
+const LOADING: UseMutationState = {
+	error: null,
+	isLoading: true,
+	isPending: true,
+}
+
+type MutationAction =
+	| { type: 'idle' }
+	| { type: 'load' }
+	| { type: 'error'; error: HookError }
+	| { type: 'clearError' }
+
+const reducer = (
+	state: UseMutationState,
+	action: MutationAction
+): UseMutationState => {
+	switch (action.type) {
+		case 'idle':
+			return state === IDLE ? state : IDLE
+		case 'load':
+			return state.isLoading && state.isPending && state.error === null
+				? state
+				: LOADING
+		case 'error':
+			return { error: action.error, isLoading: false, isPending: false }
+		case 'clearError':
+			return state.error === null ? state : { ...state, error: null }
+	}
+}
+
 /**
  * Generic state-machine + abort wiring shared by every mutation-style hook (`useSecureOperation`,
  * `useKeyRotation`, plus the `saveSecret`/`removeSecret`/`clearAll` helpers in
@@ -65,7 +95,7 @@ const useMutation = (
 	defaultOperation: string,
 	defaultHint: string
 ): UseMutationResult => {
-	const [state, setState] = useState<UseMutationState>(IDLE)
+	const [state, dispatch] = useReducer(reducer, IDLE)
 	const { begin, mountedRef } = useAsyncLifecycle()
 
 	const mutate = useCallback(
@@ -77,12 +107,12 @@ const useMutation = (
 			const hint = options?.hint ?? defaultHint
 			const controller = begin()
 
-			setState({ error: null, isLoading: true, isPending: true })
+			dispatch({ type: 'load' })
 
 			try {
 				const data = await fn(controller.signal)
 				if (mountedRef.current && !controller.signal.aborted) {
-					setState(IDLE)
+					dispatch({ type: 'idle' })
 				}
 				return { success: true, data }
 			} catch (errorLike) {
@@ -91,9 +121,9 @@ const useMutation = (
 					return createHookFailureResult(hookError)
 				}
 				if (isAuthenticationCanceledError(errorLike)) {
-					setState(IDLE)
+					dispatch({ type: 'idle' })
 				} else {
-					setState({ error: hookError, isLoading: false, isPending: false })
+					dispatch({ type: 'error', error: hookError })
 				}
 				return createHookFailureResult(hookError)
 			}
@@ -102,10 +132,19 @@ const useMutation = (
 	)
 
 	const clearError = useCallback(() => {
-		setState((prev) => (prev.error ? { ...prev, error: null } : prev))
+		dispatch({ type: 'clearError' })
 	}, [])
 
-	return { ...state, mutate, clearError }
+	return useMemo(
+		() => ({
+			error: state.error,
+			isLoading: state.isLoading,
+			isPending: state.isPending,
+			mutate,
+			clearError,
+		}),
+		[state.error, state.isLoading, state.isPending, mutate, clearError]
+	)
 }
 
 export default useMutation

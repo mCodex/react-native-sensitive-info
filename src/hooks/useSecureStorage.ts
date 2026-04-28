@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { clearService, deleteItem, getAllItems, setItem } from '../core/storage'
 import type {
 	SensitiveInfoItem,
 	SensitiveInfoOptions,
 } from '../sensitive-info.nitro'
+import deepEqual from './internal/deepEqual'
 import {
 	createHookFailureResult,
 	createHookSuccessResult,
@@ -39,6 +40,11 @@ const stripIncludeValues = (
 	const { includeValues: _includeValues, ...core } = request
 	return core
 }
+
+// Frozen, shared empty list used as the items fallback so identity stays stable across renders.
+const EMPTY_ITEMS: SensitiveInfoItem[] = Object.freeze(
+	[] as SensitiveInfoItem[]
+) as SensitiveInfoItem[]
 
 /**
  * Structure returned by {@link useSecureStorage}.
@@ -115,13 +121,10 @@ export function useSecureStorage(
 
 	const [localItems, setLocalItems] = useState<SensitiveInfoItem[] | null>(null)
 
-	// Drop the local override whenever a fresh fetch result arrives, so the next
-	// `refetch()` (or option change) is always reflected in the rendered list.
-	useEffect(() => {
-		setLocalItems(null)
-	}, [])
-
-	const items = localItems ?? fetchQuery.data ?? []
+	const items = useMemo(
+		() => localItems ?? fetchQuery.data ?? EMPTY_ITEMS,
+		[localItems, fetchQuery.data]
+	)
 
 	const {
 		error: mutationError,
@@ -129,7 +132,18 @@ export function useSecureStorage(
 		clearError,
 	} = useMutation('useSecureStorage.mutate', '')
 
-	const coreOptions: SensitiveInfoOptions = stripIncludeValues({ ...options })
+	// Stabilize the mutation options reference: callers commonly pass inline literals,
+	// so we cache by structural equality to prevent cascading re-creation of saveSecret /
+	// removeSecret / clearAll callbacks.
+	const coreOptionsRef = useRef<SensitiveInfoOptions | null>(null)
+	const nextCoreOptions = stripIncludeValues({ ...options })
+	if (
+		coreOptionsRef.current === null ||
+		!deepEqual(coreOptionsRef.current, nextCoreOptions)
+	) {
+		coreOptionsRef.current = nextCoreOptions
+	}
+	const coreOptions = coreOptionsRef.current
 
 	const saveSecret = useCallback(
 		async (key: string, value: string): Promise<HookMutationResult> => {
@@ -182,13 +196,26 @@ export function useSecureStorage(
 		await fetchQuery.refetch()
 	}, [fetchQuery.refetch])
 
-	return {
-		items,
-		isLoading: fetchQuery.isLoading,
-		error: mutationError ?? fetchQuery.error,
-		saveSecret,
-		removeSecret,
-		clearAll,
-		refreshItems,
-	}
+	const error = mutationError ?? fetchQuery.error
+
+	return useMemo(
+		() => ({
+			items,
+			isLoading: fetchQuery.isLoading,
+			error,
+			saveSecret,
+			removeSecret,
+			clearAll,
+			refreshItems,
+		}),
+		[
+			items,
+			fetchQuery.isLoading,
+			error,
+			saveSecret,
+			removeSecret,
+			clearAll,
+			refreshItems,
+		]
+	)
 }

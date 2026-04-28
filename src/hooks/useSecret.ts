@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { deleteItem, setItem } from '../core/storage'
 import type {
 	SensitiveInfoItem,
@@ -114,13 +114,16 @@ export function useSecret(
 		}
 	}, [key, options, refetch])
 
-	return {
-		data,
-		error,
-		isLoading,
-		isPending,
-		saveSecret,
-		deleteSecret,
-		refetch,
-	}
+	return useMemo(
+		() => ({
+			data,
+			error,
+			isLoading,
+			isPending,
+			saveSecret,
+			deleteSecret,
+			refetch,
+		}),
+		[data, error, isLoading, isPending, saveSecret, deleteSecret, refetch]
+	)
 }
