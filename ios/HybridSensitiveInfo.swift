@@ -552,10 +552,12 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
 
   private func resolveAvailability() -> SecurityAvailability {
     let capabilities = availabilityResolver.resolve()
+    let status = BiometryStatus(fromString: capabilities.biometryStatus.rawValue) ?? .unknown
     return SecurityAvailability(
       secureEnclave: capabilities.secureEnclave,
       strongBox: capabilities.strongBox,
       biometry: capabilities.biometry,
+      biometryStatus: status,
       deviceCredential: capabilities.deviceCredential
     )
   }

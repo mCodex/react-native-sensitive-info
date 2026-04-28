@@ -245,6 +245,48 @@ export interface MutationResult {
 }
 
 /**
+ * Fine-grained biometric availability state.
+ *
+ * Disambiguates the three UX-distinct outcomes a single boolean cannot express: "hardware is
+ * missing", "hardware is present but the user has not enrolled a biometric", and "ready to use".
+ * Drive feature toggles and onboarding CTAs off this field — for example, render a *"Set up
+ * Face ID in Settings"* deep-link when the value is `'notEnrolled'` instead of hiding the toggle
+ * entirely.
+ *
+ * String-literal union (no TypeScript `enum`) so comparisons narrow correctly, the values are
+ * fully tree-shakable, and zero runtime objects are emitted.
+ *
+ * @see {@link SecurityAvailability.biometryStatus}
+ * @see {@link SecurityAvailability.biometry}
+ */
+export type BiometryStatus =
+	/** Hardware present, at least one biometric enrolled, currently usable. */
+	| 'available'
+	/**
+	 * Hardware present but no fingerprint/face is registered. Surface a *"Set up Face ID / fingerprint"*
+	 * CTA that deep-links to system settings instead of hiding the toggle.
+	 */
+	| 'notEnrolled'
+	/**
+	 * Biometric hardware is missing or permanently disabled (administrator policy, hardware fault,
+	 * passcode not set on iOS). Hide the toggle entirely.
+	 */
+	| 'notAvailable'
+	/**
+	 * Too many recent failed attempts have temporarily locked biometrics. Render a *"Try again later"*
+	 * affordance and consider falling back to `devicePasscode`.
+	 *
+	 * @remarks Currently surfaced from `LAError.biometryLockout` on iOS. On Android, transient lockout
+	 * is reported via `BiometricPrompt` failure paths rather than {@link getSupportedSecurityLevels}.
+	 */
+	| 'lockedOut'
+	/**
+	 * The capability probe could not classify the device. Treat as `'notAvailable'` for gating
+	 * purposes; the value exists to keep the union forward-compatible.
+	 */
+	| 'unknown'
+
+/**
  * Snapshot of the secure hardware capabilities currently exposed to the runtime.
  *
  * Use this to drive feature toggles (e.g. show "Enable biometric unlock" only when `biometry` is
@@ -255,8 +297,19 @@ export interface SecurityAvailability {
 	readonly secureEnclave: boolean
 	/** Android StrongBox is present. **Android only** — always `false` on iOS. */
 	readonly strongBox: boolean
-	/** At least one biometric is enrolled and available for authentication. */
+	/**
+	 * Convenience boolean equal to `biometryStatus === 'available'`. Kept for backward
+	 * compatibility — prefer {@link biometryStatus} for nuanced UX gating (e.g. distinguishing
+	 * "not enrolled" from "no hardware").
+	 */
 	readonly biometry: boolean
+	/**
+	 * Detailed biometric availability state. See {@link BiometryStatus} for the per-value contract.
+	 *
+	 * @remarks Invariant: `biometry === (biometryStatus === 'available')`. Both fields are populated
+	 * by the same native probe.
+	 */
+	readonly biometryStatus: BiometryStatus
 	/** Device has a credential set (passcode/PIN/pattern). */
 	readonly deviceCredential: boolean
 }

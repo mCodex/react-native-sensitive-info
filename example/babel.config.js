@@ -6,6 +6,10 @@ module.exports = (api) => {
 	return {
 		presets: ['module:@react-native/babel-preset'],
 		plugins: [
+			// Run the React Compiler first so it sees the original source before any
+			// other transforms rewrite it. Default target is React 19, which matches
+			// the RN 0.85 / React 19.2 runtime shipped by this example.
+			'babel-plugin-react-compiler',
 			[
 				'module-resolver',
 				{

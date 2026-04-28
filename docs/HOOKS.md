@@ -308,14 +308,27 @@ Fetches and caches device security capabilities (Secure Enclave, StrongBox, Biom
 #### API
 
 ```typescript
-function useSecurityAvailability(): AsyncState<SecurityAvailability> & {
+function useSecurityAvailability(
+  options?: UseSecurityAvailabilityOptions
+): AsyncState<SecurityAvailability> & {
   refetch: () => Promise<void>
+}
+
+interface UseSecurityAvailabilityOptions {
+  /** Auto-refresh when the app returns to `active`. Debounced ~500 ms. */
+  readonly refreshOnForeground?: boolean
 }
 
 interface SecurityAvailability {
   readonly secureEnclave: boolean
   readonly strongBox: boolean
   readonly biometry: boolean
+  readonly biometryStatus:
+    | 'available'
+    | 'notEnrolled'
+    | 'notAvailable'
+    | 'lockedOut'
+    | 'unknown'
   readonly deviceCredential: boolean
 }
 ```
@@ -325,29 +338,62 @@ interface SecurityAvailability {
 - ✅ Result cached **per component instance** — no native call on re-render
 - ✅ `refetch()` available to bypass the cache after settings changes
 - ✅ Previous data preserved on error
+- ✅ `biometryStatus` distinguishes *no hardware* from *hardware present but unenrolled* — drive an *“Enroll Face ID”* CTA off `'notEnrolled'` instead of hiding the toggle
+- ✅ `refreshOnForeground` subscribes to `AppState` and refetches when the user returns from system settings (off by default)
 
 #### Example
 
 ```tsx
 function AccessControlSelector() {
-  const { data: capabilities, isLoading } = useSecurityAvailability()
+  const { data: capabilities, isLoading } = useSecurityAvailability({
+    refreshOnForeground: true,
+  })
 
   if (isLoading) return <Text>Detecting capabilities...</Text>
 
+  if (capabilities?.biometryStatus === 'notEnrolled') {
+    return (
+      <Pressable onPress={() => Linking.openSettings()}>
+        <Text>Set up Face ID / fingerprint →</Text>
+      </Pressable>
+    )
+  }
+
   return (
     <View>
-      {capabilities?.secureEnclave && (
-        <Text>✓ Secure Enclave available</Text>
-      )}
-      {capabilities?.biometry && (
-        <Text>✓ Biometry available</Text>
-      )}
-      {capabilities?.deviceCredential && (
-        <Text>✓ Device credential available</Text>
-      )}
+      {capabilities?.secureEnclave && <Text>✓ Secure Enclave available</Text>}
+      {capabilities?.biometry && <Text>✓ Biometry available</Text>}
+      {capabilities?.deviceCredential && <Text>✓ Device credential available</Text>}
     </View>
   )
 }
+```
+
+#### React to enrollment changes
+
+Use `useBiometryStatusWatcher` for transition-only callbacks (fires once per real `BiometryStatus` change, never on every render):
+
+```tsx
+import { useBiometryStatusWatcher } from 'react-native-sensitive-info/hooks'
+
+useBiometryStatusWatcher((next, previous) => {
+  if (previous === 'notEnrolled' && next === 'available') {
+    showToast('Face ID is ready.')
+  }
+})
+```
+
+#### Gate writes on a specific access-control policy
+
+Pair the snapshot with `canUseAccessControlSync` so the toggle reflects whether the policy you intend to use will actually succeed:
+
+```tsx
+import { canUseAccessControlSync } from 'react-native-sensitive-info'
+
+const { data: caps } = useSecurityAvailability()
+const canEnableSecureEnclave = caps
+  ? canUseAccessControlSync('secureEnclaveBiometry', caps)
+  : false
 ```
 
 ---

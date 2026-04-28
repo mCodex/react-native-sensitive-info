@@ -145,13 +145,15 @@
 			[
 				"commonjs",
 				{
-					"esm": true
+					"esm": true,
+					"configFile": true
 				}
 			],
 			[
 				"module",
 				{
-					"esm": true
+					"esm": true,
+					"configFile": true
 				}
 			],
 			[

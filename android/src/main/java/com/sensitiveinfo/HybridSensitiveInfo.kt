@@ -218,6 +218,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         secureEnclave = capabilities.secureEnclave,
         strongBox = capabilities.strongBox,
         biometry = capabilities.biometry,
+        biometryStatus = capabilities.biometryStatus,
         deviceCredential = capabilities.deviceCredential
       )
     }

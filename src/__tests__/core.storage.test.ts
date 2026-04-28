@@ -239,6 +239,7 @@ describe('core/storage', () => {
 			secureEnclave: true,
 			strongBox: true,
 			biometry: true,
+			biometryStatus: 'available',
 			deviceCredential: false,
 		})
 
@@ -248,6 +249,7 @@ describe('core/storage', () => {
 			secureEnclave: true,
 			strongBox: true,
 			biometry: true,
+			biometryStatus: 'available',
 			deviceCredential: false,
 		})
 		expect(nativeHandle.getSupportedSecurityLevels).toHaveBeenCalled()

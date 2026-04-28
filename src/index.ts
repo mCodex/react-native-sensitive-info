@@ -51,6 +51,10 @@
  */
 
 export {
+	canUseAccessControl,
+	canUseAccessControlSync,
+} from './core/access-control'
+export {
 	clearService,
 	deleteItem,
 	getAllItems,
@@ -83,6 +87,7 @@ export {
 export type {
 	AccessControl,
 	AuthenticationPrompt,
+	BiometryStatus,
 	MutationResult,
 	RotateKeysRequest,
 	RotationResult,

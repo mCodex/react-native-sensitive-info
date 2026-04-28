@@ -28,6 +28,7 @@ Modern secure storage for React Native, powered by Nitro Modules. Version 6 ship
 - [⚡️ Quick start](#-quick-start)
 - [📚 API reference](#-api-reference)
 - [🔐 Access control & metadata](#-access-control--metadata)
+- [👁️ Biometrics](#️-biometrics)
 - [❗ Error handling](#-error-handling)
 - [🔁 Key rotation](#-key-rotation)
 - [🛡️ Security model](#-security-model)
@@ -430,10 +431,78 @@ See `src/sensitive-info.nitro.ts` for full TypeScript definitions.
 - **Access policies** — `secureEnclaveBiometry`, `biometryCurrentSet`, `biometryAny`, `devicePasscode`, `none`.
 - **Timestamp** — UNIX seconds when the entry was last written.
 
-Use `getSupportedSecurityLevels()` to tailor UX before prompting users. For example, disable Secure Enclave options on simulators.
+Use `getSupportedSecurityLevels()` to tailor UX before prompting users. For example, disable Secure Enclave options on simulators. For richer enrollment-state detection (so you can distinguish *"hardware missing"* from *"user hasn't enrolled yet"*), see [👁️ Biometrics](#️-biometrics).
 
 > [!TIP]
 > Need to demo biometrics on a simulator? Use Xcode’s “Features → Face ID” and Android Studio’s “Fingerprints” toggles to simulate successful scans.
+
+## 👁️ Biometrics
+
+The library disambiguates **capability** from **enrollment** so you can render the right UX without false positives. `SecurityAvailability` exposes both a quick boolean (`biometry`) and a fine-grained `biometryStatus` enum:
+
+| `biometryStatus` | Meaning | Recommended UX |
+| --- | --- | --- |
+| `'available'` | Hardware present, enrolled, currently usable. | Enable the biometric toggle. |
+| `'notEnrolled'` | Hardware present but no fingerprint/face is registered. | Show a *“Set up Face ID / fingerprint”* CTA that deep-links to settings. |
+| `'notAvailable'` | Missing or permanently disabled (no hardware, admin policy, passcode unset). | Hide the biometric toggle entirely. |
+| `'lockedOut'` | Too many failed attempts; transiently locked. iOS only at probe time — Android surfaces lockout via `BiometricPrompt` failures. | Show *“Try again later”* and offer a `devicePasscode` fallback. |
+| `'unknown'` | Probe could not classify the device. | Treat as `notAvailable` for gating; log for diagnostics. |
+
+> Invariant: `biometry === (biometryStatus === 'available')`. Both fields come from the same native probe.
+
+### Gate a toggle on a specific access-control policy
+
+`canUseAccessControl(policy)` predicts whether a future `setItem` write with the requested policy will succeed on the current device — it maps the policy onto the {@link SecurityAvailability} snapshot, no extra native round-trip:
+
+```ts
+import { canUseAccessControl, setItem } from 'react-native-sensitive-info'
+
+if (await canUseAccessControl('secureEnclaveBiometry')) {
+  await setItem('session', token, { accessControl: 'secureEnclaveBiometry' })
+} else {
+  // Graceful fallback so the user can still sign in.
+  await setItem('session', token, { accessControl: 'devicePasscode' })
+}
+```
+
+If you already hold a snapshot from `useSecurityAvailability`, use the synchronous variant inside render:
+
+```tsx
+import { canUseAccessControlSync } from 'react-native-sensitive-info'
+import { useSecurityAvailability } from 'react-native-sensitive-info/hooks'
+
+const { data: caps } = useSecurityAvailability()
+const canEnable = caps ? canUseAccessControlSync('secureEnclaveBiometry', caps) : false
+```
+
+### Auto-refresh when the user returns from system settings
+
+Users commonly leave the app to enroll a fingerprint and come back. Opt into foreground auto-refresh so the toggle reflects the new state without a manual `refetch()`:
+
+```tsx
+const { data: caps } = useSecurityAvailability({ refreshOnForeground: true })
+
+if (caps?.biometryStatus === 'notEnrolled') {
+  return <SetupFaceIdCta onPress={() => Linking.openSettings()} />
+}
+```
+
+The hook subscribes to `AppState` only when the option is enabled, debounces back-to-back `active` transitions (~500 ms), and unsubscribes on unmount.
+
+### React to enrollment changes
+
+`useBiometryStatusWatcher` is a transition-only callback (fires once per actual `BiometryStatus` change, never on every render):
+
+```tsx
+import { useBiometryStatusWatcher } from 'react-native-sensitive-info/hooks'
+
+useBiometryStatusWatcher((next, previous) => {
+  analytics.track('biometry_status_changed', { from: previous, to: next })
+  if (previous === 'notEnrolled' && next === 'available') showToast('Face ID is ready.')
+})
+```
+
+It lives in its own module, so apps that don’t need transition tracking don’t pay for it (`sideEffects: false` + named exports keep tree-shaking honest).
 
 ## 🧪 Simulators and emulators
 
