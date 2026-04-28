@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import {
 	clearService,
@@ -39,7 +39,11 @@ const StorageCard = ({ readOptions, writeOptions }: StorageCardProps) => {
 	const trimmedKey = keyName.trim()
 
 	// Listing only: bind the hook to `readOptions` to keep enumeration silent.
-	const storage = useSecureStorage({ ...readOptions, includeValues: false })
+	const storageOptions = useMemo(
+		() => ({ ...readOptions, includeValues: false }),
+		[readOptions]
+	)
+	const storage = useSecureStorage(storageOptions)
 	const exists =
 		trimmedKey.length > 0 &&
 		storage.items.some((item) => item.key === trimmedKey)

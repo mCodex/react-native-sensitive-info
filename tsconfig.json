@@ -3,6 +3,7 @@
 		"composite": true,
 		"allowUnreachableCode": false,
 		"allowUnusedLabels": false,
+		"declarationMap": true,
 		"erasableSyntaxOnly": true,
 		"esModuleInterop": true,
 		"exactOptionalPropertyTypes": true,
