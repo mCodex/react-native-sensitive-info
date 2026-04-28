@@ -35,7 +35,6 @@ export const buildTestItem = (
 	return {
 		key: 'token',
 		service: 'auth',
-		value: undefined,
 		...rest,
 		metadata: buildTestMetadata(metadata),
 	}

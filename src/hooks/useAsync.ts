@@ -73,10 +73,10 @@ export default function useAsync<T>(
 	run: (signal: AbortSignal) => Promise<T | null>,
 	operation: string,
 	options: {
-		readonly hint?: string
-		readonly skip?: boolean
+		readonly hint?: string | undefined
+		readonly skip?: boolean | undefined
 		/** When `true`, data is preserved on error instead of being reset to `null`. */
-		readonly preserveDataOnError?: boolean
+		readonly preserveDataOnError?: boolean | undefined
 	} = {}
 ): UseAsyncResult<T> {
 	const { hint, skip = false, preserveDataOnError = false } = options

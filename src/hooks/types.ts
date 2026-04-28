@@ -5,9 +5,9 @@ export interface HookErrorOptions {
 	/** Root cause object forwarded from the underlying API (typically a {@link SensitiveInfoError}). */
 	readonly cause?: unknown
 	/** Identifier describing the hook operation that failed (for example, `useSecretItem.fetch`). */
-	readonly operation?: string
+	readonly operation?: string | undefined
 	/** Human-friendly hint rendered alongside the message in dev-tools / error overlays. */
-	readonly hint?: string
+	readonly hint?: string | undefined
 }
 
 /**
@@ -25,10 +25,10 @@ export interface HookErrorOptions {
  */
 export class HookError extends Error {
 	/** Identifier of the hook operation that failed (e.g. `useSecret.save`). */
-	readonly operation?: string
+	readonly operation?: string | undefined
 
 	/** UI-facing remediation hint (e.g. `'Ask the user to retry biometrics.'`). */
-	readonly hint?: string
+	readonly hint?: string | undefined
 
 	/**
 	 * @param message - Human-readable description of the failure.

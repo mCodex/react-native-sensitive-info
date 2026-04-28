@@ -81,7 +81,9 @@ describe('useSecret', () => {
 			useSecret('token', { service: 'auth', includeValue: true })
 		)
 
-		let response: { success: boolean; error?: HookError } | undefined
+		let response:
+			| { success: boolean; error?: HookError | undefined }
+			| undefined
 		await act(async () => {
 			response = await result.current.saveSecret('secret')
 		})
@@ -118,7 +120,9 @@ describe('useSecret', () => {
 
 		const { result } = renderHook(() => useSecret('token', { service: 'auth' }))
 
-		let response: { success: boolean; error?: HookError } | undefined
+		let response:
+			| { success: boolean; error?: HookError | undefined }
+			| undefined
 		await act(async () => {
 			response = await result.current.deleteSecret()
 		})
