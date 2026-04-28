@@ -100,7 +100,10 @@ export function useSecurityAvailability(
 	const refetch = useCallback(async () => {
 		forceRef.current = true
 		await inner.refetch()
-	}, [inner.refetch])
+		// Depend on the whole `inner` object: the React Compiler infers `inner` as
+		// the dependency and a more specific `[inner.refetch]` would prevent it
+		// from preserving this memoization.
+	}, [inner])
 
 	const refreshOnForeground = options?.refreshOnForeground === true
 	const lastRefreshRef = useRef(0)
