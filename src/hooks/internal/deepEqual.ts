@@ -10,6 +10,8 @@
  * - Returns `false` (rather than recursing) for instances of `Date`, `RegExp`, `Map`, `Set`,
  *   functions, and any other non-plain object: option payloads are POJOs by contract, and these
  *   types should never appear there. Guarding against them prevents accidental false positives.
+ * - **Circular references are not supported** and will recurse until the call stack overflows.
+ *   Option payloads must be acyclic; this is enforced by contract, not at runtime.
  *
  * @internal
  */

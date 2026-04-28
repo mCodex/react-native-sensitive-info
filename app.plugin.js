@@ -57,8 +57,8 @@ function withIosNewArchitecture(config) {
 function withFaceIDUsageDescription(config, faceIDPermission) {
 	if (faceIDPermission === null) return config
 	return withInfoPlist(config, (modConfig) => {
-		// Respect a user-set value; only fill the default when missing.
-		if (!modConfig.modResults.NSFaceIDUsageDescription) {
+		// Respect any user-set value (including empty strings); only fill when truly missing.
+		if (modConfig.modResults.NSFaceIDUsageDescription == null) {
 			modConfig.modResults.NSFaceIDUsageDescription =
 				faceIDPermission ?? DEFAULT_FACE_ID_PERMISSION
 		}

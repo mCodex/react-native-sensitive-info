@@ -22,13 +22,24 @@ function utf8ByteLength(input: string): number {
 	let bytes = 0
 	for (let i = 0; i < input.length; i++) {
 		const code = input.charCodeAt(i)
-		if (code < 0x80) bytes += 1
-		else if (code < 0x800) bytes += 2
-		else if (code >= 0xd800 && code <= 0xdbff) {
-			// High surrogate — combined with the next low surrogate is a 4-byte UTF-8 sequence.
-			bytes += 4
-			i++
-		} else bytes += 3
+		if (code < 0x80) {
+			bytes += 1
+		} else if (code < 0x800) {
+			bytes += 2
+		} else if (code >= 0xd800 && code <= 0xdbff) {
+			// High surrogate. Only count as a 4-byte sequence when properly paired with a
+			// following low surrogate; otherwise treat the unpaired surrogate as a 3-byte
+			// replacement to avoid skipping or undercounting the next code unit.
+			const next = i + 1 < input.length ? input.charCodeAt(i + 1) : 0
+			if (next >= 0xdc00 && next <= 0xdfff) {
+				bytes += 4
+				i++
+			} else {
+				bytes += 3
+			}
+		} else {
+			bytes += 3
+		}
 	}
 	return bytes
 }

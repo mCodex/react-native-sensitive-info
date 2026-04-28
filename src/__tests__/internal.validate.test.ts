@@ -82,5 +82,30 @@ describe('internal/validate', () => {
 			// '\u{1F600}' (😀) is 4 UTF-8 bytes; allow well-under-the-limit input through.
 			expect(() => validateValue('\u{1F600}')).not.toThrow()
 		})
+
+		it('counts 2-byte UTF-8 sequences (e.g. accented Latin)', () => {
+			// 'é' (U+00E9) is 2 UTF-8 bytes; ensure the 2-byte branch is exercised.
+			const atLimit = `${'x'.repeat(MAX_VALUE_BYTES - 2)}é`
+			const tooBig = `${'x'.repeat(MAX_VALUE_BYTES - 1)}é`
+			expect(() => validateValue(atLimit)).not.toThrow()
+			expect(() => validateValue(tooBig)).toThrow(InvalidArgumentError)
+		})
+
+		it('treats a lone high surrogate as a 3-byte sequence (no skipping)', () => {
+			// Unpaired high surrogate at end of string should count as 3 bytes (replacement),
+			// not 4, and must not advance past end of string.
+			const atLimit = `${'x'.repeat(MAX_VALUE_BYTES - 3)}\uD83D`
+			const tooBig = `${'x'.repeat(MAX_VALUE_BYTES - 2)}\uD83D`
+			expect(() => validateValue(atLimit)).not.toThrow()
+			expect(() => validateValue(tooBig)).toThrow(InvalidArgumentError)
+		})
+
+		it('handles a high surrogate followed by a non-low surrogate without skipping the next character', () => {
+			// '\uD83D' is unpaired (3 bytes) and 'a' is 1 byte — total tail is 4 bytes.
+			const atLimit = `${'x'.repeat(MAX_VALUE_BYTES - 4)}\uD83Da`
+			const tooBig = `${'x'.repeat(MAX_VALUE_BYTES - 3)}\uD83Da`
+			expect(() => validateValue(atLimit)).not.toThrow()
+			expect(() => validateValue(tooBig)).toThrow(InvalidArgumentError)
+		})
 	})
 })

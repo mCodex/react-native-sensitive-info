@@ -39,11 +39,10 @@ Add the plugin to your `app.json` / `app.config.ts`:
 
 ### Plugin options
 
-| Prop                    | Type      | Default                                       | Effect                                                                                                    |
-| ----------------------- | --------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `faceIDPermission`      | `string`  | `"Authenticate to access your secure data."` | Written to `NSFaceIDUsageDescription` if missing. A pre-existing value in your Info.plist is preserved. |
-| `faceIDPermission`      | `null`    | —                                             | Skips the Info.plist modifier entirely (use when another plugin owns the key).                            |
-| `enableNewArchitecture` | `boolean` | `true`                                        | Writes `newArchEnabled` (Android) and `RCT_NEW_ARCH_ENABLED` (iOS) flags.                                 |
+| Prop                    | Type             | Default                                      | Effect                                                                                                                                                                                                                              |
+| ----------------------- | ---------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `faceIDPermission`      | `string \| null` | `"Authenticate to access your secure data."` | When a string is provided, it is written to `NSFaceIDUsageDescription` if the key is missing; a pre-existing value in your Info.plist is always preserved. Pass `null` to skip the modifier entirely (e.g. another plugin owns the key). |
+| `enableNewArchitecture` | `boolean`        | `true`                                       | Writes `newArchEnabled` (Android) and `RCT_NEW_ARCH_ENABLED` (iOS) flags.                                                                                                                                                          |
 
 The plugin also adds the following Android permissions automatically:
 

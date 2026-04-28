@@ -10,7 +10,11 @@ import deepEqual from './internal/deepEqual'
  * so it correctly handles:
  * - Key order: `{ a: 1, b: 2 }` and `{ b: 2, a: 1 }` are treated as equal.
  * - `undefined` values: `{ a: 1, b: undefined }` and `{ a: 1 }` are treated as **different**.
- * - Circular references and non-serialisable values do not throw.
+ * - Non-serialisable values (`Date`, `RegExp`, `Map`, `Set`, functions) compare by identity
+ *   rather than throwing.
+ *
+ * Option payloads must be **acyclic** — circular references are not supported and will
+ * recurse until the call stack overflows. This is by contract; option objects are POJOs.
  *
  * The merged result is cached until either input changes by content, so consumers can pass
  * inline option literals without forcing downstream `useEffect` / `useMemo` invalidations.
