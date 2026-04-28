@@ -417,9 +417,15 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
 
   /**
    * True when the persisted entry's Keystore key requires user authentication
-   * to authorize a `Cipher.init` (i.e. the access policy maps to a biometric
-   * or device-credential gate). `devicePasscode`/`none` writes can be
-   * re-encrypted silently with no prompt.
+   * to authorize a `Cipher.init` — i.e. biometric- or device-credential-gated
+   * entries. `entry.requiresAuthentication` already covers the common case
+   * (including `devicePasscode`, which `AccessControlResolver` flags as
+   * auth-required), so any such entry returns `true` and is skipped by the
+   * lazy refresh to avoid a second prompt. The `accessControl` fallback only
+   * matters for legacy entries persisted before the flag existed: there we
+   * still classify the biometry-class policies as auth-gated, while
+   * `devicePasscode`/`none` legacy entries are treated as silently
+   * upgradable (their keys had no auth requirement back then).
    */
   private fun requiresBiometricAuth(entry: PersistedEntry): Boolean {
     if (entry.requiresAuthentication) return true

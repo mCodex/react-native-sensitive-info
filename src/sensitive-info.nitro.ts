@@ -293,7 +293,12 @@ export type BiometryStatus =
  * `true`) instead of attempting writes that will fail at runtime.
  */
 export interface SecurityAvailability {
-	/** Apple Secure Enclave is present and addressable. **iOS/macOS only** — always `false` on Android. */
+	/**
+	 * A hardware-isolated key store is present and addressable. On iOS/macOS this maps to the
+	 * Apple Secure Enclave; on Android it mirrors {@link strongBox} (true when StrongBox is
+	 * available), so a single boolean lets cross-platform code gate "use hardware-backed keys"
+	 * UX without branching on `Platform.OS`.
+	 */
 	readonly secureEnclave: boolean
 	/** Android StrongBox is present. **Android only** — always `false` on iOS. */
 	readonly strongBox: boolean

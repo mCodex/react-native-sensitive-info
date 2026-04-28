@@ -64,14 +64,23 @@ describe('useBiometryStatusWatcher', () => {
 		expect(onChange).toHaveBeenCalledTimes(1)
 
 		// Foreground refresh that flips status: should fire with previous=notEnrolled.
-		await act(async () => {
-			// Wait past the 500 ms debounce window before emitting again.
-			await new Promise((r) => setTimeout(r, 600))
-			appState.__emit('background')
-			appState.__emit('active')
-		})
+		// Skip past the 500 ms debounce by advancing the clock instead of sleeping
+		// — the debounce uses `Date.now()`, not a queued timer, so a `Date.now`
+		// spy is enough and keeps the test deterministic.
+		const realNow = Date.now
+		const nowSpy = jest
+			.spyOn(Date, 'now')
+			.mockImplementation(() => realNow() + 1_000)
+		try {
+			await act(async () => {
+				appState.__emit('background')
+				appState.__emit('active')
+			})
 
-		await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2))
-		expect(onChange).toHaveBeenLastCalledWith('available', 'notEnrolled')
+			await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2))
+			expect(onChange).toHaveBeenLastCalledWith('available', 'notEnrolled')
+		} finally {
+			nowSpy.mockRestore()
+		}
 	})
 })

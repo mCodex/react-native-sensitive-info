@@ -3,7 +3,7 @@
 ### Added
 
 * **biometric availability:** New `biometryStatus` field on `SecurityAvailability` (`'available' | 'notEnrolled' | 'notAvailable' | 'lockedOut' | 'unknown'`) disambiguates *hardware missing*, *hardware present but no enrollment*, and *currently usable*. The legacy `biometry` boolean stays as a backward-compatible alias for `biometryStatus === 'available'`. Mapped natively from `LAError` codes on iOS and `BiometricManager.canAuthenticate` results on Android.
-* **policy precheck:** New `canUseAccessControl(policy, levels?)` and `canUseAccessControlSync(policy, levels)` predict whether a given `AccessControl` policy will succeed on the current device. Pure TS mapping over `SecurityAvailability` — no extra IPC round-trip.
+* **policy precheck:** New `canUseAccessControl(policy, levels?)` and `canUseAccessControlSync(policy, levels)` predict whether a given `AccessControl` policy will succeed on the current device. When a `SecurityAvailability` snapshot is supplied (the sync variant always requires one), they are a pure TS mapping with no native call; if `levels` is omitted from `canUseAccessControl`, it first fetches the current snapshot via `getSupportedSecurityLevels()`.
 * **foreground auto-refresh:** `useSecurityAvailability({ refreshOnForeground: true })` subscribes to `AppState` and refetches on `active` transitions (debounced ~500 ms, unsubscribes on unmount). Covers the *user leaves to enroll a fingerprint and returns* flow without manual `refetch()`.
 * **enrollment listener:** New `useBiometryStatusWatcher(onChange)` hook fires only on actual `BiometryStatus` transitions (not on every render or refetch). Lives in its own module for tree-shaking.
 

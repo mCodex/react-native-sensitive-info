@@ -452,7 +452,7 @@ The library disambiguates **capability** from **enrollment** so you can render t
 
 ### Gate a toggle on a specific access-control policy
 
-`canUseAccessControl(policy)` predicts whether a future `setItem` write with the requested policy will succeed on the current device — it maps the policy onto the {@link SecurityAvailability} snapshot, no extra native round-trip:
+`canUseAccessControl(policy)` predicts whether a future `setItem` write with the requested policy will succeed on the current device. It maps the policy onto a [`SecurityAvailability`](#-access-control--metadata) snapshot — pure TS, no native call — but if you don't pass a snapshot it first fetches one via `getSupportedSecurityLevels()`. Pass the snapshot you already hold (e.g. from `useSecurityAvailability`) to skip that round-trip:
 
 ```ts
 import { canUseAccessControl, setItem } from 'react-native-sensitive-info'
