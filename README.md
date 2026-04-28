@@ -221,7 +221,7 @@ function YourComponent() {
 
 For comprehensive examples and advanced patterns, see [`HOOKS.md`](./HOOKS.md).
 
-### 🧱 Hook architecture (DRY · KISS · SRP)
+### 🧱 Hook architecture
 
 Every hook in this package is a thin choreography layer over three internal primitives, so adding or auditing a hook stays a single-file change:
 
