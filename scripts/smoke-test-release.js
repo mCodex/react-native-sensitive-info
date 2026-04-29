@@ -17,7 +17,7 @@
  * Designed to run inside `release-it`'s `before:init` hook so a broken
  * release is caught before the npm publish + git push.
  */
-const { execSync } = require('node:child_process')
+const { execFileSync, execSync } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
@@ -28,6 +28,7 @@ const PKG = require(path.join(ROOT, 'package.json'))
 const REQUIRED_TARBALL_ENTRIES = [
 	'package/nitrogen/generated/ios/SensitiveInfo+autolinking.rb',
 	'package/nitrogen/generated/android/SensitiveInfo+autolinking.gradle',
+	'package/nitrogen/generated/shared/c++/HybridSensitiveInfoSpec.hpp',
 	'package/hooks/package.json',
 	'package/errors/package.json',
 	'package/lib/commonjs/index.js',
@@ -39,10 +40,10 @@ const REQUIRED_TARBALL_ENTRIES = [
 ]
 
 const SUBPATHS = [
-	'react-native-sensitive-info',
-	'react-native-sensitive-info/hooks',
-	'react-native-sensitive-info/errors',
-	'react-native-sensitive-info/package.json',
+	PKG.name,
+	`${PKG.name}/hooks`,
+	`${PKG.name}/errors`,
+	`${PKG.name}/package.json`,
 ]
 
 const PROXY_DIRS = ['hooks', 'errors']
@@ -53,8 +54,7 @@ const run = (cmd, opts = {}) =>
 		.trim()
 
 const fail = (msg) => {
-	console.error(`\n[smoke-test-release] ❌ ${msg}\n`)
-	process.exit(1)
+	throw new Error(msg)
 }
 
 const log = (msg) => console.log(`[smoke-test-release] ${msg}`)
@@ -63,10 +63,17 @@ const log = (msg) => console.log(`[smoke-test-release] ${msg}`)
 log('Packing tarball with `npm pack`…')
 const tarballName = run('npm pack --silent', { cwd: ROOT }).split('\n').pop()
 const tarballPath = path.join(ROOT, tarballName)
+let sandbox
 
 try {
 	// 2. Verify required entries are present.
-	const entries = run(`tar -tzf ${tarballName}`, { cwd: ROOT }).split('\n')
+	const entries = execFileSync('tar', ['-tzf', tarballName], {
+		cwd: ROOT,
+		stdio: ['ignore', 'pipe', 'pipe'],
+	})
+		.toString()
+		.trim()
+		.split('\n')
 	const missing = REQUIRED_TARBALL_ENTRIES.filter((e) => !entries.includes(e))
 	if (missing.length > 0) {
 		fail(
@@ -78,7 +85,7 @@ try {
 	)
 
 	// 3. Install the tarball into a throwaway project.
-	const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'rnsi-smoke-'))
+	sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'rnsi-smoke-'))
 	fs.writeFileSync(
 		path.join(sandbox, 'package.json'),
 		JSON.stringify({ name: 'rnsi-smoke', version: '0.0.0', private: true })
@@ -140,11 +147,17 @@ try {
 		fail(`Ruby syntax check failed:\n${err.stderr?.toString() ?? err.message}`)
 	}
 
-	// 7. Cleanup sandbox.
-	fs.rmSync(sandbox, { recursive: true, force: true })
+	// 7. Cleanup sandbox happens in `finally` below.
 
 	console.log('\n[smoke-test-release] ✅ Release candidate looks healthy.\n')
+} catch (err) {
+	console.error(
+		`\n[smoke-test-release] ❌ ${err instanceof Error ? err.message : err}\n`
+	)
+	process.exitCode = 1
 } finally {
-	// Always remove the local tarball — release-it will pack again at publish time.
+	// Always remove the sandbox + local tarball — release-it will pack again at publish time.
+	if (sandbox && fs.existsSync(sandbox))
+		fs.rmSync(sandbox, { recursive: true, force: true })
 	if (fs.existsSync(tarballPath)) fs.unlinkSync(tarballPath)
 }
