@@ -23,22 +23,13 @@ export interface HookErrorOptions {
  * if (error) console.warn(`[${error.operation}] ${error.message} — ${error.hint}`)
  * ```
  */
+// biome-ignore lint/suspicious/noUnsafeDeclarationMerging: intentional type-only `cause` augmentation via interface merging; see the `HookError` interface declaration below.
 export class HookError extends Error {
 	/** Identifier of the hook operation that failed (e.g. `useSecret.save`). */
 	readonly operation?: string | undefined
 
 	/** UI-facing remediation hint (e.g. `'Ask the user to retry biometrics.'`). */
 	readonly hint?: string | undefined
-
-	/**
-	 * The underlying cause forwarded to {@link Error.cause}.
-	 *
-	 * Declared as a type-only member so the property type-checks under `tsconfig`
-	 * `lib` targets that predate ES2022 (where {@link Error} did not yet expose
-	 * `cause`). At runtime the value is installed by the constructor via
-	 * {@link Object.defineProperty} so it stays non-enumerable.
-	 */
-	declare readonly cause?: unknown
 
 	/**
 	 * @param message - Human-readable description of the failure.
@@ -66,6 +57,17 @@ export class HookError extends Error {
 			})
 		}
 	}
+}
+
+/**
+ * Type-only declaration merge that exposes the optional `cause` property on
+ * {@link HookError} for consumers compiling with a `tsconfig` `lib` target
+ * that predates ES2022 (where `Error.cause` was added). Using interface
+ * merging—rather than a `declare` class field—keeps the source fully erasable
+ * by Babel/SWC and avoids emitting an enumerable own property.
+ */
+export interface HookError {
+	readonly cause?: unknown
 }
 
 /**

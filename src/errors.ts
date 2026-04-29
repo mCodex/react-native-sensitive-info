@@ -58,19 +58,10 @@ export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode]
  * }
  * ```
  */
+// biome-ignore lint/suspicious/noUnsafeDeclarationMerging: intentional type-only `cause` augmentation via interface merging; see the `SensitiveInfoError` interface declaration below.
 export class SensitiveInfoError extends Error {
 	/** Stable discriminant identifying the failure mode. */
 	readonly code: ErrorCodeValue
-
-	/**
-	 * The underlying cause forwarded to {@link Error.cause}.
-	 *
-	 * Declared as a type-only member so the property type-checks under `tsconfig`
-	 * `lib` targets that predate ES2022 (where {@link Error} did not yet expose
-	 * `cause`). At runtime the value is installed by the constructor via
-	 * {@link Object.defineProperty} so it stays non-enumerable.
-	 */
-	declare readonly cause?: unknown
 
 	/**
 	 * @param code    - Stable {@link ErrorCodeValue} for the failure.
@@ -98,6 +89,17 @@ export class SensitiveInfoError extends Error {
 			})
 		}
 	}
+}
+
+/**
+ * Type-only declaration merge that exposes the optional `cause` property on
+ * {@link SensitiveInfoError} for consumers compiling with a `tsconfig` `lib`
+ * target that predates ES2022 (where `Error.cause` was added). Using interface
+ * merging—rather than a `declare` class field—keeps the source fully erasable
+ * by Babel/SWC and avoids emitting an enumerable own property.
+ */
+export interface SensitiveInfoError {
+	readonly cause?: unknown
 }
 
 /**
