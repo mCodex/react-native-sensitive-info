@@ -72,9 +72,15 @@ export class SensitiveInfoError extends Error {
 		message: string,
 		options?: { cause?: unknown }
 	) {
-		super(message, options)
+		super(message)
 		this.name = 'SensitiveInfoError'
 		this.code = code
+		// Assign `cause` directly instead of passing it to `super()` so this
+		// compiles cleanly under TS configs whose `lib` predates ES2022 (where
+		// the second `Error` constructor argument was introduced).
+		if (options && 'cause' in options) {
+			;(this as { cause?: unknown }).cause = options.cause
+		}
 	}
 }
 

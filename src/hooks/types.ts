@@ -38,10 +38,16 @@ export class HookError extends Error {
 		message: string,
 		{ cause, operation, hint }: HookErrorOptions = {}
 	) {
-		super(message, { cause })
+		super(message)
 		this.name = 'HookError'
 		this.operation = operation
 		this.hint = hint
+		// Assign `cause` directly instead of passing it to `super()` so this
+		// compiles cleanly under TS configs whose `lib` predates ES2022 (where
+		// the second `Error` constructor argument was introduced).
+		if (cause !== undefined) {
+			;(this as { cause?: unknown }).cause = cause
+		}
 	}
 }
 

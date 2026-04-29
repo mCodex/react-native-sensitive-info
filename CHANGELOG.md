@@ -1,3 +1,8 @@
+## [6.1.1](https://github.com/mcodex/react-native-sensitive-info/compare/v6.1.0...v6.1.1) (2026-04-29)
+
+### Bug Fixes
+
+* update error classes to handle cause assignment for TypeScript compatibility ([003b00e](https://github.com/mcodex/react-native-sensitive-info/commit/003b00e2bf96af28685afdf2da57d067a87339c1))
 ## [6.1.0](https://github.com/mcodex/react-native-sensitive-info/compare/v6.0.0-rc.12...v6.1.0) (2026-04-28)
 
 ### Features

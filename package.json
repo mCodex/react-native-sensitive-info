@@ -1,6 +1,6 @@
 {
 	"name": "react-native-sensitive-info",
-	"version": "6.1.0",
+	"version": "6.1.1",
 	"description": "🔐 React Native secure storage, rebuilt with Nitro Modules ⚡️ Biometric-ready, StrongBox-aware, and metadata-rich for modern mobile apps",
 	"main": "./lib/commonjs/index.js",
 	"module": "./lib/module/index.js",
@@ -50,8 +50,7 @@
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"clean": "git clean -dfX",
-		"release": "semantic-release",
-		"release:it": "release-it --config .release-it.json",
+		"release": "release-it",
 		"build": "npm run typecheck && bob build",
 		"codegen": "nitrogen --logLevel=\"debug\" && npm run build && node post-script.js",
 		"lint": "biome check --write .",
@@ -109,14 +108,12 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.13",
-		"@semantic-release/changelog": "^6.0.3",
-		"@semantic-release/git": "^10.0.1",
+		"@release-it/conventional-changelog": "^11.0.0",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/react": "^16.3.2",
 		"@types/jest": "^30.0.0",
 		"@types/react": "19.2.x",
 		"babel-plugin-react-compiler": "^1.0.0",
-		"conventional-changelog-cli": "^5.0.0",
 		"conventional-changelog-conventionalcommits": "^9.3.1",
 		"jest": "^30.3.0",
 		"jest-environment-jsdom": "^30.3.0",
@@ -128,7 +125,6 @@
 		"react-native-builder-bob": "^0.41.0",
 		"react-native-nitro-modules": "0.35.6",
 		"release-it": "^20.0.1",
-		"semantic-release": "^25.0.3",
 		"ts-jest": "^29.4.9",
 		"ts-node": "^10.9.2",
 		"typescript": "^6.0.3"
@@ -163,6 +159,74 @@
 				}
 			]
 		]
+	},
+	"release-it": {
+		"git": {
+			"commitMessage": "chore(release): v${version}",
+			"tagName": "v${version}",
+			"tagAnnotation": "Release v${version}",
+			"requireCleanWorkingDir": true,
+			"requireBranch": [
+				"master",
+				"next"
+			],
+			"requireUpstream": false,
+			"push": true,
+			"pushArgs": [
+				"--follow-tags"
+			]
+		},
+		"npm": {
+			"publish": true,
+			"verifyAccess": true,
+			"tokenRef": "NPM_TOKEN"
+		},
+		"github": {
+			"release": true,
+			"releaseName": "v${version}",
+			"tokenRef": "GITHUB_TOKEN"
+		},
+		"hooks": {
+			"before:init": [
+				"npm run typecheck",
+				"npm run build"
+			]
+		},
+		"plugins": {
+			"@release-it/conventional-changelog": {
+				"preset": {
+					"name": "conventionalcommits",
+					"types": [
+						{
+							"type": "feat",
+							"section": "✨ Features"
+						},
+						{
+							"type": "fix",
+							"section": "🐛 Bug Fixes"
+						},
+						{
+							"type": "perf",
+							"section": "💨 Performance Improvements"
+						},
+						{
+							"type": "refactor",
+							"section": "🔄 Code Refactors"
+						},
+						{
+							"type": "docs",
+							"section": "📚 Documentation"
+						},
+						{
+							"type": "chore",
+							"section": "🛠️ Other changes"
+						}
+					]
+				},
+				"infile": "CHANGELOG.md",
+				"header": "# Changelog"
+			}
+		}
 	},
 	"packageManager": "yarn@4.10.3"
 }

@@ -2,6 +2,23 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      increment:
+        description: 'Version increment (leave empty to derive from conventional commits)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - patch
+          - minor
+          - major
+          - prerelease
+      dry-run:
+        description: 'Dry run (no publish, no push)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -24,25 +41,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Install npm dependencies (yarn)
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
         run: yarn install --frozen-lockfile
-
-      - name: Build lib
-        run: yarn build
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
-          GIT_AUTHOR_NAME: ${{ github.actor }}
-          GIT_AUTHOR_EMAIL: '${{ github.actor }}@users.noreply.github.com'
-          GIT_COMMITTER_NAME: ${{ github.actor }}
-          GIT_COMMITTER_EMAIL: '${{ github.actor }}@users.noreply.github.com'
-        run: yarn release
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: |
+          ARGS="--ci"
+          if [ -n "${{ inputs.increment }}" ]; then
+            ARGS="$ARGS --increment=${{ inputs.increment }}"
+          fi
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          yarn release $ARGS
