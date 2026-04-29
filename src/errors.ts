@@ -63,6 +63,16 @@ export class SensitiveInfoError extends Error {
 	readonly code: ErrorCodeValue
 
 	/**
+	 * The underlying cause forwarded to {@link Error.cause}.
+	 *
+	 * Declared as a type-only member so the property type-checks under `tsconfig`
+	 * `lib` targets that predate ES2022 (where {@link Error} did not yet expose
+	 * `cause`). At runtime the value is installed by the constructor via
+	 * {@link Object.defineProperty} so it stays non-enumerable.
+	 */
+	declare readonly cause?: unknown
+
+	/**
 	 * @param code    - Stable {@link ErrorCodeValue} for the failure.
 	 * @param message - Human-readable description.
 	 * @param options - Optional `cause` for error chaining (see ECMAScript 2022 `Error` cause).

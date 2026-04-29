@@ -35,6 +35,16 @@ describe('hooks/types', () => {
 		expect(Object.hasOwn(error, 'cause')).toBe(false)
 	})
 
+	it('defines a non-enumerable own cause when explicitly passed as undefined', () => {
+		const error = new HookError('Wrapper message', { cause: undefined })
+		const descriptor = Object.getOwnPropertyDescriptor(error, 'cause')
+		expect(Object.hasOwn(error, 'cause')).toBe(true)
+		expect(error.cause).toBeUndefined()
+		expect(descriptor).toBeDefined()
+		expect(descriptor?.enumerable).toBe(false)
+		expect(Object.keys(error)).not.toContain('cause')
+	})
+
 	it('creates the initial async state', () => {
 		const state = createInitialAsyncState<string>()
 		expect(state).toEqual({

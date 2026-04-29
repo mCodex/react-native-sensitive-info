@@ -31,24 +31,35 @@ export class HookError extends Error {
 	readonly hint?: string | undefined
 
 	/**
+	 * The underlying cause forwarded to {@link Error.cause}.
+	 *
+	 * Declared as a type-only member so the property type-checks under `tsconfig`
+	 * `lib` targets that predate ES2022 (where {@link Error} did not yet expose
+	 * `cause`). At runtime the value is installed by the constructor via
+	 * {@link Object.defineProperty} so it stays non-enumerable.
+	 */
+	declare readonly cause?: unknown
+
+	/**
 	 * @param message - Human-readable description of the failure.
 	 * @param options - Additional metadata; see {@link HookErrorOptions}.
 	 */
-	constructor(
-		message: string,
-		{ cause, operation, hint }: HookErrorOptions = {}
-	) {
+	constructor(message: string, options: HookErrorOptions = {}) {
 		super(message)
 		this.name = 'HookError'
-		this.operation = operation
-		this.hint = hint
+		this.operation = options.operation
+		this.hint = options.hint
 		// Define `cause` manually instead of passing it to `super()` so this
 		// compiles cleanly under TS configs whose `lib` predates ES2022 (where
 		// the second `Error` constructor argument was introduced), while keeping
 		// the property non-enumerable to match the native ES2022 `Error` constructor.
-		if (cause !== undefined) {
+		//
+		// We deliberately use `'cause' in options` (rather than a value check)
+		// so that `new HookError(msg, { cause: undefined })` still installs the
+		// property — matching native `new Error(msg, { cause: undefined })`.
+		if ('cause' in options) {
 			Object.defineProperty(this, 'cause', {
-				value: cause,
+				value: options.cause,
 				writable: true,
 				configurable: true,
 				enumerable: false,
