@@ -1,6 +1,10 @@
 import { isNotFoundError, toSensitiveInfoError } from '../errors'
 import getNativeInstance from '../internal/native'
-import { normalizeOptions } from '../internal/options'
+import {
+	normalizeOptions,
+	normalizePromptedReadOptions,
+	normalizeStorageScopeOptions,
+} from '../internal/options'
 import {
 	validateKey,
 	validateService,
@@ -126,10 +130,13 @@ export async function getItem(
 	validateKey(key)
 	validateService(options)
 	const native = getNativeInstance()
+	const includeValue = options?.includeValue ?? true
 	const payload: SensitiveInfoGetRequest = {
 		key,
-		includeValue: options?.includeValue ?? true,
-		...normalizeOptions(options),
+		includeValue,
+		...(includeValue
+			? normalizePromptedReadOptions(options)
+			: normalizeStorageScopeOptions(options)),
 	}
 
 	try {
@@ -144,8 +151,8 @@ export async function getItem(
  * Cheap existence check that never decrypts the value.
  *
  * @param key - Identifier to look up.
- * @param options - Storage scoping. Avoid passing `accessControl` / `authenticationPrompt` here —
- *   `hasItem` is designed to be silent and should not trigger biometrics.
+ * @param options - Storage scoping. `accessControl` / `authenticationPrompt` are ignored here —
+ *   `hasItem` is designed to stay silent, even for biometric-protected entries.
  * @returns `true` when an entry exists for the key, `false` otherwise.
  *
  * @throws {@link SensitiveInfoError} for unexpected native failures (storage IO, etc.).
@@ -168,7 +175,7 @@ export async function hasItem(
 	const native = getNativeInstance()
 	const payload: SensitiveInfoHasRequest = {
 		key,
-		...normalizeOptions(options),
+		...normalizeStorageScopeOptions(options),
 	}
 	try {
 		return await native.hasItem(payload)
@@ -204,7 +211,7 @@ export async function deleteItem(
 	const native = getNativeInstance()
 	const payload: SensitiveInfoDeleteRequest = {
 		key,
-		...normalizeOptions(options),
+		...normalizeStorageScopeOptions(options),
 	}
 	try {
 		return await native.deleteItem(payload)
@@ -217,7 +224,8 @@ export async function deleteItem(
  * Enumerates every entry stored under the configured service namespace.
  *
  * @param options - Pass `{ includeValues: true }` to decrypt and return values; defaults to
- *   metadata-only for performance and to avoid biometric prompts on protected entries.
+ *   metadata-only for performance and to avoid biometric prompts on protected entries. Prompt
+ *   strings are only forwarded when values are requested.
  * @returns Array of {@link SensitiveInfoItem}. Returns `[]` when the service is empty.
  *
  * @throws {@link AuthenticationCanceledError} when `includeValues: true` and the user cancels.
@@ -238,7 +246,9 @@ export async function getAllItems(
 	const native = getNativeInstance()
 	const payload: SensitiveInfoEnumerateRequest = {
 		includeValues: options?.includeValues ?? false,
-		...normalizeOptions(options),
+		...(options?.includeValues === true
+			? normalizePromptedReadOptions(options)
+			: normalizeStorageScopeOptions(options)),
 	}
 	try {
 		return await native.getAllItems(payload)
@@ -269,7 +279,7 @@ export async function clearService(
 	validateService(options)
 	const native = getNativeInstance()
 	try {
-		return await native.clearService(normalizeOptions(options))
+		return await native.clearService(normalizeStorageScopeOptions(options))
 	} catch (error) {
 		throw toSensitiveInfoError(error)
 	}
@@ -332,7 +342,9 @@ export async function rotateKeys(
 	const native = getNativeInstance()
 	const payload: RotateKeysRequest = {
 		reEncryptEagerly: options?.reEncryptEagerly ?? false,
-		...normalizeOptions(options),
+		...(options?.reEncryptEagerly === true
+			? normalizePromptedReadOptions(options)
+			: normalizeStorageScopeOptions(options)),
 	}
 	try {
 		return await native.rotateKeys(payload)
@@ -344,7 +356,7 @@ export async function rotateKeys(
 /**
  * Returns the currently active key version for the given service.
  *
- * @param options - Storage scoping. Avoid passing `authenticationPrompt` here — this call should
+ * @param options - Storage scoping. `authenticationPrompt` is ignored here — this call should
  *   never trigger biometrics.
  * @returns A non-negative integer. `0` indicates a legacy entry that has not been rotated yet.
  *
@@ -364,7 +376,7 @@ export async function getKeyVersion(
 	validateService(options)
 	const native = getNativeInstance()
 	try {
-		return await native.getKeyVersion(normalizeOptions(options))
+		return await native.getKeyVersion(normalizeStorageScopeOptions(options))
 	} catch (error) {
 		throw toSensitiveInfoError(error)
 	}

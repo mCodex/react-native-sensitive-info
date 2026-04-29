@@ -29,6 +29,26 @@ describe('core/storage', () => {
 			service: 'normalized',
 			accessControl: 'secureEnclaveBiometry',
 		})
+	const normalizePromptedReadOptions = jest
+		.fn<
+			ReturnType<
+				typeof import('../internal/options').normalizePromptedReadOptions
+			>,
+			[SensitiveInfoOptions | undefined]
+		>()
+		.mockReturnValue({
+			service: 'normalized',
+		})
+	const normalizeStorageScopeOptions = jest
+		.fn<
+			ReturnType<
+				typeof import('../internal/options').normalizeStorageScopeOptions
+			>,
+			[SensitiveInfoOptions | undefined]
+		>()
+		.mockReturnValue({
+			service: 'normalized',
+		})
 
 	const isNotFoundError = jest.fn()
 
@@ -42,6 +62,8 @@ describe('core/storage', () => {
 
 		jest.doMock('../internal/options', () => ({
 			normalizeOptions,
+			normalizePromptedReadOptions,
+			normalizeStorageScopeOptions,
 		}))
 
 		jest.doMock('../internal/errors', () => ({
@@ -62,6 +84,14 @@ describe('core/storage', () => {
 		normalizeOptions.mockReturnValue({
 			service: 'normalized',
 			accessControl: 'secureEnclaveBiometry',
+		})
+		normalizePromptedReadOptions.mockClear()
+		normalizePromptedReadOptions.mockReturnValue({
+			service: 'normalized',
+		})
+		normalizeStorageScopeOptions.mockClear()
+		normalizeStorageScopeOptions.mockReturnValue({
+			service: 'normalized',
 		})
 		isNotFoundError.mockReset()
 	})
@@ -92,7 +122,7 @@ describe('core/storage', () => {
 		const result = await getItem('token', { service: 'service' })
 
 		expect(result).toBeNull()
-		expect(normalizeOptions).toHaveBeenCalled()
+		expect(normalizePromptedReadOptions).toHaveBeenCalled()
 	})
 
 	it('rethrows unexpected errors during getItem', async () => {
@@ -116,7 +146,31 @@ describe('core/storage', () => {
 			key: 'token',
 			includeValue: true,
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
+		} as SensitiveInfoGetRequest)
+	})
+
+	it('keeps metadata-only getItem calls silent', async () => {
+		const { getItem } = await loadModule()
+
+		nativeHandle.getItem.mockResolvedValueOnce({ key: 'token' })
+		const prompt = { title: 'Authenticate' }
+
+		await getItem('token', {
+			service: 'service',
+			includeValue: false,
+			authenticationPrompt: prompt,
+		})
+
+		expect(normalizeStorageScopeOptions).toHaveBeenCalledWith({
+			service: 'service',
+			includeValue: false,
+			authenticationPrompt: prompt,
+		})
+		expect(normalizePromptedReadOptions).not.toHaveBeenCalled()
+		expect(nativeHandle.getItem).toHaveBeenCalledWith({
+			key: 'token',
+			includeValue: false,
+			service: 'normalized',
 		} as SensitiveInfoGetRequest)
 	})
 
@@ -186,7 +240,6 @@ describe('core/storage', () => {
 		expect(nativeHandle.hasItem).toHaveBeenCalledWith({
 			key: 'token',
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
 		} as SensitiveInfoHasRequest)
 	})
 
@@ -201,7 +254,6 @@ describe('core/storage', () => {
 		expect(nativeHandle.deleteItem).toHaveBeenCalledWith({
 			key: 'token',
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
 		} as SensitiveInfoDeleteRequest)
 	})
 
@@ -215,7 +267,30 @@ describe('core/storage', () => {
 		expect(nativeHandle.getAllItems).toHaveBeenCalledWith({
 			includeValues: true,
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
+		} as SensitiveInfoEnumerateRequest)
+	})
+
+	it('keeps metadata-only enumeration silent', async () => {
+		const { getAllItems } = await loadModule()
+
+		nativeHandle.getAllItems.mockResolvedValueOnce([])
+		const prompt = { title: 'Authenticate' }
+
+		await getAllItems({
+			service: 'service',
+			includeValues: false,
+			authenticationPrompt: prompt,
+		})
+
+		expect(normalizeStorageScopeOptions).toHaveBeenCalledWith({
+			service: 'service',
+			includeValues: false,
+			authenticationPrompt: prompt,
+		})
+		expect(normalizePromptedReadOptions).not.toHaveBeenCalled()
+		expect(nativeHandle.getAllItems).toHaveBeenCalledWith({
+			includeValues: false,
+			service: 'normalized',
 		} as SensitiveInfoEnumerateRequest)
 	})
 
@@ -228,7 +303,6 @@ describe('core/storage', () => {
 
 		expect(nativeHandle.clearService).toHaveBeenCalledWith({
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
 		})
 	})
 
@@ -284,7 +358,6 @@ describe('core/storage', () => {
 		expect(nativeHandle.rotateKeys).toHaveBeenCalledWith({
 			reEncryptEagerly: false,
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
 		})
 	})
 
@@ -324,7 +397,6 @@ describe('core/storage', () => {
 		await expect(getKeyVersion({ service: 'auth' })).resolves.toBe(4)
 		expect(nativeHandle.getKeyVersion).toHaveBeenCalledWith({
 			service: 'normalized',
-			accessControl: 'secureEnclaveBiometry',
 		})
 	})
 

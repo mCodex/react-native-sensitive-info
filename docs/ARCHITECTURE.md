@@ -64,3 +64,10 @@ or eagerly walks the existing entries when `reEncryptEagerly: true`.
 The package sets `"sideEffects": false` and ships ESM via subpath exports. Hooks live behind
 `react-native-sensitive-info/hooks` so apps that only use the imperative API never pay for the
 hook bundle. Errors are also re-exported from `/errors` for the same reason.
+
+## iOS prompt boundaries
+
+On iOS, Keychain queries against biometric-protected entries can authenticate even when callers
+only ask for attributes. The native layer keeps `hasItem` and metadata-only enumeration on a
+dedicated silent path, while value reads own an `LAContext` from the first `SecItemCopyMatching`
+attempt so one user action maps to one Face ID / Touch ID sheet.

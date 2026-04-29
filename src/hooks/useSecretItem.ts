@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { getItem } from '../core/storage'
+import { normalizeStorageScopeOptions } from '../internal/options'
 import type {
 	SensitiveInfoItem,
 	SensitiveInfoOptions,
@@ -57,7 +58,16 @@ export function useSecretItem(
 	options?: UseSecretItemOptions
 ): UseSecretItemResult {
 	const runner = useCallback(
-		(request: SensitiveInfoOptions) => getItem(key, request),
+		(request: SensitiveInfoOptions) => {
+			const includeValue =
+				(request as UseSecretItemOptions).includeValue ?? true
+			return getItem(
+				key,
+				includeValue
+					? request
+					: { ...normalizeStorageScopeOptions(request), includeValue }
+			)
+		},
 		[key]
 	)
 	return useAsyncQuery<SensitiveInfoItem, UseSecretItemOptions>(

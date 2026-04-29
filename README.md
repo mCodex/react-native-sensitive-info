@@ -413,8 +413,8 @@ All functions live at the top level export and return Promises.
 ### 🧩 Options shared by all operations
 
 - `service` (default: bundle identifier or `default`) — logical namespace for secrets.
-- `accessControl` (default: `secureEnclaveBiometry`) — preferred policy; the native layer chooses the strongest supported fallback.
-- `authenticationPrompt` — localized strings for biometric/device credential prompts.
+- `accessControl` (default on writes: `secureEnclaveBiometry`) — preferred write policy; the native layer chooses the strongest supported fallback.
+- `authenticationPrompt` — localized strings for biometric/device credential prompts. Forwarded for value reads/writes, ignored by silent probes such as `hasItem`, `getKeyVersion`, and metadata-only `getAllItems`.
 - `iosSynchronizable` — enable iCloud Keychain sync.
 - `keychainGroup` — custom Keychain access group.
 

@@ -2,6 +2,10 @@
 
 ## [6.1.3](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.2...v6.1.3) (2026-04-29)
 
+### Bug Fixes
+
+* **ios:** prevent duplicate biometric prompts on existence checks and prompted value reads
+
 ## [6.1.2](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.1...v6.1.2) (2026-04-29)
 
 ### 🛠️ Other changes

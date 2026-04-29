@@ -39,9 +39,9 @@
  *   modules.
  * - The default `accessControl` is **`'secureEnclaveBiometry'`** — reads on
  *   entries written with this policy will trigger a biometric prompt. Pass
- *   `accessControl: 'none'` for non-sensitive caches, and **avoid sending
- *   `accessControl` on read paths** (enumeration, `hasItem`, `getKeyVersion`)
- *   to keep them silent on iOS.
+ *   `accessControl: 'none'` for non-sensitive caches. Silent probes such as
+ *   `hasItem`, metadata-only enumeration, and `getKeyVersion` ignore prompt
+ *   fields on iOS; use `getItem` when the user explicitly unlocks a value.
  * - All errors thrown from this module are subclasses of {@link SensitiveInfoError}.
  *   Use `instanceof` or the `is*Error` predicates to branch safely.
  *

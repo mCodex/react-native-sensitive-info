@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { clearService, deleteItem, getAllItems, setItem } from '../core/storage'
+import { normalizeStorageScopeOptions } from '../internal/options'
 import type {
 	SensitiveInfoItem,
 	SensitiveInfoOptions,
@@ -108,10 +109,13 @@ export function useSecureStorage(
 	// pending mutation) during render to keep the public API stable across
 	// option-object identity changes — a pattern the React Compiler cannot
 	// preserve without losing the deep-equality guarantees we ship.
-	const fetchRunner = useCallback(
-		(request: SensitiveInfoOptions) => getAllItems(request),
-		[]
-	)
+	const fetchRunner = useCallback((request: SensitiveInfoOptions) => {
+		const includeValues =
+			(request as UseSecureStorageOptions).includeValues === true
+		return getAllItems(
+			includeValues ? request : normalizeStorageScopeOptions(request)
+		)
+	}, [])
 
 	const fetchQuery = useAsyncQuery<
 		SensitiveInfoItem[],

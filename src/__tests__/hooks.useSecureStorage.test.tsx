@@ -58,6 +58,21 @@ describe('useSecureStorage', () => {
 		})
 	})
 
+	it('keeps metadata listings silent when prompt options are provided', async () => {
+		mockedGetAllItems.mockResolvedValueOnce([])
+
+		renderStorage({
+			service: 'auth',
+			includeValues: false,
+			accessControl: 'biometryCurrentSet',
+			authenticationPrompt: { title: 'Unlock' },
+		})
+
+		await waitFor(() => expect(mockedGetAllItems).toHaveBeenCalled())
+
+		expect(mockedGetAllItems).toHaveBeenCalledWith({ service: 'auth' })
+	})
+
 	it('skips fetching when instructed', async () => {
 		const { result } = renderStorage({ skip: true })
 

@@ -2,6 +2,8 @@ import {
 	DEFAULT_ACCESS_CONTROL,
 	DEFAULT_SERVICE,
 	normalizeOptions,
+	normalizePromptedReadOptions,
+	normalizeStorageScopeOptions,
 } from '../internal/options'
 
 describe('internal/options', () => {
@@ -41,6 +43,37 @@ describe('internal/options', () => {
 			service: DEFAULT_SERVICE,
 			accessControl: 'biometryAny',
 			keychainGroup: 'group.shared',
+			authenticationPrompt: prompt,
+		})
+	})
+
+	it('normalizes storage scope without access policy or prompts', () => {
+		expect(
+			normalizeStorageScopeOptions({
+				service: 'custom',
+				accessControl: 'biometryAny',
+				iosSynchronizable: true,
+				keychainGroup: 'group.shared',
+				authenticationPrompt: { title: 'Authenticate' },
+			})
+		).toEqual({
+			service: 'custom',
+			iosSynchronizable: true,
+			keychainGroup: 'group.shared',
+		})
+	})
+
+	it('normalizes prompted reads without write-only access policy', () => {
+		const prompt = { title: 'Authenticate' }
+
+		expect(
+			normalizePromptedReadOptions({
+				service: 'custom',
+				accessControl: 'biometryAny',
+				authenticationPrompt: prompt,
+			})
+		).toEqual({
+			service: 'custom',
 			authenticationPrompt: prompt,
 		})
 	})
