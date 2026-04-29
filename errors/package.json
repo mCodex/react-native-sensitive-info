@@ -1,0 +1,9 @@
+{
+	"//": "Compatibility shim for bundlers that don't honor the package `exports` field (e.g. older Re.Pack/rspack/Metro setups). The canonical resolution path is the `./errors` entry in the root package.json `exports` map.",
+	"name": "react-native-sensitive-info/errors",
+	"types": "../lib/typescript/commonjs/src/errors.d.ts",
+	"main": "../lib/commonjs/errors.js",
+	"module": "../lib/module/errors.js",
+	"react-native": "../lib/module/errors.js",
+	"sideEffects": false
+}

@@ -48,6 +48,7 @@
 		"typecheck": "tsc --noEmit",
 		"clean": "git clean -dfX",
 		"release": "release-it",
+		"release:prepare": "npm run codegen && node scripts/verify-release-artifacts.js && node scripts/smoke-test-release.js",
 		"build": "npm run typecheck && bob build",
 		"codegen": "nitrogen --logLevel=\"debug\" && npm run build && node post-script.js",
 		"lint": "biome check --write .",
@@ -71,6 +72,8 @@
 		"src",
 		"react-native.config.js",
 		"lib",
+		"hooks",
+		"errors",
 		"nitrogen",
 		"cpp",
 		"nitro.json",
@@ -185,8 +188,7 @@
 		},
 		"hooks": {
 			"before:init": [
-				"npm run typecheck",
-				"npm run build"
+				"npm run release:prepare"
 			]
 		},
 		"plugins": {
