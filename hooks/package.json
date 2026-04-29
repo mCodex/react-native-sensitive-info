@@ -1,0 +1,9 @@
+{
+	"//": "Compatibility shim for bundlers that don't honor the package `exports` field (e.g. older Re.Pack/rspack/Metro setups). The canonical resolution path is the `./hooks` entry in the root package.json `exports` map.",
+	"name": "react-native-sensitive-info/hooks",
+	"types": "../lib/typescript/commonjs/src/hooks/index.d.ts",
+	"main": "../lib/commonjs/hooks/index.js",
+	"module": "../lib/module/hooks/index.js",
+	"react-native": "../lib/module/hooks/index.js",
+	"sideEffects": false
+}
