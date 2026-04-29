@@ -82,9 +82,9 @@ export interface AuthenticationPrompt {
 /**
  * Tunables shared by both the read and write APIs.
  *
- * Pass the same `service` on read and write to scope your secrets to a logical namespace, and
- * mirror the `accessControl`/`authenticationPrompt` you used on write so the platform can satisfy
- * the access policy without surprise prompts.
+ * Pass the same `service` on read and write to scope your secrets to a logical namespace.
+ * `accessControl` is a write policy; silent reads such as `hasItem`, metadata-only enumeration,
+ * and `getKeyVersion` intentionally ignore prompt-bearing fields on iOS.
  *
  * @see {@link AccessControl}
  * @see {@link AuthenticationPrompt}
@@ -110,8 +110,8 @@ export interface SensitiveInfoOptions {
 	 */
 	readonly accessControl?: AccessControl
 	/**
-	 * Prompt strings displayed when user presence is required to open the key. Omit on read paths
-	 * (enumeration, `hasItem`, `getKeyVersion`) to keep them silent on iOS.
+	 * Prompt strings displayed when user presence is required to open the key. Use this for
+	 * value reads/writes, not silent probes such as `hasItem` or metadata-only enumeration.
 	 */
 	readonly authenticationPrompt?: AuthenticationPrompt
 }

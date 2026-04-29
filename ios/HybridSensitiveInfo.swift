@@ -157,7 +157,11 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         query[kSecReturnData as String] = kCFBooleanTrue
       }
 
-      guard let raw = try copyMatching(query: query, prompt: request.authenticationPrompt) as? NSDictionary else {
+      guard let raw = try copyMatching(
+        query: query,
+        prompt: includeValue ? request.authenticationPrompt : nil,
+        allowAuthentication: includeValue
+      ) as? NSDictionary else {
         return Variant_NullType_SensitiveInfoItem.first(NullType.null)
       }
 
@@ -196,17 +200,14 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   public func hasItem(request: SensitiveInfoHasRequest) throws -> Promise<Bool> {
     Promise.parallel(workQueue) { [self] in
       let service = normalizedService(request.service)
-      var query = makeBaseQuery(
+      let query = makeBaseQuery(
         key: request.key,
         service: service,
         synchronizable: request.iosSynchronizable,
         accessGroup: request.keychainGroup
       )
-      query[kSecMatchLimit as String] = kSecMatchLimitOne
-      query[kSecReturnAttributes as String] = kCFBooleanTrue
 
-      let result = try copyMatching(query: query, prompt: request.authenticationPrompt)
-      return result != nil
+      return try itemExists(query: query)
     }
   }
 
@@ -232,7 +233,11 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
         query[kSecReturnData as String] = kCFBooleanTrue
       }
 
-      let result = try copyMatching(query: query, prompt: request?.authenticationPrompt)
+      let result = try copyMatching(
+        query: query,
+        prompt: includeValues ? request?.authenticationPrompt : nil,
+        allowAuthentication: includeValues
+      )
       guard let array = result as? [NSDictionary] else {
         return []
       }
@@ -368,18 +373,31 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     SecItemDelete(deleteQuery as CFDictionary)
   }
 
-  private func copyMatching(query: [String: Any], prompt: AuthenticationPrompt?) throws -> AnyObject? {
+  private func copyMatching(
+    query: [String: Any],
+    prompt: AuthenticationPrompt?,
+    allowAuthentication: Bool = true
+  ) throws -> AnyObject? {
 #if targetEnvironment(simulator)
-    try performSimulatorBiometricPromptIfNeeded(prompt: prompt)
+    if allowAuthentication {
+      try performSimulatorBiometricPromptIfNeeded(prompt: prompt)
+    }
 #endif
-    var result: CFTypeRef?
-    var status = performCopyMatching(query as CFDictionary, result: &result)
+    var workingQuery = query
+    if !allowAuthentication {
+      workingQuery[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail
+    } else if let prompt {
+      workingQuery[kSecUseOperationPrompt as String] = prompt.title
+      workingQuery[kSecUseAuthenticationContext as String] = makeLAContext(prompt: prompt)
+    }
 
-    if status == errSecInteractionNotAllowed || status == errSecAuthFailed {
-      var authQuery = query
-      authQuery[kSecUseOperationPrompt as String] = prompt?.title ?? "Authenticate to access sensitive data"
-      let context = makeLAContext(prompt: prompt)
-      authQuery[kSecUseAuthenticationContext as String] = context
+    var result: CFTypeRef?
+    var status = performCopyMatching(workingQuery as CFDictionary, result: &result)
+
+    if allowAuthentication && prompt == nil && (status == errSecInteractionNotAllowed || status == errSecAuthFailed) {
+      var authQuery = workingQuery
+      authQuery[kSecUseOperationPrompt as String] = "Authenticate to access sensitive data"
+      authQuery[kSecUseAuthenticationContext as String] = makeLAContext(prompt: nil)
       status = performCopyMatching(authQuery as CFDictionary, result: &result)
     }
 
@@ -388,8 +406,33 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
       return result as AnyObject?
     case errSecItemNotFound:
       return nil
+    case errSecInteractionNotAllowed, errSecAuthFailed:
+      if !allowAuthentication { return nil }
+      throw runtimeError(for: status, operation: "fetch")
     default:
       throw runtimeError(for: status, operation: "fetch")
+    }
+  }
+
+  private func itemExists(query: [String: Any]) throws -> Bool {
+    var existenceQuery = query
+    existenceQuery[kSecMatchLimit as String] = kSecMatchLimitOne
+    existenceQuery[kSecReturnData as String] = kCFBooleanFalse
+    existenceQuery[kSecReturnAttributes as String] = kCFBooleanFalse
+    existenceQuery[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail
+
+    var result: CFTypeRef?
+    let status = performCopyMatching(existenceQuery as CFDictionary, result: &result)
+
+    switch status {
+    case errSecSuccess:
+      return true
+    case errSecItemNotFound:
+      return false
+    case errSecInteractionNotAllowed, errSecAuthFailed:
+      return true
+    default:
+      throw runtimeError(for: status, operation: "existence check")
     }
   }
 

@@ -3,7 +3,7 @@ PODS:
   - hermes-engine (250829098.0.10):
     - hermes-engine/Pre-built (= 250829098.0.10)
   - hermes-engine/Pre-built (250829098.0.10)
-  - NitroModules (0.35.5):
+  - NitroModules (0.35.6):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1839,7 +1839,7 @@ PODS:
     - React-utils (= 0.85.2)
     - ReactNativeDependencies
   - ReactNativeDependencies (0.85.2)
-  - SensitiveInfo (6.0.0):
+  - SensitiveInfo (6.1.3):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -2102,7 +2102,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FBLazyVector: 26fd21c75314e101f280d401e97f27d54f3f7064
   hermes-engine: 8d55ae9d2bb7d186d7e4b27fb3d197434d8a7d02
-  NitroModules: 8146b7b58cd5a478a21485fc2a0d542076f9f1ba
+  NitroModules: c41b7b778d6557f1e517a80ec681a670321fa001
   RCTDeprecation: c7a2768f905d76ca6d2cfefb26e4349eacbdfca3
   RCTRequired: 5e502c3553cfbed090a991c444448da452fb752e
   RCTSwiftUI: 5ce3ccbdc58b78cc4ebbaace01709ec22d58e131
@@ -2174,7 +2174,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 75cd4d6498ab93ae4eed4d384b78383987e7558e
   ReactCommon: a804bb8d1dcf3ecdec3a77eb8bba19b7863bbbdb
   ReactNativeDependencies: 16dfbcfc63bf756df236d05cd69638f95019c528
-  SensitiveInfo: 83b9376b4a48bc310795daa351a64a5495c58b1b
+  SensitiveInfo: 6d078d9b88039d9316f58ae103c3c68900d22455
   Yoga: 04bb4bfeb02c0000b940c1e6e89e856cd8de5a71
 
 PODFILE CHECKSUM: 7ee3efea19ddd1156f9f61f93fc84a48ff536985

@@ -38,6 +38,32 @@ describe('useSecretItem', () => {
 		})
 	})
 
+	it('keeps metadata-only reads silent when prompt options are provided', async () => {
+		mockedGetItem.mockResolvedValueOnce(buildTestItem())
+
+		renderHook(
+			({ opts }: { opts: Parameters<typeof useSecretItem>[1] }) =>
+				useSecretItem('token', opts),
+			{
+				initialProps: {
+					opts: {
+						service: 'auth',
+						includeValue: false,
+						accessControl: 'biometryCurrentSet',
+						authenticationPrompt: { title: 'Unlock' },
+					},
+				},
+			}
+		)
+
+		await waitFor(() => expect(mockedGetItem).toHaveBeenCalled())
+
+		expect(mockedGetItem).toHaveBeenCalledWith('token', {
+			service: 'auth',
+			includeValue: false,
+		})
+	})
+
 	it('skips fetching when requested', async () => {
 		const { result } = renderHook(
 			({ opts }: { opts: Parameters<typeof useSecretItem>[1] }) =>
