@@ -1,5 +1,7 @@
 # Changelog
 
+## [6.1.4](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.3...v6.1.4) (2026-04-29)
+
 ## [6.1.3](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.2...v6.1.3) (2026-04-29)
 
 ### Bug Fixes
