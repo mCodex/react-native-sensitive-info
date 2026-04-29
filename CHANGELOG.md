@@ -1,3 +1,11 @@
+# Changelog
+
+## [6.1.2](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.1...v6.1.2) (2026-04-29)
+
+### 🛠️ Other changes
+
+* **deps:** bump the nitro group across 2 directories with 2 updates ([d5397dd](https://github.com/mCodex/react-native-sensitive-info/commit/d5397ddb187e10d4d2ef08d42a1db5461f2ee957))
+
 ## [6.1.1](https://github.com/mcodex/react-native-sensitive-info/compare/v6.1.0...v6.1.1) (2026-04-29)
 
 ### Bug Fixes
