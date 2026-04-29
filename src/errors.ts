@@ -63,6 +63,16 @@ export class SensitiveInfoError extends Error {
 	readonly code: ErrorCodeValue
 
 	/**
+	 * The underlying cause forwarded to {@link Error.cause}.
+	 *
+	 * Declared as a type-only member so the property type-checks under `tsconfig`
+	 * `lib` targets that predate ES2022 (where {@link Error} did not yet expose
+	 * `cause`). At runtime the value is installed by the constructor via
+	 * {@link Object.defineProperty} so it stays non-enumerable.
+	 */
+	declare readonly cause?: unknown
+
+	/**
 	 * @param code    - Stable {@link ErrorCodeValue} for the failure.
 	 * @param message - Human-readable description.
 	 * @param options - Optional `cause` for error chaining (see ECMAScript 2022 `Error` cause).
@@ -75,11 +85,17 @@ export class SensitiveInfoError extends Error {
 		super(message)
 		this.name = 'SensitiveInfoError'
 		this.code = code
-		// Assign `cause` directly instead of passing it to `super()` so this
+		// Define `cause` manually instead of passing it to `super()` so this
 		// compiles cleanly under TS configs whose `lib` predates ES2022 (where
-		// the second `Error` constructor argument was introduced).
+		// the second `Error` constructor argument was introduced), while keeping
+		// the property non-enumerable to match the native ES2022 `Error` constructor.
 		if (options && 'cause' in options) {
-			;(this as { cause?: unknown }).cause = options.cause
+			Object.defineProperty(this, 'cause', {
+				value: options.cause,
+				writable: true,
+				configurable: true,
+				enumerable: false,
+			})
 		}
 	}
 }

@@ -61,6 +61,51 @@ describe('errors', () => {
 			const err = new KeyInvalidatedError('invalid', { alias: 'rnsi.svc.v1' })
 			expect(err.alias).toBe('rnsi.svc.v1')
 		})
+
+		describe('cause chaining', () => {
+			it('retains the provided cause on SensitiveInfoError', () => {
+				const cause = new Error('underlying')
+				const err = new SensitiveInfoError(ErrorCode.NotFound, 'wrapped', {
+					cause,
+				})
+				expect(err.cause).toBe(cause)
+			})
+
+			it('keeps cause non-enumerable to match native ES2022 Error semantics', () => {
+				const cause = new Error('underlying')
+				const err = new SensitiveInfoError(ErrorCode.NotFound, 'wrapped', {
+					cause,
+				})
+				const descriptor = Object.getOwnPropertyDescriptor(err, 'cause')
+				expect(descriptor).toBeDefined()
+				expect(descriptor?.enumerable).toBe(false)
+				expect(Object.keys(err)).not.toContain('cause')
+				expect(JSON.parse(JSON.stringify(err))).not.toHaveProperty('cause')
+			})
+
+			it('does not define cause when not provided', () => {
+				const err = new SensitiveInfoError(ErrorCode.NotFound, 'wrapped')
+				expect(Object.hasOwn(err, 'cause')).toBe(false)
+			})
+
+			it('defines a non-enumerable own cause when explicitly passed as undefined', () => {
+				const err = new SensitiveInfoError(ErrorCode.NotFound, 'wrapped', {
+					cause: undefined,
+				})
+				const descriptor = Object.getOwnPropertyDescriptor(err, 'cause')
+				expect(Object.hasOwn(err, 'cause')).toBe(true)
+				expect(err.cause).toBeUndefined()
+				expect(descriptor).toBeDefined()
+				expect(descriptor?.enumerable).toBe(false)
+				expect(Object.keys(err)).not.toContain('cause')
+			})
+
+			it('propagates cause through subclasses (NotFoundError)', () => {
+				const cause = new Error('native miss')
+				const err = new NotFoundError('missing', { cause })
+				expect(err.cause).toBe(cause)
+			})
+		})
 	})
 
 	describe('toSensitiveInfoError', () => {

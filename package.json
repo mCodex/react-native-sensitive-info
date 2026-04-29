@@ -10,7 +10,6 @@
 	"sideEffects": false,
 	"exports": {
 		".": {
-			"react-native": "./src/index.ts",
 			"import": {
 				"types": "./lib/typescript/module/src/index.d.ts",
 				"default": "./lib/module/index.js"
@@ -22,7 +21,6 @@
 			"default": "./lib/module/index.js"
 		},
 		"./hooks": {
-			"react-native": "./src/hooks/index.ts",
 			"import": {
 				"types": "./lib/typescript/module/src/hooks/index.d.ts",
 				"default": "./lib/module/hooks/index.js"
@@ -34,7 +32,6 @@
 			"default": "./lib/module/hooks/index.js"
 		},
 		"./errors": {
-			"react-native": "./src/errors.ts",
 			"import": {
 				"types": "./lib/typescript/module/src/errors.d.ts",
 				"default": "./lib/module/errors.js"
