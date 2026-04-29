@@ -75,11 +75,17 @@ export class SensitiveInfoError extends Error {
 		super(message)
 		this.name = 'SensitiveInfoError'
 		this.code = code
-		// Assign `cause` directly instead of passing it to `super()` so this
+		// Define `cause` manually instead of passing it to `super()` so this
 		// compiles cleanly under TS configs whose `lib` predates ES2022 (where
-		// the second `Error` constructor argument was introduced).
+		// the second `Error` constructor argument was introduced), while keeping
+		// the property non-enumerable to match the native ES2022 `Error` constructor.
 		if (options && 'cause' in options) {
-			;(this as { cause?: unknown }).cause = options.cause
+			Object.defineProperty(this, 'cause', {
+				value: options.cause,
+				writable: true,
+				configurable: true,
+				enumerable: false,
+			})
 		}
 	}
 }

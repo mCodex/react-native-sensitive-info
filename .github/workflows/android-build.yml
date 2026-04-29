@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - '.github/workflows/android-build.yml'
       - 'example/android/**'
