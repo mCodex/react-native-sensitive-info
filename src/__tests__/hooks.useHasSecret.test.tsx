@@ -34,26 +34,25 @@ describe('useHasSecret', () => {
 		expect(mockedHasItem).toHaveBeenCalledWith('token', { service: 'auth' })
 	})
 
-	it('keeps existence checks silent when prompt options are provided', async () => {
+	it('forwards existence options to the silent hasItem boundary', async () => {
 		mockedHasItem.mockResolvedValueOnce(true)
+		const options = {
+			service: 'auth',
+			accessControl: 'biometryCurrentSet' as const,
+			authenticationPrompt: { title: 'Unlock' },
+		}
 
 		renderHook(
 			({ opts }: { opts: Parameters<typeof useHasSecret>[1] }) =>
 				useHasSecret('token', opts),
 			{
-				initialProps: {
-					opts: {
-						service: 'auth',
-						accessControl: 'biometryCurrentSet',
-						authenticationPrompt: { title: 'Unlock' },
-					},
-				},
+				initialProps: { opts: options },
 			}
 		)
 
 		await waitFor(() => expect(mockedHasItem).toHaveBeenCalled())
 
-		expect(mockedHasItem).toHaveBeenCalledWith('token', { service: 'auth' })
+		expect(mockedHasItem).toHaveBeenCalledWith('token', options)
 	})
 
 	it('skips querying when requested', async () => {

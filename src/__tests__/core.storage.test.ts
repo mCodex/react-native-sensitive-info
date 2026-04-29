@@ -288,6 +288,10 @@ describe('core/storage', () => {
 			authenticationPrompt: prompt,
 		})
 		expect(normalizePromptedReadOptions).not.toHaveBeenCalled()
+		expect(nativeHandle.getAllItems).toHaveBeenCalledWith({
+			includeValues: false,
+			service: 'normalized',
+		} as SensitiveInfoEnumerateRequest)
 	})
 
 	it('clears a service via native call', async () => {

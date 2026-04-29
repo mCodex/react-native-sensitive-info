@@ -407,7 +407,6 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     case errSecItemNotFound:
       return nil
     case errSecInteractionNotAllowed, errSecAuthFailed:
-      if !allowAuthentication { return nil }
       throw runtimeError(for: status, operation: "fetch")
     default:
       throw runtimeError(for: status, operation: "fetch")
