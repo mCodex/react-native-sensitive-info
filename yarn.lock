@@ -9487,14 +9487,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dom@npm:19.2.3":
-  version: 19.2.3
-  resolution: "react-dom@npm:19.2.3"
+"react-dom@npm:19.2.6":
+  version: 19.2.6
+  resolution: "react-dom@npm:19.2.6"
   dependencies:
     scheduler: "npm:^0.27.0"
   peerDependencies:
-    react: ^19.2.3
-  checksum: 10/5780f6d4c8e8ece09f82c5500ba2d55e01c30b5273f9281734d7d3b65013cd1fa52ec4e4436e5248c0a9e5bc340836044051168bbad8d7eac4d33ee6c2a867a1
+    react: ^19.2.6
+  checksum: 10/695122e37dec3460311231ff1f9a96368d74457d4ccf60010eaebc08c3e1c47b054c9267b40d98c689ae99d0c29a340acacfd405016a954a4f11613146191e68
   languageName: node
   linkType: hard
 
@@ -9614,7 +9614,7 @@ __metadata:
     jiti: "npm:^2.6.1"
     nitrogen: "npm:0.35.6"
     react: "npm:19.2.3"
-    react-dom: "npm:19.2.3"
+    react-dom: "npm:19.2.6"
     react-native: "npm:0.85.2"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-nitro-modules: "npm:0.35.6"

@@ -120,7 +120,7 @@
 		"jiti": "^2.6.1",
 		"nitrogen": "0.35.6",
 		"react": "19.2.3",
-		"react-dom": "19.2.3",
+		"react-dom": "19.2.6",
 		"react-native": "0.85.2",
 		"react-native-builder-bob": "^0.41.0",
 		"react-native-nitro-modules": "0.35.6",
