@@ -3672,14 +3672,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ts-morph/common@npm:~0.28.1":
-  version: 0.28.1
-  resolution: "@ts-morph/common@npm:0.28.1"
+"@ts-morph/common@npm:~0.29.0":
+  version: 0.29.0
+  resolution: "@ts-morph/common@npm:0.29.0"
   dependencies:
     minimatch: "npm:^10.0.1"
     path-browserify: "npm:^1.0.1"
     tinyglobby: "npm:^0.2.14"
-  checksum: 10/d5c6ed11cf046c186c7263c28c7e9b5fbefb61c65b99f66cfe6a3b249f70f3fbf116b5aace2980602a7ceabecdc399065d5a7f14aabe5475eb43fd573a3cc665
+  checksum: 10/d23cfb6c81110235a79cf5fbeb7efed04f4c8d560391a45184470b2363661f8da42f76572808be213f1e30d148117cb6dd57cac84a1c2a236839de986d2c27b8
   languageName: node
   linkType: hard
 
@@ -8669,18 +8669,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nitrogen@npm:0.35.6":
-  version: 0.35.6
-  resolution: "nitrogen@npm:0.35.6"
+"nitrogen@npm:0.35.10":
+  version: 0.35.10
+  resolution: "nitrogen@npm:0.35.10"
   dependencies:
     chalk: "npm:^5.3.0"
-    react-native-nitro-modules: "npm:^0.35.6"
-    ts-morph: "npm:^27.0.0"
+    react-native-nitro-modules: "npm:^0.35.10"
+    ts-morph: "npm:^28.0.0"
     yargs: "npm:^18.0.0"
-    zod: "npm:^4.0.5"
+    zod: "npm:^4.4.3"
   bin:
     nitrogen: lib/index.js
-  checksum: 10/17a7dbfd166573aaefdd90100bcee0721d69cb7d4b4a071e5776fe1c01d74207d8a0341d3b445eaf52baa79b3c0590da0952dfe35ccd48c9a70dec71dab69ef3
+  checksum: 10/515d77b857563aa69bb83867b09ff86da2ac0585d236dafbb7df2757306d7d9d503dc5a97a9c02e3a17344e9b1ab27a99660243c353de9a4e4a5d1c6eec8e506
   languageName: node
   linkType: hard
 
@@ -9554,13 +9554,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-nitro-modules@npm:0.35.6, react-native-nitro-modules@npm:^0.35.6":
-  version: 0.35.6
-  resolution: "react-native-nitro-modules@npm:0.35.6"
+"react-native-nitro-modules@npm:0.35.10, react-native-nitro-modules@npm:^0.35.10":
+  version: 0.35.10
+  resolution: "react-native-nitro-modules@npm:0.35.10"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/a68f1980d1cc8da182d05f63a514b728920fa74323e75c2c86add87f523fd2176081dce5d592d720188113a38c60875b02160d47585775d04bdeb493d8322407
+  checksum: 10/b0600cea67c37ca10e47d3f80ad9fef5c24451a5b5e7a2f92ca81e0e51279323371f8bd42a3ce82e6bf1c5fffe53409644ee5c49fe6ccab09e41977ce8e28884
   languageName: node
   linkType: hard
 
@@ -9592,7 +9592,7 @@ __metadata:
     babel-plugin-react-compiler: "npm:^1.0.0"
     react: "npm:19.2.3"
     react-native: "npm:0.85.2"
-    react-native-nitro-modules: "npm:0.35.6"
+    react-native-nitro-modules: "npm:0.35.10"
     react-native-safe-area-context: "npm:^5.7.0"
   languageName: unknown
   linkType: soft
@@ -9612,12 +9612,12 @@ __metadata:
     jest: "npm:^30.3.0"
     jest-environment-jsdom: "npm:^30.3.0"
     jiti: "npm:^2.6.1"
-    nitrogen: "npm:0.35.6"
+    nitrogen: "npm:0.35.10"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     react-native: "npm:0.85.2"
     react-native-builder-bob: "npm:^0.41.0"
-    react-native-nitro-modules: "npm:0.35.6"
+    react-native-nitro-modules: "npm:0.35.10"
     release-it: "npm:^20.0.1"
     ts-jest: "npm:^29.4.9"
     ts-node: "npm:^10.9.2"
@@ -10692,13 +10692,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-morph@npm:^27.0.0":
-  version: 27.0.2
-  resolution: "ts-morph@npm:27.0.2"
+"ts-morph@npm:^28.0.0":
+  version: 28.0.0
+  resolution: "ts-morph@npm:28.0.0"
   dependencies:
-    "@ts-morph/common": "npm:~0.28.1"
+    "@ts-morph/common": "npm:~0.29.0"
     code-block-writer: "npm:^13.0.3"
-  checksum: 10/b9bd8ed86d4b76ca23446d3f808787cfe95a3bcb2316769a2f3fa262ea9ab4043bb76bf8aef677f9be0d758576f074df2926e701a535f84fd21946fdbf465148
+  checksum: 10/fb5541c2c5b25386ae85346203046cc136d4afa2821a9b7b5ea9ffdbcff6d8867eccf98a3d7d50dd86f64428f80cf4ae9e609bd8f02f99cef902ba2760ecd5d9
   languageName: node
   linkType: hard
 
@@ -11490,9 +11490,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^4.0.5":
-  version: 4.1.12
-  resolution: "zod@npm:4.1.12"
-  checksum: 10/c5f04e6ac306515c4db6ef73cf7705f521c7a2107c8c8912416a0658d689f361db9bee829b0bf01ef4a22492f1065c5cbcdb523ce532606ac6792fd714f3c326
+"zod@npm:^4.4.3":
+  version: 4.4.3
+  resolution: "zod@npm:4.4.3"
+  checksum: 10/804b9a42aa8f35f2b3c5a8dff906291cb749115f83ee2afe3576d70b5b5c53c965365c7f4967690647a9c54af9838ff232a85ff9577a0a36c44b68bc6cdefe36
   languageName: node
   linkType: hard

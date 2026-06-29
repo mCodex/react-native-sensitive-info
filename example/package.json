@@ -13,7 +13,7 @@
 	"dependencies": {
 		"react": "19.2.3",
 		"react-native": "0.85.2",
-		"react-native-nitro-modules": "0.35.6",
+		"react-native-nitro-modules": "0.35.10",
 		"react-native-safe-area-context": "^5.7.0"
 	},
 	"devDependencies": {
