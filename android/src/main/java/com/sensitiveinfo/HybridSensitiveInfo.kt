@@ -63,7 +63,7 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
         val accessControlResolver = AccessControlResolver(securityAvailabilityResolver)
         val serviceNameResolver = ServiceNameResolver(ctx)
         val authenticator = BiometricAuthenticator()
-        val cryptoManager = CryptoManager(authenticator)
+        val cryptoManager = CryptoManager(authenticator, ctx)
 
         Dependencies(
           context = ctx,
@@ -416,16 +416,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
   }
 
   /**
-   * True when the persisted entry's Keystore key requires user authentication
-   * to authorize a `Cipher.init` — i.e. biometric- or device-credential-gated
-   * entries. `entry.requiresAuthentication` already covers the common case
-   * (including `devicePasscode`, which `AccessControlResolver` flags as
-   * auth-required), so any such entry returns `true` and is skipped by the
-   * lazy refresh to avoid a second prompt. The `accessControl` fallback only
-   * matters for legacy entries persisted before the flag existed: there we
-   * still classify the biometry-class policies as auth-gated, while
-   * `devicePasscode`/`none` legacy entries are treated as silently
-   * upgradable (their keys had no auth requirement back then).
+   * True when the entry's Keystore key requires user authentication to authorize
+   * a `Cipher.init`. The `accessControl` fallback handles legacy entries
+   * persisted before `requiresAuthentication` existed.
    */
   private fun requiresBiometricAuth(entry: PersistedEntry): Boolean {
     if (entry.requiresAuthentication) return true

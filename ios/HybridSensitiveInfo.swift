@@ -329,22 +329,10 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     return query
   }
 
-  /// Persists `attributes` for the slot identified by `baseQuery`, replacing
-  /// any prior entry — including an iCloud-synced sibling that the caller may
-  /// not currently be writing.
-  ///
-  /// Why a dedicated helper instead of a plain `SecItemAdd`?
-  /// 1. Keychain queries default to *non-synchronizable items only* when
-  ///    `kSecAttrSynchronizable` is omitted. A delete-then-add cycle that uses
-  ///    only the caller's `iosSynchronizable` flag can leave a stale entry in
-  ///    the opposite state, so the next `SecItemAdd` returns
-  ///    `errSecDuplicateItem`. We always force-delete with
-  ///    `kSecAttrSynchronizableAny` to avoid that trap.
-  /// 2. iCloud Keychain sync can re-insert an entry between our delete and our
-  ///    add. We absorb that race with a single bounded retry — `setItem`
-  ///    semantically means *"the slot now contains X"*, and the Keychain
-  ///    partition is already scoped to bundle ID + access group, so any
-  ///    matched entry is provably ours to overwrite.
+  /// Upserts `attributes` into the keychain slot identified by `baseQuery`.
+  /// Always force-deletes with `kSecAttrSynchronizableAny` first to avoid
+  /// `errSecDuplicateItem` from stale iCloud-synced entries, then retries
+  /// once if iCloud sync re-inserts the entry between delete and add.
   private func upsertKeychainEntry(
     baseQuery: [String: Any],
     attributes: [String: Any]
@@ -512,16 +500,9 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     if currentVersion >= activeVersion { return nil }
 
     // Skip lazy re-encryption for biometry-protected entries. `SecItemUpdate`
-    // against a biometric Keychain item triggers a *second* Face ID / Touch ID
-    // prompt to authorize the mutation — even when we only intend to refresh
-    // the metadata blob. The user already authenticated for the read; queueing
-    // another prompt would be confusing and would also break flows where the
-    // caller renders UI between read and the next user gesture.
-    //
-    // These items are still upgraded by:
-    //   - the next explicit `setItem` (a full overwrite the caller initiates), or
-    //   - `rotateKeys({ reEncryptEagerly: true })`, where the rotation prompt is
-    //     expected by the caller.
+    // triggers a second biometric prompt even for metadata-only changes.
+    // These items are upgraded by the next explicit `setItem` or
+    // `rotateKeys({ reEncryptEagerly: true })`.
     if isBiometricallyProtected(item.metadata.accessControl) { return nil }
 
     let refreshedMetadata = buildMetadata(
@@ -721,12 +702,7 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
   }
 
   private func isAuthenticationCanceled(status: OSStatus) -> Bool {
-    switch status {
-    case errSecUserCanceled:
-      return true
-    default:
-      return false
-    }
+    status == errSecUserCanceled
   }
 
   private func performCopyMatching(_ query: CFDictionary, result: inout CFTypeRef?) -> OSStatus {

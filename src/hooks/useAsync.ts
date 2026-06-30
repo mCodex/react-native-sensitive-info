@@ -60,15 +60,7 @@ const reducer = <T>(
 	}
 }
 
-/**
- * Consolidates the shared async-lifecycle pattern (state machine + abort + mount guard) used by
- * every data-fetching hook in this package.
- *
- * Callers must provide a **stable** `run` callback — typically wrapped in `useCallback` — along
- * with the operation identifier used for error reporting.
- *
- * @internal
- */
+/** Shared async-lifecycle pattern (state machine + abort + mount guard). @internal */
 export default function useAsync<T>(
 	run: (signal: AbortSignal) => Promise<T | null>,
 	operation: string,

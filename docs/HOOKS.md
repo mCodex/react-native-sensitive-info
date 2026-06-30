@@ -1,20 +1,8 @@
 # React Hooks for react-native-sensitive-info
 
-This document covers the React hooks API for `react-native-sensitive-info`, designed with modern React best practices including automatic cleanup, memory leak prevention, and performance optimization.
-
-## Table of Contents
-
-- [Quick Start](#quick-start)
-- [Core Hooks](#core-hooks)
-- [Best Practices](#best-practices)
-- [Performance Considerations](#performance-considerations)
-- [Error Handling](#error-handling)
-- [Migration Guide](#migration-guide)
-- [Examples](#examples)
+React hooks for `react-native-sensitive-info`. Each hook manages its own async state, error handling, and cleanup automatically.
 
 ## Quick Start
-
-### Installation
 
 ```bash
 npm install react-native-sensitive-info
@@ -22,19 +10,12 @@ npm install react-native-sensitive-info
 yarn add react-native-sensitive-info
 ```
 
-### Basic Usage
-
 ```tsx
 import { useSecretItem, useSecureStorage } from 'react-native-sensitive-info/hooks'
 
 function MyComponent() {
-  // Read a single secret
   const { data, isLoading, error } = useSecretItem('apiToken')
-  
-  // Manage all secrets in a service
-  const { items, saveSecret, removeSecret } = useSecureStorage({
-    service: 'myapp'
-  })
+  const { items, saveSecret, removeSecret } = useSecureStorage({ service: 'myapp' })
 
   if (isLoading) return <Text>Loading...</Text>
   if (error) return <Text>Error: {error.message}</Text>
@@ -47,38 +28,21 @@ function MyComponent() {
 
 ### `useSecretItem`
 
-Fetches and manages a single secure storage item with automatic loading and error states.
-
-#### API
+Fetches and manages a single secure storage item.
 
 ```typescript
 function useSecretItem(
   key: string,
-  options?: SensitiveInfoOptions & { 
+  options?: SensitiveInfoOptions & {
     includeValue?: boolean
     skip?: boolean
   }
-): AsyncState<SensitiveInfoItem> & { 
+): AsyncState<SensitiveInfoItem> & {
   refetch: () => Promise<void>
-}
-
-interface AsyncState<TData> {
-  data: TData | null
-  error: HookError | null
-  isLoading: boolean
-  isPending: boolean
 }
 ```
 
-#### Features
-
-- ✅ Automatic request cancellation on unmount
-- ✅ Memory leak prevention via cleanup
-- ✅ Conditional loading with `skip` parameter
-- ✅ Manual refetch support
-- ✅ Type-safe error handling
-
-#### Example
+Returns `data`, `error`, `isLoading`, `isPending`, and a `refetch` function. Pass `skip: true` to defer loading until a condition is met.
 
 ```tsx
 function TokenViewer() {
@@ -104,13 +68,9 @@ function TokenViewer() {
 }
 ```
 
----
-
 ### `useSecret`
 
-A convenience hook that combines reading and writing a single secret. Includes save and delete operations.
-
-#### API
+Read and write a single secret from one hook. Returns the same async state as `useSecretItem` plus `saveSecret`, `deleteSecret`, and `refetch`.
 
 ```typescript
 function useSecret(
@@ -123,31 +83,16 @@ function useSecret(
 }
 ```
 
-#### Features
-
-- ✅ Read and write in a single hook
-- ✅ Automatic state synchronization after mutations
-- ✅ Optimized for single secret management
-
-#### Example
-
 ```tsx
 function AuthTokenManager() {
-  const {
-    data: token,
-    isLoading,
-    saveSecret,
-    deleteSecret,
-    refetch
-  } = useSecret('authToken', { service: 'myapp' })
+  const { data: token, isLoading, saveSecret, deleteSecret, refetch } = useSecret('authToken', {
+    service: 'myapp'
+  })
 
   const handleLogout = async () => {
     const { success, error } = await deleteSecret()
-    if (success) {
-      navigateTo('Login')
-    } else {
-      showError(error?.message)
-    }
+    if (success) navigateTo('Login')
+    else showError(error?.message)
   }
 
   const handleRefreshToken = async (newToken: string) => {
@@ -168,30 +113,18 @@ function AuthTokenManager() {
 }
 ```
 
----
-
 ### `useHasSecret`
 
-Lightweight hook for checking if a secret exists without fetching its value.
-
-#### API
+Checks if a secret exists without fetching its value. Useful for conditional rendering.
 
 ```typescript
 function useHasSecret(
   key: string,
   options?: SensitiveInfoOptions & { skip?: boolean }
-): AsyncState<boolean> & { 
+): AsyncState<boolean> & {
   refetch: () => Promise<void>
 }
 ```
-
-#### Features
-
-- ✅ Efficient existence checks
-- ✅ Minimal performance overhead
-- ✅ No decryption needed
-
-#### Example
 
 ```tsx
 function ConditionalContent() {
@@ -203,17 +136,13 @@ function ConditionalContent() {
 }
 ```
 
----
-
 ### `useSecureStorage`
 
-Manages all secrets in a service with full CRUD operations and automatic state synchronization.
-
-#### API
+Manages all secrets in a service. Returns an `items` array plus `saveSecret`, `removeSecret`, `clearAll`, and `refreshItems`.
 
 ```typescript
 function useSecureStorage(
-  options?: SensitiveInfoOptions & { 
+  options?: SensitiveInfoOptions & {
     includeValues?: boolean
     skip?: boolean
   }
@@ -228,52 +157,21 @@ function useSecureStorage(
 }
 ```
 
-#### Features
-
-- ✅ Full CRUD operations
-- ✅ Optimistic updates for delete
-- ✅ Automatic list refresh after save/delete
-- ✅ Selective value inclusion
-- ✅ Service-wide operations
-
-#### Example
+Set `includeValues: false` to skip decryption when you only need keys and metadata.
 
 ```tsx
 function SecureStorageManager() {
-  const {
-    items,
-    isLoading,
-    error,
-    saveSecret,
-    removeSecret,
-    clearAll,
-    refreshItems
-  } = useSecureStorage({
-    service: 'credentials',
-    includeValues: false // Don't fetch values initially
-  })
+  const { items, isLoading, error, saveSecret, removeSecret, clearAll, refreshItems } =
+    useSecureStorage({ service: 'credentials', includeValues: false })
 
   const handleAddSecret = async () => {
     const { success, error: err } = await saveSecret('apiKey', 'secret-value')
-    if (!success) {
-      showError(err?.message)
-    }
+    if (!success) showError(err?.message)
   }
 
   const handleRemoveSecret = async (key: string) => {
     const { success } = await removeSecret(key)
-    if (success) {
-      showNotification(`Deleted ${key}`)
-    }
-  }
-
-  const handleClearAll = async () => {
-    if (confirm('Delete all secrets?')) {
-      const { success } = await clearAll()
-      if (success) {
-        showNotification('All secrets cleared')
-      }
-    }
+    if (success) showNotification(`Deleted ${key}`)
   }
 
   if (isLoading) return <ActivityIndicator />
@@ -284,28 +182,21 @@ function SecureStorageManager() {
       <FlatList
         data={items}
         renderItem={({ item }) => (
-          <SecretListItem
-            item={item}
-            onDelete={() => handleRemoveSecret(item.key)}
-          />
+          <SecretListItem item={item} onDelete={() => handleRemoveSecret(item.key)} />
         )}
         keyExtractor={item => item.key}
       />
       <Button title="Add Secret" onPress={handleAddSecret} />
-      <Button title="Clear All" onPress={handleClearAll} />
+      <Button title="Clear All" onPress={clearAll} />
       <Button title="Refresh" onPress={refreshItems} />
     </View>
   )
 }
 ```
 
----
-
 ### `useSecurityAvailability`
 
-Fetches and caches device security capabilities (Secure Enclave, StrongBox, Biometry, etc.).
-
-#### API
+Fetches device security capabilities (Secure Enclave, StrongBox, Biometry).
 
 ```typescript
 function useSecurityAvailability(
@@ -313,65 +204,39 @@ function useSecurityAvailability(
 ): AsyncState<SecurityAvailability> & {
   refetch: () => Promise<void>
 }
-
-interface UseSecurityAvailabilityOptions {
-  /** Auto-refresh when the app returns to `active`. Debounced ~500 ms. */
-  readonly refreshOnForeground?: boolean
-}
-
-interface SecurityAvailability {
-  readonly secureEnclave: boolean
-  readonly strongBox: boolean
-  readonly biometry: boolean
-  readonly biometryStatus:
-    | 'available'
-    | 'notEnrolled'
-    | 'notAvailable'
-    | 'lockedOut'
-    | 'unknown'
-  readonly deviceCredential: boolean
-}
 ```
 
-#### Features
+| Option | Default | Description |
+|--------|---------|-------------|
+| `refreshOnForeground` | `false` | Subscribes to `AppState` and refetches when the user returns from system settings. |
 
-- ✅ Result cached **per component instance** — no native call on re-render
-- ✅ `refetch()` available to bypass the cache after settings changes
-- ✅ Previous data preserved on error
-- ✅ `biometryStatus` distinguishes *no hardware* from *hardware present but unenrolled* — drive an *“Enroll Face ID”* CTA off `'notEnrolled'` instead of hiding the toggle
-- ✅ `refreshOnForeground` subscribes to `AppState` and refetches when the user returns from system settings (off by default)
-
-#### Example
+`SecurityAvailability` exposes `secureEnclave`, `strongBox`, `biometry`, `deviceCredential` (booleans) and `biometryStatus` (`'available'`, `'notEnrolled'`, `'notAvailable'`, `'lockedOut'`, `'unknown'`).
 
 ```tsx
 function AccessControlSelector() {
-  const { data: capabilities, isLoading } = useSecurityAvailability({
-    refreshOnForeground: true,
-  })
+  const { data: capabilities, isLoading } = useSecurityAvailability({ refreshOnForeground: true })
 
   if (isLoading) return <Text>Detecting capabilities...</Text>
 
   if (capabilities?.biometryStatus === 'notEnrolled') {
     return (
       <Pressable onPress={() => Linking.openSettings()}>
-        <Text>Set up Face ID / fingerprint →</Text>
+        <Text>Set up Face ID / fingerprint</Text>
       </Pressable>
     )
   }
 
   return (
     <View>
-      {capabilities?.secureEnclave && <Text>✓ Secure Enclave available</Text>}
-      {capabilities?.biometry && <Text>✓ Biometry available</Text>}
-      {capabilities?.deviceCredential && <Text>✓ Device credential available</Text>}
+      {capabilities?.secureEnclave && <Text>Secure Enclave available</Text>}
+      {capabilities?.biometry && <Text>Biometry available</Text>}
+      {capabilities?.deviceCredential && <Text>Device credential available</Text>}
     </View>
   )
 }
 ```
 
-#### React to enrollment changes
-
-Use `useBiometryStatusWatcher` for transition-only callbacks (fires once per real `BiometryStatus` change, never on every render):
+React to enrollment changes with `useBiometryStatusWatcher`, which fires once per real status change:
 
 ```tsx
 import { useBiometryStatusWatcher } from 'react-native-sensitive-info/hooks'
@@ -383,9 +248,7 @@ useBiometryStatusWatcher((next, previous) => {
 })
 ```
 
-#### Gate writes on a specific access-control policy
-
-Pair the snapshot with `canUseAccessControlSync` so the toggle reflects whether the policy you intend to use will actually succeed:
+Gate writes on a specific access-control policy by pairing with `canUseAccessControlSync`:
 
 ```tsx
 import { canUseAccessControlSync } from 'react-native-sensitive-info'
@@ -396,13 +259,9 @@ const canEnableSecureEnclave = caps
   : false
 ```
 
----
-
 ### `useKeyRotation`
 
-Manage versioned master-key rotation for a given service. Calls `rotateKeys()` under the hood and keeps the active version, last rotation result, and loading/error state.
-
-#### API
+Manages versioned master-key rotation for a service. Tracks the active version and last rotation result.
 
 ```typescript
 function useKeyRotation(options?: UseKeyRotationOptions): {
@@ -412,39 +271,23 @@ function useKeyRotation(options?: UseKeyRotationOptions): {
   rotate: () => Promise<HookMutationResult>
   readVersion: () => Promise<number | null>
 }
-
-interface UseKeyRotationOptions extends SensitiveInfoOptions {
-  reEncryptEagerly?: boolean // default: false (lazy rotation)
-}
-
-interface RotationResult {
-  previousVersion: number
-  newVersion: number
-  reEncryptedCount: number
-}
 ```
 
-#### Example
+Defaults to lazy rotation, re-encrypting entries when they are next read. Pass `reEncryptEagerly: true` to re-encrypt all entries up front.
 
 ```tsx
-import { useKeyRotation } from 'react-native-sensitive-info/hooks'
-
 function RotationButton() {
-  const { rotate, isRotating, lastResult, error } = useKeyRotation({
-    service: 'auth',
-  })
+  const { rotate, isRotating, lastResult, error } = useKeyRotation({ service: 'auth' })
 
   return (
     <View>
       <Button
-        title={isRotating ? 'Rotating…' : 'Rotate master key'}
+        title={isRotating ? 'Rotating...' : 'Rotate master key'}
         onPress={rotate}
         disabled={isRotating}
       />
       {lastResult && (
-        <Text>
-          v{lastResult.previousVersion} → v{lastResult.newVersion}
-        </Text>
+        <Text>v{lastResult.previousVersion} to v{lastResult.newVersion}</Text>
       )}
       {error && <Text>{error.message}</Text>}
     </View>
@@ -452,35 +295,15 @@ function RotationButton() {
 }
 ```
 
-> **Note:** Defaults to lazy rotation — entries are re-encrypted opportunistically when they are next read. Pass `reEncryptEagerly: true` to walk every entry up front.
-
----
-
 ### `useSecureOperation`
 
-One-time operation hook for non-reactive operations (e.g., bulk operations, logout).
-
-#### API
+One-time operation hook for non-reactive flows like logout or bulk cleanup.
 
 ```typescript
 function useSecureOperation(): VoidAsyncState & {
   execute: (operation: () => Promise<void>) => Promise<void>
 }
-
-interface VoidAsyncState {
-  error: HookError | null
-  isLoading: boolean
-  isPending: boolean
-}
 ```
-
-#### Features
-
-- ✅ Flexible operation execution
-- ✅ Loading state management
-- ✅ Error handling
-
-#### Example
 
 ```tsx
 function LogoutButton() {
@@ -488,252 +311,74 @@ function LogoutButton() {
 
   const handleLogout = async () => {
     await execute(async () => {
-      // Clear all app credentials
       await clearService({ service: 'auth' })
       await clearService({ service: 'cache' })
-      // Navigate to login
       navigateTo('Login')
     })
   }
 
   if (error) return <Text>Logout failed: {error.message}</Text>
 
-  return (
-    <Button 
-      title="Logout" 
-      onPress={handleLogout} 
-      disabled={isLoading}
-    />
-  )
+  return <Button title="Logout" onPress={handleLogout} disabled={isLoading} />
 }
 ```
-
----
-
-## No Setup Required
-
-All hooks work independently without any provider. Just import and use them directly in your components:
-
-```tsx
-import {
-  useSecureStorage,
-  useSecurityAvailability,
-} from 'react-native-sensitive-info/hooks'
-
-function MyComponent() {
-  const { items } = useSecureStorage({ service: 'myapp' })
-  const { data: capabilities } = useSecurityAvailability()
-
-  // Each hook instance keeps its own cache. Mounting `useSecurityAvailability`
-  // in two components issues two native reads (one per instance), but neither
-  // re-runs across re-renders unless you call `refetch()`.
-}
-```
-
----
 
 ## Best Practices
 
-### 1. Memory Leak Prevention ✅
-
-All hooks automatically clean up resources on unmount:
+### Use `skip` for conditional fetching
 
 ```tsx
-// ✅ GOOD: Automatic cleanup
-function Component() {
-  const { data, isLoading } = useSecretItem('token')
-  // Cleanup happens automatically on unmount
-}
-```
-
-### 2. Avoid Unnecessary Re-renders
-
-Use the `skip` parameter to conditionally skip fetches:
-
-```tsx
-// ✅ GOOD: Conditional fetching
 function Component() {
   const isAuthenticated = useIsAuthenticated()
   const { data } = useSecretItem('token', { skip: !isAuthenticated })
-  // Won't fetch until user is authenticated
 }
 ```
 
-### 3. Use `useMemo` for Options
+### Prefer `useSecureStorage` over multiple `useSecretItem` calls
 
-Stabilize options objects to prevent unnecessary API calls:
+A single `useSecureStorage` instance manages the entire service. Mounting separate `useSecretItem` hooks for every key creates separate async pipelines and cache entries.
 
-```tsx
-// ✅ GOOD: Memoized options
-const options = useMemo(() => ({
-  service: 'myapp',
-  accessControl: 'secureEnclaveBiometry'
-}), []) // Empty deps - only create once
+### Selective value fetching
 
-const { data } = useSecretItem('token', options)
+Pass `includeValues: false` when you only need keys or metadata. Skipping decryption reduces latency and avoids prompting the user for biometrics unnecessarily.
 
-// ❌ BAD: New object every render
-const { data } = useSecretItem('token', {
-  service: 'myapp',
-  accessControl: 'secureEnclaveBiometry'
-})
-```
+### Gate biometric UI on `biometryStatus`
 
-### 4. Handle Errors Gracefully
-
-Always check error states and provide user feedback:
-
-```tsx
-// ✅ GOOD: Proper error handling
-function Component() {
-  const { data, error, isLoading } = useSecretItem('token')
-
-  if (isLoading) return <ActivityIndicator />
-  if (error) return <ErrorBoundary error={error} />
-  if (!data) return <Text>No data found</Text>
-
-  return <Text>{data.value}</Text>
-}
-```
-
-### 5. Batch Operations
-
-Use `useSecureStorage` instead of multiple `useSecretItem` calls:
-
-```tsx
-// ✅ GOOD: Single hook for multiple items
-function Component() {
-  const { items } = useSecureStorage({ service: 'auth' })
-  // Access all items
-}
-
-// ❌ AVOID: Multiple hook instances
-const token = useSecretItem('token')
-const refresh = useSecretItem('refreshToken')
-const apiKey = useSecretItem('apiKey')
-```
-
-### 6. Capability Caching Is Per-Instance
-
-Each `useSecurityAvailability` mount keeps its own cache, so re-renders never trigger a fresh
-native call. Multiple components mounting the hook will each issue one read — if you need a
-single source of truth, lift the hook into a parent and pass `data` down via props.
-
-```tsx
-// ✅ Re-renders are free — first mount caches, subsequent renders reuse the value.
-function Capabilities() {
-  const { data, isLoading, refetch } = useSecurityAvailability()
-  // Call refetch() after the user changes biometric enrollment in system settings.
-}
-```
-
-### 7. Accessing Security Capabilities
-
-Check what security features are available on the device:
-
-```tsx
-// ✅ GOOD: Direct hook usage
-function SecurityStatus() {
-  const { data: capabilities, isLoading } = useSecurityAvailability()
-  
-  if (isLoading) return <ActivityIndicator />
-  
-  return (
-    <View>
-      <Text>Biometric: {capabilities?.isBiometricEnabled ? '✓' : '✗'}</Text>
-      <Text>Strong Box: {capabilities?.isStrongBoxAvailable ? '✓' : '✗'}</Text>
-    </View>
-  )
-}
-```
-
-### 8. Refetch Data Strategically
-
-Use `refetch()` when you need to sync state with native storage:
-
-```tsx
-// ✅ GOOD: Manual refetch after external updates
-const { data, refetch } = useSecretItem('token')
-
-const handleExternalUpdate = async () => {
-  await externallyUpdateToken()
-  await refetch() // Sync with native state
-}
-```
-
----
+Check `biometryStatus` instead of just the `biometry` boolean. The status tells you whether biometry is unavailable because the hardware is missing, unenrolled, or locked out. Drive enrollment CTAs off `'notEnrolled'`.
 
 ## Performance Considerations
 
-### 1. Request Cancellation
+### `useSecurityAvailability` caches per instance
 
-All hooks automatically cancel in-flight requests on unmount:
+Each mount calls native code once. Re-renders reuse the cached value. Multiple components mounting the hook each issue their own read. Lift the hook into a parent and pass `data` down if you need a single source of truth.
 
-```tsx
-// If component unmounts while fetching, request is cancelled
-const { data, isLoading } = useSecretItem('token')
-```
+### Previous data preserved on error
 
-### 2. Caching
+When a fetch fails, `data` retains the last successful value instead of resetting to `null`. This prevents UI flicker during transient network or platform failures.
 
-`useSecurityAvailability` caches results to avoid repeated native calls:
+### In-flight requests cancel on unmount
 
-```tsx
-const cap1 = useSecurityAvailability() // Calls native
-const cap2 = useSecurityAvailability() // Uses cache
-```
-
-### 3. Selective Value Fetching
-
-Use `includeValues: false` when you only need metadata:
-
-```tsx
-// ✅ GOOD: Only fetch metadata
-const { items } = useSecureStorage({ includeValues: false })
-
-// ❌ AVOID: Unnecessary decryption
-const { items } = useSecureStorage({ includeValues: true })
-```
-
-### 4. Optimistic Updates
-
-Delete operations update UI immediately:
-
-```tsx
-const { removeSecret } = useSecureStorage()
-
-// UI updates immediately, native call happens in background
-await removeSecret('token') // Optimistic delete
-```
-
----
+All hooks abort pending operations when the component unmounts. You do not need to implement manual cleanup.
 
 ## Error Handling
 
-### Understanding Errors
-
-The `HookError` class wraps errors with context:
+`HookError` wraps the underlying native error with operation context:
 
 ```typescript
 class HookError extends Error {
-  constructor(
-    message: string,
-    public readonly originalError?: unknown
-  ) {}
+  readonly operation?: string   // e.g. 'useSecretItem.fetch'
+  readonly hint?: string        // e.g. 'Ask the user to retry biometrics.'
+  readonly cause?: unknown      // the original SensitiveInfoError
 }
 ```
-
-### Error Handling Patterns
 
 ```tsx
 function Component() {
   const { error, data } = useSecretItem('token')
 
   if (error) {
-    // Log original error for debugging
-    console.error('Hook error:', error.originalError)
-    
-    // Show user-friendly message
+    console.error(`[${error.operation}] ${error.message}`)
+    if (error.hint) console.warn(`Hint: ${error.hint}`)
     return <Text>Failed to load token: {error.message}</Text>
   }
 
@@ -741,74 +386,15 @@ function Component() {
 }
 ```
 
----
-
-## Migration Guide
-
-### From Callback-Based API to Hooks
-
-#### Before (Callback API)
-
-```tsx
-function Component() {
-  const [token, setToken] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    let mounted = true
-
-    const fetchToken = async () => {
-      try {
-        const item = await getItem('token')
-        if (mounted) setToken(item)
-      } catch (err) {
-        if (mounted) setError(err)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    fetchToken()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  return loading ? <Text>Loading</Text> : <Text>{token?.value}</Text>
-}
-```
-
-#### After (Hooks API)
-
-```tsx
-// ✅ MUCH CLEANER
-function Component() {
-  const { data: token, isLoading, error } = useSecretItem('token')
-  return isLoading ? <Text>Loading</Text> : <Text>{token?.value}</Text>
-}
-```
-
----
-
 ## Examples
 
-### Complete Authentication Flow
+### Authentication Flow
 
 ```tsx
-import {
-  useSecret,
-  useSecurityAvailability,
-} from 'react-native-sensitive-info/hooks'
+import { useSecret, useSecurityAvailability } from 'react-native-sensitive-info/hooks'
 
 function AuthenticationFlow() {
-  const {
-    data: token,
-    isLoading: tokenLoading,
-    saveSecret,
-    deleteSecret
-  } = useSecret('authToken', {
+  const { data: token, saveSecret, deleteSecret } = useSecret('authToken', {
     service: 'myapp',
     accessControl: 'secureEnclaveBiometry'
   })
@@ -818,24 +404,19 @@ function AuthenticationFlow() {
   const handleLogin = async (credentials) => {
     const response = await login(credentials)
     const { success } = await saveSecret(response.token)
-    
-    if (success) {
-      navigateTo('Home')
-    }
+    if (success) navigateTo('Home')
   }
 
   const handleLogout = async () => {
     const { success } = await deleteSecret()
-    if (success) {
-      navigateTo('Login')
-    }
+    if (success) navigateTo('Login')
   }
 
   return token ? <HomeScreen onLogout={handleLogout} /> : <LoginForm />
 }
 ```
 
-### Biometric Authentication
+### Biometric Auth
 
 ```tsx
 function BiometricAuth() {
@@ -844,118 +425,18 @@ function BiometricAuth() {
 
   const canUseBiometry = capabilities?.biometry ?? false
 
-  if (!canUseBiometry) {
-    return <Text>Biometry not available</Text>
-  }
+  if (!canUseBiometry) return <Text>Biometry not available</Text>
 
   return (
     <Button
       title="Authenticate with Biometry"
       onPress={async () => {
         const item = await getItem('biometricToken', {
-          authenticationPrompt: {
-            title: 'Authenticate',
-            description: 'Use your biometry to unlock'
-          }
+          authenticationPrompt: { title: 'Authenticate', description: 'Use your biometry to unlock' }
         })
-        if (item) {
-          authorizeUser(item.value)
-        }
+        if (item) authorizeUser(item.value)
       }}
     />
   )
 }
 ```
-
-### Multi-Service Management
-
-```tsx
-function CredentialsManager() {
-  const authCredentials = useSecureStorage({
-    service: 'auth',
-    includeValues: false
-  })
-
-  const apiKeys = useSecureStorage({
-    service: 'api',
-    includeValues: false
-  })
-
-  return (
-    <View>
-      <Section title="Auth Credentials">
-        {authCredentials.items.map(item => (
-          <CredentialItem
-            key={item.key}
-            item={item}
-            onDelete={() => authCredentials.removeSecret(item.key)}
-          />
-        ))}
-      </Section>
-
-      <Section title="API Keys">
-        {apiKeys.items.map(item => (
-          <CredentialItem
-            key={item.key}
-            item={item}
-            onDelete={() => apiKeys.removeSecret(item.key)}
-          />
-        ))}
-      </Section>
-    </View>
-  )
-}
-```
-
----
-
-## Type Safety
-
-All hooks are fully typed with TypeScript:
-
-```tsx
-import type {
-  AsyncState,
-  HookError,
-  VoidAsyncState
-} from 'react-native-sensitive-info/hooks'
-
-const { data, error, isLoading }: AsyncState<SensitiveInfoItem> = useSecretItem('token')
-
-const hookError: HookError = error
-const originalError: unknown = error?.originalError
-```
-
----
-
-## Troubleshooting
-
-### Hooks return loading state but never complete
-
-**Solution:** Check for errors in the console. Ensure proper options are passed.
-
-### Memory warnings during testing
-
-**Solution:** Hooks automatically clean up. Ensure you're waiting for async operations in tests:
-
-```tsx
-await waitFor(() => {
-  expect(result.current.isLoading).toBe(false)
-})
-```
-
----
-
-## Contributing
-
-We welcome contributions! Please ensure:
-- All memory cleanup is handled
-- Hooks follow React Rules of Hooks
-- TypeScript types are comprehensive
-- Examples are provided for new hooks
-
----
-
-## License
-
-MIT © Mateus Andrade
