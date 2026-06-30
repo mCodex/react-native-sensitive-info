@@ -3,11 +3,8 @@
 ## Bundle policy
 
 - `"sideEffects": false` — every public surface tree-shakes cleanly.
-- Subpath exports keep the imperative API, the hooks, and the error classes in **separate**
-  ESM entry points so apps only pay for what they import.
-- The TypeScript-side dependency graph is intentionally flat. The whole runtime (errors,
-  options, native handle, validation, storage) is a few hundred lines of JS plus the Nitro
-  bridge.
+- Subpath exports keep the imperative API, the hooks, and the error classes in separate ESM entry points so apps only pay for what they import.
+- The TypeScript-side dependency graph is flat. The whole runtime (errors, options, native handle, validation, storage) is a few hundred lines of JS plus the Nitro bridge.
 
 | Import                                        | Approximate min+gz size† |
 | --------------------------------------------- | ------------------------ |
@@ -21,25 +18,21 @@
 
 Every public hook follows the same recipe to keep re-renders cheap:
 
-1. Inline option literals are **deep-equal cached** through `useStableOptions`. Passing a fresh
+1. Inline option literals are deep-equal cached through `useStableOptions`. Passing a fresh
    object each render does not invalidate the underlying `useAsync` / `useMutation`.
-2. `useReducer` drives the lifecycle so `setState` cannot tear (loading + data + error always
-   commit together).
+2. `useReducer` drives the lifecycle so `setState` cannot tear (loading + data + error commit together).
 3. The returned object is wrapped in `useMemo` with stable identity per state transition.
 4. Stable empty arrays (e.g. `EMPTY_ITEMS`) are frozen once at module scope so consumers can
-   safely use referential equality.
+   use referential equality.
 
 That means you can pass result objects to `React.memo` children or to a `Context.Provider`
 without paying for spurious re-renders.
 
 ## React Compiler (Babel plugin)
 
-The hooks are written so that the React Compiler **does not** need to see the source to keep
-them stable. We don't ship Compiler output; the optimization is done by hand and stays explicit.
+The hooks don't ship Compiler output; the optimization is done by hand and stays explicit.
 This keeps the runtime debuggable and avoids forcing consumers onto the Compiler.
-
-If you do enable the Compiler app-wide, the hooks remain correct: they don't rely on memo
-identity behaviour the Compiler would change.
+The hooks remain correct if you enable the Compiler app-wide.
 
 ## Native call overhead
 

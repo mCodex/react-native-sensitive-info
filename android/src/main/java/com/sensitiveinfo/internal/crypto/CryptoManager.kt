@@ -1,5 +1,7 @@
 package com.sensitiveinfo.internal.crypto
 
+import android.app.KeyguardManager
+import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
@@ -30,9 +32,15 @@ private const val TRANSFORMATION = "AES/GCM/NoPadding"
  * from disk.
  */
 internal class CryptoManager(
-  private val authenticator: BiometricAuthenticator
+  private val authenticator: BiometricAuthenticator,
+  private val context: Context
 ) {
   private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
+
+  private fun hasSecureLockScreen(): Boolean {
+    val keyguard = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+    return keyguard?.isDeviceLocked == true
+  }
 
   /** Encrypts data and returns the ciphertext plus generated IV. */
   suspend fun encrypt(
@@ -49,27 +57,14 @@ internal class CryptoManager(
 
     val readyCipher = try {
       if (!requiresAuth) {
-        cipher.init(Cipher.ENCRYPT_MODE, key)
-        cipher
+        initCipher(cipher, Cipher.ENCRYPT_MODE, key, null, alias)
       } else if (supportsKeystoreAuth) {
-        try {
-          cipher.init(Cipher.ENCRYPT_MODE, key)
-        } catch (invalidated: KeyPermanentlyInvalidatedException) {
-          deleteKey(alias)
-          throw IllegalStateException("Encryption key invalidated. Item must be recreated.", invalidated)
-        }
-
+        initCipher(cipher, Cipher.ENCRYPT_MODE, key, null, alias)
         val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
         (authenticated ?: cipher)
       } else {
         authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
-        try {
-          cipher.init(Cipher.ENCRYPT_MODE, key)
-        } catch (invalidated: KeyPermanentlyInvalidatedException) {
-          deleteKey(alias)
-          throw IllegalStateException("Encryption key invalidated. Item must be recreated.", invalidated)
-        }
-        cipher
+        initCipher(cipher, Cipher.ENCRYPT_MODE, key, null, alias)
       }
     } catch (error: CancellationException) {
       throw error
@@ -103,41 +98,14 @@ internal class CryptoManager(
 
     val readyCipher = try {
       if (!requiresAuth) {
-        try {
-          cipher.init(Cipher.DECRYPT_MODE, key, spec)
-        } catch (invalidated: KeyPermanentlyInvalidatedException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
-        } catch (unrecoverable: UnrecoverableKeyException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
-        }
-        cipher
+        initCipher(cipher, Cipher.DECRYPT_MODE, key, spec, alias)
       } else if (supportsKeystoreAuth) {
-        try {
-          cipher.init(Cipher.DECRYPT_MODE, key, spec)
-        } catch (invalidated: KeyPermanentlyInvalidatedException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
-        } catch (unrecoverable: UnrecoverableKeyException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
-        }
-
+        initCipher(cipher, Cipher.DECRYPT_MODE, key, spec, alias)
         val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
         (authenticated ?: cipher)
       } else {
         authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
-        try {
-          cipher.init(Cipher.DECRYPT_MODE, key, spec)
-        } catch (invalidated: KeyPermanentlyInvalidatedException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key invalidated. Item must be recreated.", invalidated)
-        } catch (unrecoverable: UnrecoverableKeyException) {
-          deleteKey(alias)
-          throw IllegalStateException("Decryption key unavailable. Item must be recreated.", unrecoverable)
-        }
-        cipher
+        initCipher(cipher, Cipher.DECRYPT_MODE, key, spec, alias)
       }
     } catch (error: CancellationException) {
       throw error
@@ -158,11 +126,30 @@ internal class CryptoManager(
     }
   }
 
+  private fun initCipher(
+    cipher: Cipher,
+    mode: Int,
+    key: SecretKey,
+    spec: GCMParameterSpec?,
+    alias: String
+  ): Cipher {
+    try {
+      if (spec != null) cipher.init(mode, key, spec) else cipher.init(mode, key)
+    } catch (invalidated: KeyPermanentlyInvalidatedException) {
+      deleteKey(alias)
+      val action = if (mode == Cipher.ENCRYPT_MODE) "Encryption" else "Decryption"
+      throw IllegalStateException("$action key invalidated. Item must be recreated.", invalidated)
+    } catch (unrecoverable: UnrecoverableKeyException) {
+      deleteKey(alias)
+      val action = if (mode == Cipher.ENCRYPT_MODE) "Encryption" else "Decryption"
+      throw IllegalStateException("$action key unavailable. Item must be recreated.", unrecoverable)
+    }
+    return cipher
+  }
+
   /**
-   * Reconstructs the resolution for data loaded from SharedPreferences.
-   *
-   * This lets us decrypt entries that were encrypted on a previous run without re-reading
-   * the original access-control input, since the persisted metadata is authoritative.
+   * Reconstructs the resolution for data loaded from SharedPreferences,
+   * using the persisted metadata as the source of truth.
    */
   fun buildResolutionForPersisted(
     accessControl: AccessControl,
@@ -213,7 +200,9 @@ internal class CryptoManager(
 
     // Defense in depth: require the device to be unlocked at the moment of use, mirroring iOS's
     // `kSecAttrAccessibleWhenUnlocked` default. Available on API 28+.
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+    // Skip when no secure screen lock exists — setUnlockedDeviceRequired crashes on Android 12-14
+    // without one (https://issuetracker.google.com/issues/191391068, fixed in Android 15).
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && hasSecureLockScreen()) {
       try {
         builder.setUnlockedDeviceRequired(true)
       } catch (_: Throwable) {
@@ -249,7 +238,7 @@ internal class CryptoManager(
     }
 
     if (resolution.accessControl == AccessControl.DEVICEPASSCODE) {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && hasSecureLockScreen()) {
         builder.setUnlockedDeviceRequired(true)
       }
     }

@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/mcodex/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Hardware-backed secure storage for React Native. Secrets are encrypted with AES-GCM, gated by biometrics or device credentials, and stored in the system Keychain (iOS/Apple) or Android Keystore — all behind a simple Promise-based API and first-class React hooks.
+Hardware-backed secure storage for React Native. Secrets are encrypted with AES-GCM, gated by biometrics or device credentials, and stored in the system Keychain (iOS) or Android Keystore behind a Promise-based API and React hooks.
 
 > [!NOTE]
 > **Upgrading from v5?** See [MIGRATION.md](./docs/MIGRATION.md). v6 requires the New Architecture (RN 0.76+) and `react-native-nitro-modules`. Windows support was removed.
@@ -98,7 +98,7 @@ console.log(item?.metadata.securityLevel) // e.g. 'secureEnclave'
 await deleteItem('session-token', { service: 'auth' })
 ```
 
-Building a component? The [hooks API](#️-react-hooks-api-recommended) handles loading states, cleanup, and error boundaries — no `useEffect` boilerplate needed.
+Building a component? The [hooks API](#️-react-hooks-api-recommended) handles loading states, cleanup, and error boundaries.
 
 ## ⚛️ React Hooks API (Recommended)
 
@@ -177,7 +177,7 @@ import {
 
 ## 🛡️ Security
 
-Every secret is encrypted with **AES-GCM** and bound to a hardware-protected key — the **Secure Enclave** on Apple platforms and the **Android Keystore** (StrongBox when available). Each entry carries an **HMAC-SHA256 integrity tag** recomputed on every read; a mismatch raises `IntegrityViolationError` before any biometric prompt fires, so spoofed entries can never trigger user authentication.
+Every secret is encrypted with **AES-GCM** and bound to a hardware-protected key. Each entry carries an **HMAC-SHA256 integrity tag** recomputed on every read; a mismatch raises `IntegrityViolationError` before any biometric prompt fires.
 
 For the full cryptographic model — key derivation, AAD binding, replay defense, and threat classification — see [THREAT_MODEL.md](./docs/THREAT_MODEL.md).
 

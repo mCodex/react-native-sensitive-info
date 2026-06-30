@@ -39,41 +39,7 @@ export interface UseSecurityAvailabilityResult
 
 const FOREGROUND_DEBOUNCE_MS = 500
 
-/**
- * Queries which security primitives are available on the current device and caches the outcome.
- *
- * @param options - Optional {@link UseSecurityAvailabilityOptions}; pass
- *   `{ refreshOnForeground: true }` to auto-refresh when the app returns to foreground.
- * @returns A {@link UseSecurityAvailabilityResult} with `data` (the latest snapshot),
- * `error`/`isLoading`/`isPending` flags, and a `refetch` helper that bypasses the cache.
- *
- * @remarks
- * - The hook caches the first successful response **per component instance** — subsequent
- *   renders of that same component reuse the cached value without hitting the native module.
- *   Multiple component instances each maintain their own cache.
- * - `refetch()` forces a fresh native call — use it after the user changes biometric enrollment
- *   in system settings.
- * - On error, the previously cached `data` is preserved so you can render fallback UI without
- *   losing capability info.
- * - When `refreshOnForeground` is enabled, the hook subscribes to `AppState` and refetches on
- *   `active` transitions (debounced). The subscription is created lazily inside `useEffect` so
- *   the hook remains tree-shakable and side-effect-free at the module level.
- *
- * @example
- * ```tsx
- * const { data: caps, isLoading } = useSecurityAvailability({ refreshOnForeground: true })
- *
- * if (isLoading || !caps) return null
- * if (caps.biometryStatus === 'notEnrolled') return <SetupFaceIdCta />
- * return caps.biometry
- *   ? <EnableFaceIdToggle />
- *   : <Text>Biometrics unavailable on this device.</Text>
- * ```
- *
- * @see {@link getSupportedSecurityLevels}
- * @see {@link useBiometryStatusWatcher}
- * @public
- */
+/** Queries device security capabilities and caches the result per component instance. */
 export function useSecurityAvailability(
 	options?: UseSecurityAvailabilityOptions
 ): UseSecurityAvailabilityResult {

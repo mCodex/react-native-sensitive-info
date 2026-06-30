@@ -83,14 +83,7 @@ const reducer = (
 	}
 }
 
-/**
- * Generic state-machine + abort wiring shared by every mutation-style hook (`useSecureOperation`,
- * `useKeyRotation`, plus the `saveSecret`/`removeSecret`/`clearAll` helpers in
- * `useSecureStorage`). Centralises the auth-cancel / mount-guard / abort logic so each consumer
- * can stay a thin wrapper.
- *
- * @internal
- */
+/** Shared state-machine + abort wiring for mutation-style hooks. @internal */
 const useMutation = (
 	defaultOperation: string,
 	defaultHint: string

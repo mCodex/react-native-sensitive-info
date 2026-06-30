@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
 	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
 	"files": {
 		"includes": [
@@ -28,7 +28,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
+			"preset": "recommended",
 			"correctness": {
 				"noUnusedImports": "error",
 				"noUnusedVariables": "error",
@@ -37,10 +37,18 @@
 			},
 			"style": {
 				"useImportType": "error",
-				"useConsistentArrayType": "error"
+				"useConsistentArrayType": "error",
+				"useErrorCause": "warn",
+				"useConsistentEnumValueType": "warn"
 			},
 			"suspicious": {
-				"noExplicitAny": "warn"
+				"noExplicitAny": "warn",
+				"noShadow": "warn",
+				"noUnnecessaryConditions": "warn",
+				"noNestedPromises": "error"
+			},
+			"security": {
+				"noScriptUrl": "error"
 			}
 		}
 	},
@@ -62,6 +70,14 @@
 			"linter": {
 				"rules": {
 					"suspicious": { "noExplicitAny": "off" }
+				}
+			}
+		},
+		{
+			"includes": ["src/hooks/**"],
+			"linter": {
+				"rules": {
+					"suspicious": { "noUnnecessaryConditions": "off" }
 				}
 			}
 		}
