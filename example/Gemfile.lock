@@ -1,10 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    CFPropertyList (3.0.7)
-      base64
-      nkf
-      rexml
+    CFPropertyList (3.0.8)
     activesupport (7.2.2.2)
       base64
       benchmark (>= 0.3)
@@ -86,7 +83,7 @@ GEM
       prism (~> 1.5)
     molinillo (0.8.0)
     mutex_m (0.3.0)
-    nanaimo (0.3.0)
+    nanaimo (0.4.0)
     nap (1.1.0)
     netrc (0.11.0)
     nkf (0.2.0)
@@ -99,12 +96,14 @@ GEM
       ethon (>= 0.9.0, < 0.16.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    xcodeproj (1.25.1)
+    xcodeproj (1.28.1)
       CFPropertyList (>= 2.3.3, < 4.0)
       atomos (~> 0.1.3)
+      base64
       claide (>= 1.0.2, < 2.0)
       colored2 (~> 3.1)
-      nanaimo (~> 0.3.0)
+      nanaimo (~> 0.4.0)
+      nkf
       rexml (>= 3.3.6, < 4.0)
 
 PLATFORMS
@@ -119,7 +118,7 @@ DEPENDENCIES
   logger
   mutex_m
   nkf
-  xcodeproj (< 1.26.0)
+  xcodeproj (< 1.29.0)
 
 RUBY VERSION
    ruby 3.4.7p58
