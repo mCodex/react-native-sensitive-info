@@ -167,7 +167,7 @@
 			"tagAnnotation": "Release v${version}",
 			"requireCleanWorkingDir": true,
 			"requireBranch": [
-				"master",
+				"main",
 				"next"
 			],
 			"requireUpstream": false,
