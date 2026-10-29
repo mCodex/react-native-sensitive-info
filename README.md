@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/mcodex/react-native-sensitive-info)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Hardware-backed secure storage for React Native. Secrets are encrypted with AES-GCM, gated by biometrics or device credentials, and stored in the system Keychain (iOS) or Android Keystore behind a Promise-based API and React hooks.
+Secure storage for React Native using iOS Keychain and Android Keystore. The resolved protection level depends on the device and requested access policy. The library exposes a Promise-based API and React hooks.
 
 > [!NOTE]
 > **Upgrading from v5?** See [MIGRATION.md](./docs/MIGRATION.md). v6 requires the New Architecture (RN 0.76+) and `react-native-nitro-modules`. Windows support was removed.
@@ -27,14 +27,12 @@ Hardware-backed secure storage for React Native. Secrets are encrypted with AES-
 
 ## 🧭 Platform support
 
-| Platform | Minimum | Notes |
+| Platform | Baseline / declaration | Notes |
 | --- | --- | --- |
-| React Native | 0.76.0 | New Architecture + `react-native-nitro-modules` required. |
-| iOS | 13.0 | Add `NSFaceIDUsageDescription` to `Info.plist` for biometrics. |
-| macOS | 11.0 | Catalyst and native macOS via system keychain. |
-| visionOS | 1.0 | Secure Enclave-backed; biometric UX adapts to visionOS. |
-| watchOS | 7.0 | Paired-device auth; storage syncs through watchOS keychain. |
-| Android | API 23 | StrongBox requires API 28+; falls back to strongest available authenticator. |
+| React Native | 0.88.1 | New Architecture and `react-native-nitro-modules` required; this is the current verified example baseline. |
+| iOS | RN-defined | 15.1 with React Native 0.88.1. Add `NSFaceIDUsageDescription` when using Face ID. |
+| Android | API 23 | Example targets API 24. StrongBox requires API 28+ and is used only when selected and available. |
+| macOS, visionOS, watchOS | Declared by the podspec | Not covered by the current native build matrix; compatibility is unverified. |
 
 ## ⚙️ Installation
 
@@ -52,7 +50,7 @@ Run `pod install`, then add to `Info.plist` if you use biometric prompts:
 
 ```xml
 <key>NSFaceIDUsageDescription</key>
-<string>Face ID is used to unlock secrets stored in the secure enclave.</string>
+<string>Face ID is used to authenticate access to secure data.</string>
 ```
 
 ### 🤖 Android
@@ -91,7 +89,10 @@ await setItem('session-token', 'abc123', { service: 'auth' })
 
 // Read — returns value + metadata
 const item = await getItem('session-token', { service: 'auth' })
-console.log(item?.value)                  // 'abc123'
+const sessionToken = item?.value
+if (sessionToken) {
+  restoreSession(sessionToken)
+}
 console.log(item?.metadata.securityLevel) // e.g. 'secureEnclave'
 
 // Remove
@@ -177,9 +178,11 @@ import {
 
 ## 🛡️ Security
 
-Every secret is encrypted with **AES-GCM** and bound to a hardware-protected key. Each entry carries an **HMAC-SHA256 integrity tag** recomputed on every read; a mismatch raises `IntegrityViolationError` before any biometric prompt fires.
+Android stores AES-GCM ciphertext and keeps its encryption keys in Android Keystore. iOS stores values in Keychain and applies the selected Keychain access policy. The protection level depends on the requested policy and device; check the returned `securityLevel` instead of assuming hardware-backed storage.
 
-For the full cryptographic model — key derivation, AAD binding, replay defense, and threat classification — see [THREAT_MODEL.md](./docs/THREAT_MODEL.md).
+New entries also carry an HMAC-SHA256 integrity tag. Older entries without a tag remain readable for compatibility, and a valid old record can be replayed because the library has no separate trusted rollback counter. Integrity tags are not a guarantee against rollback or a compromised app process.
+
+For the storage model and its limits, see [THREAT_MODEL.md](./docs/THREAT_MODEL.md).
 
 ## 🌳 Tree-shaking
 
@@ -211,6 +214,7 @@ yarn build      # Build distributable packages
 
 ## 🩺 Troubleshooting
 
+- **Building with Xcode 27 for iOS versions below 18** — Nitro [issue #1652](https://github.com/margelo/nitro/issues/1652) reports a launch crash caused by a missing libc++ exception symbol. The upstream fix is in [Nitro PR #1824](https://github.com/margelo/nitro/pull/1824); use a Nitro release that includes it. This dependency issue is separate from the iOS 27 scene manifest requirement documented in [the architecture notes](./docs/ARCHITECTURE.md#ios-example-startup).
 - **Biometric prompt never appears** — use `canUseAccessControl(policy)` to check before writing and fall back to `devicePasscode` if needed.
 - **`authentication failed` on simulator** — Secure Enclave and StrongBox are unavailable on simulators. Validate biometric policies on physical hardware.
 - **`E_AUTH_CANCELED` in error message** — the user dismissed the prompt. Handle gracefully; hook state is not poisoned by cancellations.

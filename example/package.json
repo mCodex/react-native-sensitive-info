@@ -8,13 +8,14 @@
 		"lint": "biome check .",
 		"start": "react-native start --reset-cache",
 		"test": "jest",
-		"pod": "bundle install && bundle exec pod install --project-directory=ios"
+		"pod": "bundle install && bundle exec pod install --project-directory=ios",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"react": "19.2.7",
-		"react-native": "0.86.0",
-		"react-native-nitro-modules": "0.36.1",
-		"react-native-safe-area-context": "^5.8.0"
+		"react": "19.3.1",
+		"react-native": "0.88.1",
+		"react-native-nitro-modules": "0.37.1",
+		"react-native-safe-area-context": "^5.11.0"
 	},
 	"devDependencies": {
 		"@babel/core": "7.x",
@@ -23,12 +24,13 @@
 		"@react-native-community/cli": "20.2.0",
 		"@react-native-community/cli-platform-android": "20.2.0",
 		"@react-native-community/cli-platform-ios": "20.2.0",
-		"@react-native/babel-preset": "0.86.0",
-		"@react-native/metro-config": "0.86.0",
-		"@react-native/typescript-config": "0.86.0",
+		"@react-native/babel-preset": "0.88.1",
+		"@react-native/metro-config": "0.88.1",
+		"@react-native/typescript-config": "0.88.1",
 		"@types/jest": "^30.0.0",
 		"babel-plugin-module-resolver": "^5.0.3",
-		"babel-plugin-react-compiler": "^1.0.0"
+		"babel-plugin-react-compiler": "^1.0.0",
+		"typescript": "^7.0.2"
 	},
 	"engines": {
 		"node": ">=22"

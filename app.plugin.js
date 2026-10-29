@@ -6,12 +6,21 @@
  *   - `NSFaceIDUsageDescription` in iOS Info.plist (so Face ID prompts include a usage string)
  *   - `USE_BIOMETRIC` and (legacy) `USE_FINGERPRINT` permissions in AndroidManifest.xml
  *
+ * @example
+ * ```js
+ * export default {
+ *   plugins: [['react-native-sensitive-info', { faceIDPermission: 'Unlock secure data.' }]],
+ * }
+ * ```
+ *
  * @typedef {object} SensitiveInfoPluginProps
  * @property {string | null} [faceIDPermission] - Override for `NSFaceIDUsageDescription`.
  *     Defaults to `"Authenticate to access your secure data."`. Pass `null` to skip the modifier
  *     entirely (useful when another plugin owns the key).
  * @property {boolean} [enableNewArchitecture] - When `false`, skips RN New Arch flags.
  *     Defaults to `true`.
+ * @remarks Nitro Modules requires the New Architecture. Set `enableNewArchitecture: false` only
+ *     when the host app configures that requirement elsewhere.
  *
  * @param {import('@expo/config-plugins').ExpoConfig} config
  * @param {SensitiveInfoPluginProps} [props]
@@ -41,7 +50,6 @@ function ensureGradleProperty(gradleProperties, name, value) {
 function withAndroidNewArchitecture(config) {
 	return withGradleProperties(config, (modConfig) => {
 		ensureGradleProperty(modConfig.modResults, 'newArchEnabled', 'true')
-		ensureGradleProperty(modConfig.modResults, 'expo.jsEngine', 'hermes')
 		return modConfig
 	})
 }
@@ -98,6 +106,21 @@ function withBiometricPermissions(config) {
 }
 
 function withSensitiveInfoExpo(config, props = {}) {
+	if (
+		props.faceIDPermission !== undefined &&
+		props.faceIDPermission !== null &&
+		typeof props.faceIDPermission !== 'string'
+	) {
+		throw new TypeError('faceIDPermission must be a string or null.')
+	}
+
+	if (
+		props.enableNewArchitecture !== undefined &&
+		typeof props.enableNewArchitecture !== 'boolean'
+	) {
+		throw new TypeError('enableNewArchitecture must be a boolean.')
+	}
+
 	const enableNewArchitecture = props.enableNewArchitecture !== false
 	if (enableNewArchitecture) {
 		config = withAndroidNewArchitecture(config)

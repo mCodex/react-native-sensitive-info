@@ -28,16 +28,17 @@ const STATUS_COPY: Readonly<
 	unknown: { label: 'Unknown', tone: '#475569', bg: '#e2e8f0' },
 }
 
-const openBiometricSettings = () => {
-	if (Platform.OS === 'ios') {
-		void Linking.openURL('App-Prefs:').catch(() =>
-			Linking.openSettings().catch(() => {})
-		)
-		return
+const openBiometricSettings = async () => {
+	try {
+		if (Platform.OS === 'ios') {
+			await Linking.openURL('App-Prefs:')
+			return
+		}
+
+		await Linking.sendIntent('android.settings.BIOMETRIC_ENROLL')
+	} catch {
+		await Linking.openSettings().catch(() => {})
 	}
-	void Linking.sendIntent('android.settings.BIOMETRIC_ENROLL').catch(() =>
-		Linking.openSettings().catch(() => {})
-	)
 }
 
 const BiometryStatusCard = () => {

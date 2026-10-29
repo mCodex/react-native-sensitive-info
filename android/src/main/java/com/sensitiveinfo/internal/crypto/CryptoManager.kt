@@ -4,6 +4,7 @@ import android.app.KeyguardManager
 import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyInfo
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
@@ -17,6 +18,7 @@ import java.security.UnrecoverableKeyException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -39,7 +41,7 @@ internal class CryptoManager(
 
   private fun hasSecureLockScreen(): Boolean {
     val keyguard = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-    return keyguard?.isDeviceLocked == true
+    return keyguard?.isDeviceSecure == true
   }
 
   /** Encrypts data and returns the ciphertext plus generated IV. */
@@ -50,30 +52,26 @@ internal class CryptoManager(
     prompt: AuthenticationPrompt?,
     aad: ByteArray? = null
   ): EncryptionResult {
-    val key = getOrCreateKey(alias, resolution)
-    val cipher = Cipher.getInstance(TRANSFORMATION)
-    val requiresAuth = resolution.requiresAuthentication
-    val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    return try {
+      val key = getOrCreateKey(alias, resolution, verifyPolicy = true)
+      val cipher = Cipher.getInstance(TRANSFORMATION)
+      val requiresAuth = resolution.requiresAuthentication
+      val supportsKeystoreAuth = requiresAuth && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
-    val readyCipher = try {
-      if (!requiresAuth) {
+      val readyCipher = if (!requiresAuth) {
         initCipher(cipher, Cipher.ENCRYPT_MODE, key, null, alias)
       } else if (supportsKeystoreAuth) {
         initCipher(cipher, Cipher.ENCRYPT_MODE, key, null, alias)
-        val authenticated = authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher)
-        (authenticated ?: cipher)
+        authenticator.authenticate(prompt, resolution.allowedAuthenticators, cipher) ?: cipher
       } else {
         authenticator.authenticate(prompt, resolution.allowedAuthenticators, null)
         initCipher(cipher, Cipher.ENCRYPT_MODE, key, null, alias)
       }
-    } catch (error: CancellationException) {
-      throw error
-    }
 
-    if (aad != null) {
-      readyCipher.updateAAD(aad)
-    }
-    return try {
+      if (aad != null) {
+        readyCipher.updateAAD(aad)
+      }
+
       val ciphertext = readyCipher.doFinal(plaintext)
       EncryptionResult(ciphertext = ciphertext, iv = readyCipher.iv)
     } finally {
@@ -169,13 +167,51 @@ internal class CryptoManager(
     )
   }
 
-  private fun getOrCreateKey(alias: String, resolution: AccessResolution): SecretKey {
+  private fun getOrCreateKey(
+    alias: String,
+    resolution: AccessResolution,
+    verifyPolicy: Boolean = false
+  ): SecretKey {
     synchronized(keyStore) {
       val existing = keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry
       if (existing != null) {
+        if (verifyPolicy) {
+          verifyExistingKeyPolicy(existing.secretKey, resolution)
+        }
+
         return existing.secretKey
       }
       return generateKey(alias, resolution)
+    }
+  }
+
+  private fun verifyExistingKeyPolicy(key: SecretKey, resolution: AccessResolution) {
+    val keyInfo = SecretKeyFactory.getInstance(key.algorithm, ANDROID_KEY_STORE)
+      .getKeySpec(key, KeyInfo::class.java) as KeyInfo
+
+    check(keyInfo.isUserAuthenticationRequired == resolution.requiresAuthentication) {
+      "Existing SensitiveInfo key does not match the requested authentication policy. " +
+        "Rotate the key before changing its access control."
+    }
+
+    if (resolution.requiresAuthentication && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      check(keyInfo.isInvalidatedByBiometricEnrollment == resolution.invalidateOnEnrollment) {
+        "Existing SensitiveInfo key does not match the requested biometric enrollment policy. " +
+          "Rotate the key before changing its access control."
+      }
+    }
+
+    if (resolution.requiresAuthentication && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      check(keyInfo.userAuthenticationType == keyStoreAuthenticatorType(resolution.allowedAuthenticators)) {
+        "Existing SensitiveInfo key does not match the requested authenticator type. " +
+          "Rotate the key before changing its access control."
+      }
+    }
+
+    if (resolution.useStrongBox && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      check(keyInfo.securityLevel == KeyProperties.SECURITY_LEVEL_STRONGBOX) {
+        "Existing SensitiveInfo key is not protected by StrongBox. Rotate the key to apply this policy."
+      }
     }
   }
 
@@ -225,8 +261,10 @@ internal class CryptoManager(
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      val sanitized = sanitizeAuthenticators(resolution.allowedAuthenticators)
-      builder.setUserAuthenticationParameters(0, sanitized)
+      builder.setUserAuthenticationParameters(
+        0,
+        keyStoreAuthenticatorType(resolution.allowedAuthenticators)
+      )
     } else {
       builder.setUserAuthenticationRequired(true)
       @Suppress("DEPRECATION")
@@ -244,14 +282,21 @@ internal class CryptoManager(
     }
   }
 
-  private fun sanitizeAuthenticators(value: Int): Int {
-    var sanitized = value
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-      sanitized = sanitized and (Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL)
+  private fun keyStoreAuthenticatorType(authenticators: Int): Int {
+    var keyStoreAuthenticators = 0
+
+    if (authenticators and Authenticators.BIOMETRIC_WEAK != 0) {
+      keyStoreAuthenticators = keyStoreAuthenticators or KeyProperties.AUTH_BIOMETRIC_STRONG
     }
-    if (sanitized == 0) {
-      sanitized = Authenticators.BIOMETRIC_STRONG
+
+    if (authenticators and Authenticators.DEVICE_CREDENTIAL != 0) {
+      keyStoreAuthenticators = keyStoreAuthenticators or KeyProperties.AUTH_DEVICE_CREDENTIAL
     }
-    return sanitized
+
+    check(keyStoreAuthenticators != 0) {
+      "No supported SensitiveInfo authenticator was requested."
+    }
+
+    return keyStoreAuthenticators
   }
 }

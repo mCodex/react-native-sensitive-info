@@ -42,7 +42,12 @@
 			},
 			"default": "./lib/module/errors.js"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./app.plugin.js": {
+			"types": "./app.plugin.d.ts",
+			"require": "./app.plugin.js",
+			"default": "./app.plugin.js"
+		}
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
@@ -57,7 +62,8 @@
 		"prelint": "node -e \"const p=require('./package.json');const d={...p.dependencies,...p.devDependencies};const f=Object.keys(d).filter(x=>x.startsWith('eslint')||x.startsWith('@eslint/')||x.startsWith('@typescript-eslint/')||x.startsWith('prettier')||x.startsWith('@trivago/prettier'));if(f.length){console.error('[prelint] Forbidden lint/format tools detected: '+f.join(', ')+'. This project uses Biome only.');process.exit(1)}\"",
 		"format": "biome format --write .",
 		"test": "jest",
-		"test:coverage": "jest --coverage"
+		"test:coverage": "jest --coverage",
+		"typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
 	},
 	"keywords": [
 		"react-native",
@@ -88,6 +94,7 @@
 		"ios/**/*.cpp",
 		"ios/**/*.swift",
 		"app.plugin.js",
+		"app.plugin.d.ts",
 		"*.podspec",
 		"README.md"
 	],
@@ -107,27 +114,32 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.1",
-		"@release-it/conventional-changelog": "^11.0.1",
-		"@testing-library/dom": "^10.4.1",
-		"@testing-library/react": "^16.3.2",
+		"@babel/core": "^7.29.7",
+		"@babel/preset-env": "^7.29.7",
+		"@babel/preset-react": "^7.29.7",
+		"@babel/preset-typescript": "^7.29.7",
+		"@biomejs/biome": "^2.6.4",
+		"@release-it/conventional-changelog": "^12.0.2",
+		"@testing-library/dom": "^10.4.2",
+		"@testing-library/react": "^16.3.3",
 		"@types/jest": "^30.0.0",
-		"@types/react": "19.2.x",
+		"@types/node": "^26.0.1",
+		"@types/react": "19.3.x",
+		"babel-jest": "^30.5.2",
 		"babel-plugin-react-compiler": "^1.0.0",
-		"conventional-changelog-conventionalcommits": "^10.2.0",
-		"jest": "^30.4.2",
-		"jest-environment-jsdom": "^30.4.1",
+		"conventional-changelog-conventionalcommits": "^10.4.1",
+		"jest": "^30.5.2",
+		"jest-environment-jsdom": "^30.5.2",
 		"jiti": "^2.7.0",
-		"nitrogen": "0.36.1",
-		"react": "19.2.7",
-		"react-dom": "19.2.7",
-		"react-native": "0.86.0",
-		"react-native-builder-bob": "^0.43.0",
-		"react-native-nitro-modules": "0.36.1",
-		"release-it": "^20.2.1",
-		"ts-jest": "^29.4.11",
+		"nitrogen": "0.37.1",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"react-native": "0.88.1",
+		"react-native-builder-bob": "^0.44.1",
+		"react-native-nitro-modules": "0.37.1",
+		"release-it": "^21.1.1",
 		"ts-node": "^10.9.2",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	},
 	"peerDependencies": {
 		"react": "*",
@@ -227,5 +239,5 @@
 			}
 		}
 	},
-	"packageManager": "yarn@4.10.3"
+	"packageManager": "yarn@4.18.1"
 }

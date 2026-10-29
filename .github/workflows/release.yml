@@ -4,18 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       increment:
-        description: 'Version increment (leave empty to derive from conventional commits)'
-        required: false
-        default: ''
+        description: "Version increment, or derive from conventional commits"
+        required: true
+        default: auto
         type: choice
         options:
-          - ''
+          - auto
           - patch
           - minor
           - major
           - prerelease
       dry-run:
-        description: 'Dry run (no publish, no push)'
+        description: "Dry run (no publish, no push)"
         required: false
         default: false
         type: boolean
@@ -24,8 +24,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -33,22 +33,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
-      pull-requests: write
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
-          cache: 'yarn'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "24"
+          cache: "yarn"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Configure git identity
         run: |
@@ -56,20 +54,34 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: |
+          corepack enable
+          yarn install --immutable
+
+      - name: Verify release candidate
+        run: |
+          yarn lint:ci
+          yarn test:coverage
+          yarn build
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
+          NPM_CONFIG_PROVENANCE: "true"
+          RELEASE_INCREMENT: ${{ inputs.increment }}
+          DRY_RUN: ${{ inputs.dry-run }}
         run: |
-          ARGS="--ci"
-          if [ -n "${{ inputs.increment }}" ]; then
-            ARGS="$ARGS --increment=${{ inputs.increment }}"
+          args=(--ci)
+          case "$RELEASE_INCREMENT" in
+            auto) ;;
+            patch|minor|major|prerelease) args+=("--increment=$RELEASE_INCREMENT") ;;
+            *) echo "Unsupported increment: $RELEASE_INCREMENT" >&2; exit 1 ;;
+          esac
+
+          if [[ "$DRY_RUN" == "true" ]]; then
+            args+=(--dry-run)
           fi
-          if [ "${{ inputs.dry-run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
-          fi
-          yarn release $ARGS
+
+          yarn release "${args[@]}"
