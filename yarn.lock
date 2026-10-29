@@ -3297,12 +3297,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:19.2.x":
-  version: 19.2.17
-  resolution: "@types/react@npm:19.2.17"
+"@types/react@npm:19.3.x":
+  version: 19.3.0
+  resolution: "@types/react@npm:19.3.0"
   dependencies:
     csstype: "npm:^3.2.2"
-  checksum: 10/8debb092bd0bb9c99176a31824c7587c27c775a6526b60060e7b9e8dc2af53aee2ffadc7a1e3845953792437db5699d34a9054e198c9d4e54a74728ff47c6725
+  checksum: 10/2f4589222fd9c512e1ef78e65f334ade8777400add8ec0803fcc3a044761679b7984ba8410a890af24255383c3251a568bb692b60acfa22397ba0a64b2e032bf
   languageName: node
   linkType: hard
 
@@ -8597,7 +8597,7 @@ __metadata:
     "@types/jest": "npm:^30.0.0"
     babel-plugin-module-resolver: "npm:^5.0.3"
     babel-plugin-react-compiler: "npm:^1.0.0"
-    react: "npm:19.2.7"
+    react: "npm:19.3.1"
     react-native: "npm:0.86.0"
     react-native-nitro-modules: "npm:0.36.1"
     react-native-safe-area-context: "npm:^5.8.0"
@@ -8613,14 +8613,14 @@ __metadata:
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/react": "npm:^16.3.2"
     "@types/jest": "npm:^30.0.0"
-    "@types/react": "npm:19.2.x"
+    "@types/react": "npm:19.3.x"
     babel-plugin-react-compiler: "npm:^1.0.0"
     conventional-changelog-conventionalcommits: "npm:^10.2.0"
     jest: "npm:^30.4.2"
     jest-environment-jsdom: "npm:^30.4.1"
     jiti: "npm:^2.7.0"
     nitrogen: "npm:0.36.1"
-    react: "npm:19.2.7"
+    react: "npm:19.3.1"
     react-dom: "npm:19.2.7"
     react-native: "npm:0.86.0"
     react-native-builder-bob: "npm:^0.43.0"
@@ -8694,10 +8694,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:19.2.7":
-  version: 19.2.7
-  resolution: "react@npm:19.2.7"
-  checksum: 10/2939997e87d7f0ee0d9d2bb556866b616b999dfb7916283647034eda867a045a39c4f7a736c8ea6beffffcd78397fc30f63a7a3aaf8425b683c3060670859560
+"react@npm:19.3.1":
+  version: 19.3.1
+  resolution: "react@npm:19.3.1"
+  checksum: 10/8305f553520125f1b202998d403bf5b69de732d3e9d6ac3d42c53eeabc1c612a4f2ee68f5f9d17277258fc880252b0d5073750317a5c8801c83d9a4382e4b322
   languageName: node
   linkType: hard
 
