@@ -42,7 +42,7 @@ const addPermission = jest.fn(
 	}
 )
 
-jest.mock(
+jest.doMock(
 	'@expo/config-plugins',
 	() => ({
 		AndroidConfig: { Permissions: { addPermission } },

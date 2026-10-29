@@ -214,6 +214,7 @@ yarn build      # Build distributable packages
 
 ## 🩺 Troubleshooting
 
+- **Building with Xcode 27 for iOS versions below 18** — Nitro [issue #1652](https://github.com/margelo/nitro/issues/1652) reports a launch crash caused by a missing libc++ exception symbol. The upstream fix is in [Nitro PR #1824](https://github.com/margelo/nitro/pull/1824); use a Nitro release that includes it. This dependency issue is separate from the iOS 27 scene manifest requirement documented in [the architecture notes](./docs/ARCHITECTURE.md#ios-example-startup).
 - **Biometric prompt never appears** — use `canUseAccessControl(policy)` to check before writing and fall back to `devicePasscode` if needed.
 - **`authentication failed` on simulator** — Secure Enclave and StrongBox are unavailable on simulators. Validate biometric policies on physical hardware.
 - **`E_AUTH_CANCELED` in error message** — the user dismissed the prompt. Handle gracefully; hook state is not poisoned by cancellations.

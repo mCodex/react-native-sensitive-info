@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - ".github/workflows/test.yml"
       - ".yarnrc.yml"
@@ -57,6 +57,12 @@ jobs:
 
       - name: Check TypeScript
         run: yarn typecheck
+
+      - name: Check test types
+        run: yarn typecheck:tests
+
+      - name: Check example types
+        run: yarn workspace react-native-sensitive-info-example typecheck
 
       - name: Build package
         run: yarn build

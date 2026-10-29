@@ -62,7 +62,8 @@
 		"prelint": "node -e \"const p=require('./package.json');const d={...p.dependencies,...p.devDependencies};const f=Object.keys(d).filter(x=>x.startsWith('eslint')||x.startsWith('@eslint/')||x.startsWith('@typescript-eslint/')||x.startsWith('prettier')||x.startsWith('@trivago/prettier'));if(f.length){console.error('[prelint] Forbidden lint/format tools detected: '+f.join(', ')+'. This project uses Biome only.');process.exit(1)}\"",
 		"format": "biome format --write .",
 		"test": "jest",
-		"test:coverage": "jest --coverage"
+		"test:coverage": "jest --coverage",
+		"typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
 	},
 	"keywords": [
 		"react-native",
@@ -113,6 +114,10 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.29.7",
+		"@babel/preset-env": "^7.29.7",
+		"@babel/preset-react": "^7.29.7",
+		"@babel/preset-typescript": "^7.29.7",
 		"@biomejs/biome": "^2.6.4",
 		"@release-it/conventional-changelog": "^12.0.2",
 		"@testing-library/dom": "^10.4.2",
@@ -120,6 +125,7 @@
 		"@types/jest": "^30.0.0",
 		"@types/node": "^26.0.1",
 		"@types/react": "19.3.x",
+		"babel-jest": "^30.5.2",
 		"babel-plugin-react-compiler": "^1.0.0",
 		"conventional-changelog-conventionalcommits": "^10.4.1",
 		"jest": "^30.5.2",
@@ -132,9 +138,8 @@
 		"react-native-builder-bob": "^0.44.1",
 		"react-native-nitro-modules": "0.37.1",
 		"release-it": "^21.1.1",
-		"ts-jest": "^29.4.15",
 		"ts-node": "^10.9.2",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	},
 	"peerDependencies": {
 		"react": "*",
@@ -174,7 +179,7 @@
 			"tagAnnotation": "Release v${version}",
 			"requireCleanWorkingDir": true,
 			"requireBranch": [
-				"master",
+				"main",
 				"next"
 			],
 			"requireUpstream": false,
@@ -234,5 +239,5 @@
 			}
 		}
 	},
-	"packageManager": "yarn@4.10.3"
+	"packageManager": "yarn@4.18.1"
 }
