@@ -18,7 +18,8 @@
  * })
  *
  * const item = await getItem('session-token', { service: 'com.example.auth' })
- * console.log(item?.value, item?.metadata.securityLevel)
+ * const storedToken = item?.value
+ * if (storedToken) await restoreSession(storedToken)
  * ```
  *
  * ## Subpath exports

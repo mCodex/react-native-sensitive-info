@@ -6,18 +6,24 @@ import java.util.Locale
 /**
  * Produces deterministic Android Keystore alias names.
  *
- * Alias format: `SensitiveInfo_<serviceKeyHash>_v<version>`. Embedding the master-key version in
- * the alias means rotating the key for a service produces a brand-new Keystore entry while
- * leaving legacy aliases intact until their entries are re-encrypted and deleted.
+ * Alias format: `SensitiveInfo_<serviceKeyHash>_v<version>`. The hash input length-prefixes the
+ * service and key so pairs such as `("a:b", "c")` and `("a", "b:c")` stay distinct. The alias
+ * remains stored with each entry, so readers can continue using keys written with the old format.
  */
 internal object AliasGenerator {
   private const val PREFIX = "SensitiveInfo"
   private const val HMAC_PREFIX = "SensitiveInfo_hmac"
 
   fun aliasFor(service: String, key: String, version: Int): String {
-    val combined = "${service}:${key}"
+    val combined = "v2:${service.length}:${service}:${key.length}:${key}"
     val hash = sha256Hex(combined.toByteArray()).take(32)
     return "${PREFIX}_${hash}_v${version}"
+  }
+
+  /** Identifies old aliases that may also be referenced by another delimiter-colliding entry. */
+  fun isLegacyAliasFor(service: String, key: String, version: Int, alias: String): Boolean {
+    val legacyHash = sha256Hex("${service}:${key}".toByteArray()).take(32)
+    return alias == "${PREFIX}_${legacyHash}_v${version}"
   }
 
   /** Per-service HMAC key alias, shared across master-key versions. */

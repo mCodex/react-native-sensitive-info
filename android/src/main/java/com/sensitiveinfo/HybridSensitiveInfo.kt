@@ -25,6 +25,7 @@ import com.sensitiveinfo.internal.util.persistedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import org.json.JSONException
 import kotlin.jvm.Volatile
 
 /**
@@ -150,12 +151,21 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       val deps = ensureInitialized()
       val service = deps.serviceNameResolver.resolve(request.service)
 
-      val entry = deps.storage.read(service, request.key)
-      if (entry != null) {
-        deps.cryptoManager.deleteKey(entry.alias)
+      val entry = try {
+        deps.storage.read(service, request.key)
+      } catch (_: JSONException) {
+        null
+      } catch (_: IllegalArgumentException) {
+        null
+      }
+      val alias = entry?.alias ?: deps.storage.readAlias(service, request.key)
+      val deleted = deps.storage.delete(service, request.key)
+
+      if (deleted && alias != null) {
+        deps.cryptoManager.deleteKey(alias)
       }
 
-      deps.storage.delete(service, request.key)
+      deleted
     }
   }
 
@@ -203,10 +213,12 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
     return Promise.async(coroutineScope) {
       val deps = ensureInitialized()
       val service = deps.serviceNameResolver.resolve(request?.service)
-      for ((_, entry) in deps.storage.readAll(service)) {
+      val entries = deps.storage.readAll(service)
+      deps.storage.clear(service)
+
+      for ((_, entry) in entries) {
         deps.cryptoManager.deleteKey(entry.alias)
       }
-      deps.storage.clear(service)
     }
   }
 
@@ -472,7 +484,9 @@ class HybridSensitiveInfo : HybridSensitiveInfoSpec() {
       usesAad = true, integrityTag = tag
     )
     deps.storage.save(service, key, upgraded)
-    if (newAlias != entry.alias) {
+    if (newAlias != entry.alias &&
+      !AliasGenerator.isLegacyAliasFor(service, key, entry.keyVersion, entry.alias)
+    ) {
       deps.cryptoManager.deleteKey(entry.alias)
     }
     return upgraded

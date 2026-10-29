@@ -125,6 +125,22 @@ describe('app.plugin', () => {
 		expect(plist.NSFaceIDUsageDescription).toBe('Custom prop value.')
 	})
 
+	it('rejects an invalid faceIDPermission value', () => {
+		const plugin = loadPlugin()
+
+		expect(() => plugin({}, { faceIDPermission: 42 as never })).toThrow(
+			'faceIDPermission must be a string or null.'
+		)
+	})
+
+	it('rejects an invalid enableNewArchitecture value', () => {
+		const plugin = loadPlugin()
+
+		expect(() =>
+			plugin({}, { enableNewArchitecture: 'false' as never })
+		).toThrow('enableNewArchitecture must be a boolean.')
+	})
+
 	it('skips the Info.plist modifier when faceIDPermission is null', () => {
 		const plugin = loadPlugin()
 		plugin({}, { faceIDPermission: null })
@@ -178,8 +194,10 @@ describe('app.plugin', () => {
 		expect(gradle).toEqual(
 			expect.arrayContaining([
 				{ type: 'property', name: 'newArchEnabled', value: 'true' },
-				{ type: 'property', name: 'expo.jsEngine', value: 'hermes' },
 			])
+		)
+		expect(gradle).not.toContainEqual(
+			expect.objectContaining({ name: 'expo.jsEngine' })
 		)
 		expect(podfile).toMatchObject({
 			new_arch_enabled: 'true',

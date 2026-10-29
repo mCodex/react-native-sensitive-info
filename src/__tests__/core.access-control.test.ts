@@ -46,15 +46,16 @@ const ALL_POLICIES: readonly AccessControl[] = [
 ]
 
 describe('biometryStatus invariant', () => {
-	it.each(
-		ALL_STATUSES
-	)('biometry === (biometryStatus === "available") for status=%s', (status) => {
-		const snapshot = buildSnapshot({
-			biometryStatus: status,
-			biometry: status === 'available',
-		})
-		expect(snapshot.biometry).toBe(snapshot.biometryStatus === 'available')
-	})
+	it.each(ALL_STATUSES)(
+		'biometry === (biometryStatus === "available") for status=%s',
+		(status) => {
+			const snapshot = buildSnapshot({
+				biometryStatus: status,
+				biometry: status === 'available',
+			})
+			expect(snapshot.biometry).toBe(snapshot.biometryStatus === 'available')
+		}
+	)
 })
 
 describe('canUseAccessControlSync — policy × status mapping', () => {
@@ -120,16 +121,17 @@ describe('canUseAccessControlSync — policy × status mapping', () => {
 		),
 	]
 
-	it.each(
-		cases
-	)('%s + status=%s + overrides=%j -> %s', (policy, status, overrides, expected) => {
-		const snapshot = buildSnapshot({
-			...overrides,
-			biometryStatus: status,
-			biometry: status === 'available',
-		})
-		expect(canUseAccessControlSync(policy, snapshot)).toBe(expected)
-	})
+	it.each(cases)(
+		'%s + status=%s + overrides=%j -> %s',
+		(policy, status, overrides, expected) => {
+			const snapshot = buildSnapshot({
+				...overrides,
+				biometryStatus: status,
+				biometry: status === 'available',
+			})
+			expect(canUseAccessControlSync(policy, snapshot)).toBe(expected)
+		}
+	)
 
 	it('covers every policy at least once', () => {
 		const seen = new Set(cases.map(([p]) => p))

@@ -1,7 +1,8 @@
 package com.sensitiveinfo.internal.storage
 
-import org.json.JSONObject
 import android.util.Base64
+import org.json.JSONException
+import org.json.JSONObject
 
 /**
  * Serialized representation of an entry in SharedPreferences.
@@ -136,6 +137,14 @@ internal data class PersistedEntry(
         usesAad = usesAad,
         integrityTag = integrityTag
       )
+    }
+
+    fun aliasFromJson(raw: String): String? {
+      return try {
+        JSONObject(raw).optString(KEY_ALIAS).takeIf { it.isNotEmpty() }
+      } catch (_: JSONException) {
+        null
+      }
     }
   }
 }

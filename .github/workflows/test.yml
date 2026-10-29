@@ -8,22 +8,30 @@ on:
     branches:
       - master
     paths:
-      - '.github/workflows/test.yml'
-      - 'src/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'tsconfig*.json'
-      - 'jest.config.js'
-      - 'jest.setup.ts'
+      - ".github/workflows/test.yml"
+      - ".yarnrc.yml"
+      - "src/**"
+      - "package.json"
+      - "example/package.json"
+      - "yarn.lock"
+      - "tsconfig*.json"
+      - "nitro.json"
+      - "scripts/**"
+      - "jest.config.js"
+      - "jest.setup.ts"
   pull_request:
     paths:
-      - '.github/workflows/test.yml'
-      - 'src/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'tsconfig*.json'
-      - 'jest.config.js'
-      - 'jest.setup.ts'
+      - ".github/workflows/test.yml"
+      - ".yarnrc.yml"
+      - "src/**"
+      - "package.json"
+      - "example/package.json"
+      - "yarn.lock"
+      - "tsconfig*.json"
+      - "nitro.json"
+      - "scripts/**"
+      - "jest.config.js"
+      - "jest.setup.ts"
   workflow_dispatch:
 
 jobs:
@@ -31,15 +39,27 @@ jobs:
     name: Run unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: yarn
 
+      - name: Enable pinned Yarn
+        run: corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
+
+      - name: Check formatting and lint
+        run: yarn lint:ci
+
+      - name: Check TypeScript
+        run: yarn typecheck
+
+      - name: Build package
+        run: yarn build
 
       - name: Run Jest with coverage
         run: yarn test:coverage

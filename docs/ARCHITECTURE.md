@@ -22,8 +22,8 @@
                                              │  Nitro JSI bridge
 ┌────────────────────────────────────────────▼─────────────────────────┐
 │  Native layer                                                        │
-│   • iOS    ─ Swift / Keychain / Secure Enclave / CryptoKit           │
-│   • Android─ Kotlin / Keystore / StrongBox / AES-GCM                 │
+│   • iOS    ─ Swift / Keychain / access control / CryptoKit HMAC      │
+│   • Android─ Kotlin / Keystore / AES-GCM / HMAC                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -39,16 +39,19 @@
 
 ### Keystore aliases (Android)
 
-Each `service` owns a master key under the alias `rnsensitiveinfo.<service>.v<n>` where `n` is
-the active key version. `rotateKeys` increments `n` and either lazily re-encrypts on next access
-or eagerly walks the existing entries when `reEncryptEagerly: true`.
+Each Android entry uses a Keystore alias derived from its service, key, and key version. New
+aliases use length-prefixed service/key inputs before hashing to avoid delimiter collisions.
+Existing entries keep their persisted alias so upgrades can still decrypt them. `rotateKeys`
+increments the service version and either re-encrypts lazily on access or eagerly walks entries
+when `reEncryptEagerly: true`.
 
 ### Versions
 
 - `keyVersion` is stored in `StorageMetadata`. Legacy entries default to `0` and are
   opportunistically upgraded on read.
-- `integrityTag` is a base64 HMAC-SHA256 over metadata + ciphertext, signed with a derived
-  subkey of the master.
+- `integrityTag` is an HMAC-SHA256 over metadata and the stored payload, using a separate
+  integrity key. Legacy entries may have no tag; the tag does not prevent replay of a previously
+  valid record. See [THREAT_MODEL.md](THREAT_MODEL.md) for the remaining encoding limitation.
 
 ## Cache locations
 

@@ -137,15 +137,13 @@ repositories {
 
 
 dependencies {
-  // For < 0.71, this will be from the local maven repo
-  // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
-  //noinspection GradleDynamicVersion
-  implementation "com.facebook.react:react-native:+"
-
-  // Add a dependency on NitroModules
+  implementation "com.facebook.react:react-android"
   implementation project(":react-native-nitro-modules")
 
-  implementation "androidx.biometric:biometric-ktx:1.4.0-alpha02"
+  implementation "androidx.biometric:biometric:1.4.0-alpha07"
+  implementation "androidx.core:core:1.19.1"
+  implementation "androidx.fragment:fragment:1.9.1"
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
 }
 
 if (isNewArchitectureEnabled()) {

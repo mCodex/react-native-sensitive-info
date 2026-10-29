@@ -102,8 +102,9 @@ export async function setItem(
  *
  * @param key - Identifier of the entry to fetch.
  * @param options - Storage scoping plus an optional `includeValue` flag (defaults to `true`).
- *   Pass `includeValue: false` to fetch metadata only — cheaper, and on iOS this avoids the
- *   biometric prompt on auth-gated entries.
+ *   Pass `includeValue: false` to omit plaintext from the result. On iOS this also avoids biometric
+ *   prompts for auth-gated entries. Metadata-only reads do not verify the integrity tag; use the
+ *   default value read when integrity verification is required.
  * @returns The {@link SensitiveInfoItem}, or `null` when no entry exists for `key`.
  *
  * @remarks
@@ -117,7 +118,8 @@ export async function setItem(
  * @example
  * ```ts
  * const item = await getItem('session-token', { service: 'com.example.auth' })
- * if (item) console.log(item.value, item.metadata.securityLevel)
+ * const token = item?.value
+ * if (token) await restoreSession(token)
  * ```
  *
  * @see {@link SensitiveInfoGetRequest}
