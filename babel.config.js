@@ -8,7 +8,7 @@
  *   preset — it already takes care of `@babel/preset-env`, JSX, TS, and
  *   import-extension rewriting. Adding our own RN preset would mis-target
  *   the published bundle for Hermes only.
- * - For any other caller (jest is ts-jest only and ignores this file, but
+ * - For any other caller (Jest uses its own Babel transform, but
  *   IDE tooling and `metro` in the example app may load it), fall back to
  *   the standard React Native preset.
  *

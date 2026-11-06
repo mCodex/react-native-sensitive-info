@@ -1,56 +1,56 @@
 version: 2
 enable-beta-ecosystems: true
 updates:
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: 'daily'
+      interval: "daily"
     labels:
-      - 'dependencies'
+      - "dependencies"
 
-  - package-ecosystem: 'gradle'
+  - package-ecosystem: "gradle"
     directories:
-      - '/android/'
-      - '/example/android/'
+      - "/android/"
+      - "/example/android/"
     schedule:
-      interval: 'daily'
+      interval: "daily"
     labels:
-      - 'nitro-core'
-      - 'nitrogen'
-      - 'dependencies'
-      - 'kotlin'
+      - "nitro-core"
+      - "nitrogen"
+      - "dependencies"
+      - "kotlin"
 
-  - package-ecosystem: 'bundler'
-    directory: '/example/'
+  - package-ecosystem: "bundler"
+    directory: "/example/"
     schedule:
-      interval: 'daily'
+      interval: "daily"
     labels:
-      - 'dependencies'
-      - 'ruby'
+      - "dependencies"
+      - "ruby"
 
-  - package-ecosystem: 'npm'
+  - package-ecosystem: "npm"
     directories:
-      - '/example/'
-      - '/'
+      - "/example/"
+      - "/"
     schedule:
-      interval: 'daily'
+      interval: "daily"
     labels:
-      - 'nitro-core'
-      - 'dependencies'
-      - 'typescript'
-      - 'nitrogen'
+      - "nitro-core"
+      - "dependencies"
+      - "typescript"
+      - "nitrogen"
 
     groups:
       react-native-cli:
         patterns:
-          - '@react-native-community/cli*'
+          - "@react-native-community/cli*"
       babel:
         patterns:
-          - '@babel/*'
+          - "@babel/*"
       react-native:
         patterns:
-          - '@react-native/*'
+          - "@react-native/*"
       nitro:
         patterns:
-          - 'nitrogen'
-          - 'react-native-nitro-modules'
+          - "nitrogen"
+          - "react-native-nitro-modules"

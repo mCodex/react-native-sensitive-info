@@ -40,9 +40,12 @@ function assertNonEmptyString(
 		)
 	}
 	if (value.trim().length === 0) {
-		throw new InvalidArgumentError(`Expected ${name} to be a non-empty string.`, {
-			argument: name,
-		})
+		throw new InvalidArgumentError(
+			`Expected ${name} to be a non-empty string.`,
+			{
+				argument: name,
+			}
+		)
 	}
 	const size = utf8ByteLength(value)
 	if (size > maxBytes) {

@@ -1,14 +1,17 @@
 /** @type {import('jest').Config} */
 const config = {
-	preset: 'ts-jest',
 	testEnvironment: 'jsdom',
-	// setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 	transform: {
 		'^.+\\.(ts|tsx)$': [
-			'ts-jest',
+			'babel-jest',
 			{
-				tsconfig: '<rootDir>/tsconfig.test.json',
-				isolatedModules: false,
+				configFile: false,
+				babelrc: false,
+				presets: [
+					['@babel/preset-env', { targets: { node: 'current' } }],
+					['@babel/preset-react', { runtime: 'automatic' }],
+					'@babel/preset-typescript',
+				],
 			},
 		],
 	},

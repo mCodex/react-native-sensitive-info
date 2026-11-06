@@ -17,7 +17,7 @@ the React Native New Architecture. The public API is intentionally narrower and 
 | `deleteItem(key, options)` returns void                                  | `deleteItem(key, options)` returns `Promise<boolean>` (`true` when removed)                                                                                |
 | Errors are plain `Error` instances           | Typed `SensitiveInfoError` subclasses + `is*Error` predicates                                        |
 | `kSecAccessControl*` strings on iOS          | `accessControl: 'secureEnclaveBiometry' \| 'biometryCurrentSet' \| 'biometryAny' \| 'devicePasscode' \| 'none'`                                  |
-| Android `keystore` config object             | `accessControl` only — backend is selected automatically (StrongBox → Keystore → EncryptedSharedPreferences) |
+| Android `keystore` config object             | `accessControl` only — encryption uses Android Keystore with app-private preferences; StrongBox depends on the resolved policy and device |
 | No metadata                                  | `StorageMetadata` returned with every read/write (`securityLevel`, `backend`, `keyVersion`, `integrityTag`)  |
 | No key rotation                              | `rotateKeys()` + `getKeyVersion()`                                                                  |
 | No React hooks                               | First-party hooks via `react-native-sensitive-info/hooks`                                            |

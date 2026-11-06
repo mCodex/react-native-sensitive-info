@@ -36,10 +36,10 @@ The hooks remain correct if you enable the Compiler app-wide.
 
 ## Native call overhead
 
-- iOS: each call is a single Keychain transaction. The Secure Enclave path adds ~20–60 ms for
-  biometric prompts (user-driven).
-- Android: Keystore unwrap is on the critical path. StrongBox-backed keys add ~30–80 ms for
-  the IPC round-trip. `EncryptedSharedPreferences` fallback is ~3–5 ms per read.
+The repository does not contain a reproducible benchmark for Keychain, Android Keystore, or
+StrongBox latency. Authentication prompts are user-driven, and Android persistence now waits for
+the preferences write to complete before reporting success. Measure on representative devices
+before publishing latency numbers or adding memoization.
 
 Always avoid calling `getItem` in tight render loops — fetch once, hoist into state.
 

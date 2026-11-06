@@ -1,68 +1,65 @@
-# Threat Model
+# Threat model
 
-## What `react-native-sensitive-info` defends against
+## What the library protects
 
-- **Casual filesystem access on a rooted/jailbroken device.** Values are encrypted at rest with
-  hardware-backed keys when the platform supports it; an attacker with shell access cannot
-  recover plaintext without unlocking the master key.
-- **Cold-storage exfiltration of app data.** Keychain / Keystore entries are bound to the device
-  and (when applicable) to a biometric or device passcode. Backups exclude protected entries.
-- **Process-internal tampering.** Each entry carries an HMAC-SHA256 `integrityTag` over its
-  metadata + ciphertext. Reads validate the tag and surface `IntegrityViolationError` on
-  mismatch.
-- **Biometric re-enrollment / "stolen device" reset.** Entries written with
-  `secureEnclaveBiometry` or `biometryCurrentSet` are invalidated by the OS when the user
-  enrolls or removes a biometric. Reads then surface `KeyInvalidatedError`, prompting the app
-  to re-onboard.
-- **Programmer error.** TS-side validation (`InvalidArgumentError`) rejects empty keys,
-  oversized values, and non-string inputs **before** any native call is made.
+- Android values are stored as AES-GCM ciphertext in app-private preferences. Encryption keys
+  live in Android Keystore. The actual protection level depends on the device and selected
+  policy; inspect the returned `securityLevel` instead of assuming a TEE or StrongBox.
+- iOS values are stored in Keychain with the resolved accessibility and access-control policy.
+  A Keychain item is not necessarily a Secure Enclave key.
+- New records carry an HMAC-SHA256 integrity tag. Verified mismatches raise
+  `IntegrityViolationError` before decryption. Entries written before tags were introduced remain
+  readable without a tag for compatibility. Metadata-only queries omit plaintext but do not verify
+  its integrity tag; use a value read when that verification is required.
+- Biometric enrollment changes can invalidate keys for policies that request the current
+  biometric set. The OS reports those invalidations to the library.
+- TypeScript validation rejects malformed public inputs before native calls. Native validation
+  remains necessary wherever the bridge can be called directly.
 
-## What it explicitly does **not** defend against
+## Known integrity limits
 
-- **Compromised JavaScript runtime.** If an attacker can run arbitrary JS in your app, they can
-  call `getItem` directly. Use additional defense-in-depth (e.g. SSL pinning, RASP) for
-  high-value targets.
-- **Forensic memory dump while the app is unlocked.** Decrypted values transit through
-  React Native's JSI as standard JS strings; we do not zeroize the heap.
-- **OS-level exploits / supply-chain compromise of the OEM.** Hardware-backed protection is
-  only as strong as the chain of trust ending at the secure element vendor.
-- **Side-channel timing attacks against the native crypto.** We rely on platform primitives
-  (CryptoKit, AndroidX Security). These have not been audited for timing in this codebase.
-- **Screenshots, accessibility services, and screen recording.** Values rendered to the UI
-  are visible to anything that can read the screen.
-- **Phishing/social engineering.** Biometric prompts cannot tell who is actually pressing the
-  finger.
+The current HMAC serialization separates some fields with delimiter bytes, but accepted strings
+can contain those delimiters. Distinct service/key or metadata inputs can therefore produce the
+same serialized bytes. A versioned, length-prefixed encoding and collision regression vectors are
+still needed before integrity can be claimed for every accepted input.
 
-## Fallback ladder
+Untagged legacy entries are accepted. HMAC tags also do not provide rollback protection: a
+previously valid ciphertext and tag can be replayed unless the application maintains trusted
+freshness state outside the editable record. Do not treat an integrity tag as proof that a record
+is the newest value.
 
-The native layer continuously downgrades to the strongest scheme the device supports. Always
-inspect `StorageMetadata.securityLevel` after writing to confirm what the platform applied.
+## What it does not protect
 
-```
-secureEnclave  →  strongBox  →  biometry  →  deviceCredential  →  software
-       (best)                                                       (worst)
-```
+- A compromised JavaScript runtime can call the library and request plaintext.
+- Plaintext passes through JavaScript strings and native memory. The library does not zeroize the
+  JavaScript heap or claim to prevent memory inspection while the app is running.
+- Backup behavior belongs to the consuming application and OS settings. The example disables
+  Android backup, but the library cannot enforce that for host apps. Restored Android ciphertext
+  may not have its Keystore key.
+- The library does not prevent OS compromise, supply-chain compromise, screen capture, phishing,
+  or side-channel attacks. It has not received an independent cryptographic audit.
+- The `securityLevel` value reports the tier resolved by the implementation. It is not hardware
+  attestation and does not prove a secure element actually protected a key.
 
-| Tier               | iOS                                             | Android                                                     |
-| ------------------ | ----------------------------------------------- | ----------------------------------------------------------- |
-| `secureEnclave`    | Keys generated/used inside the Secure Enclave   | —                                                           |
-| `strongBox`        | —                                               | Tamper-resistant secure element (Android 9+ where present)   |
-| `biometry`         | Hardware-backed Keychain + biometric ACL        | Keystore key with `setUserAuthenticationRequired(true)`      |
-| `deviceCredential` | Hardware-backed Keychain + device passcode ACL  | Keystore key with passcode-only auth                         |
-| `software`         | Software fallback (simulators, very old devices)| `EncryptedSharedPreferences` fallback                        |
+## Resolved security tiers
 
-If you hold compliance constraints (e.g. PCI/HIPAA), refuse to write secrets when
-`metadata.securityLevel === 'software'`. Reading the level requires no biometric prompt
-(`includeValues: false` is enough).
+| Tier | iOS | Android |
+| --- | --- | --- |
+| `secureEnclave` | Keychain item using the resolved Secure Enclave-oriented policy | Not used |
+| `strongBox` | Not used | Key protected by StrongBox when available and requested |
+| `biometry` | Keychain item with a biometric access-control policy | Keystore key requiring authentication |
+| `deviceCredential` | Keychain item with a device-passcode policy | Keystore key requiring device credentials |
+| `software` | Keychain item using the software access policy | Keystore key reported at the software tier |
 
-## Recommended posture for high-value secrets
+The tier describes the library's resolution, not a platform attestation. Applications with
+compliance requirements should reject writes whose returned tier does not satisfy their policy.
 
-1. Request `accessControl: 'secureEnclaveBiometry'`.
-2. Verify `metadata.securityLevel ∈ {'secureEnclave', 'strongBox'}` after write — refuse
-   otherwise.
-3. Rotate keys (`rotateKeys`) on a calendar (e.g. quarterly) or on suspicious-activity
-   signals.
-4. Catch `KeyInvalidatedError` and `IntegrityViolationError` separately — they imply different
-   user-facing flows (re-onboard vs. force re-auth + telemetry).
-5. Don't call `getItem` from background tasks unless you also pass `authenticationPrompt`. iOS
-   silently fails biometric reads outside foreground.
+## Practical guidance
+
+1. Request the access-control policy that matches the secret's use.
+2. Check the returned `securityLevel` after writing; do not infer hardware protection from the
+   requested policy alone.
+3. Handle `KeyInvalidatedError` and `IntegrityViolationError` separately.
+4. Define backup, restore, and key-rotation behavior in the consuming application.
+5. Avoid fetching secrets in background work unless the user interaction and authentication
+   policy are explicit.

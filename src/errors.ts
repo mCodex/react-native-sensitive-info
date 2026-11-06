@@ -22,17 +22,9 @@ export class SensitiveInfoError extends Error {
 		message: string,
 		options?: { cause?: unknown }
 	) {
-		super(message)
+		super(message, options)
 		this.name = 'SensitiveInfoError'
 		this.code = code
-		if (options && 'cause' in options) {
-			Object.defineProperty(this, 'cause', {
-				value: options.cause,
-				writable: true,
-				configurable: true,
-				enumerable: false,
-			})
-		}
 	}
 }
 

@@ -70,6 +70,44 @@ describe('useHasSecret', () => {
 		expect(mockedHasItem).not.toHaveBeenCalled()
 	})
 
+	it('ignores an in-flight result after skip becomes true', async () => {
+		let resolveRequest: ((value: boolean) => void) | undefined
+		mockedHasItem.mockImplementationOnce(
+			() =>
+				new Promise<boolean>((resolve) => {
+					resolveRequest = resolve
+				})
+		)
+
+		const { result, rerender } = renderHook(
+			({ skip }: { skip: boolean }) => useHasSecret('token', { skip }),
+			{ initialProps: { skip: false } }
+		)
+
+		await waitFor(() => expect(mockedHasItem).toHaveBeenCalledTimes(1))
+		rerender({ skip: true })
+		await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+		await act(async () => {
+			resolveRequest?.(true)
+		})
+
+		expect(result.current.data).toBeNull()
+		expect(result.current.isLoading).toBe(false)
+	})
+
+	it('publishes results after Strict Mode replays the effect lifecycle', async () => {
+		mockedHasItem.mockResolvedValue(true)
+
+		const { result } = renderHook(() => useHasSecret('token'), {
+			reactStrictMode: true,
+		})
+
+		await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+		expect(result.current.data).toBe(true)
+	})
+
 	it('wraps errors as HookError', async () => {
 		mockedHasItem.mockRejectedValueOnce(new Error('Native failure'))
 

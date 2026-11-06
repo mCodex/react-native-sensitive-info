@@ -13,6 +13,8 @@ export interface SensitiveInfoPluginProps {
 	/**
 	 * When `false`, skips writing React Native New Architecture flags
 	 * (`newArchEnabled`, `RCT_NEW_ARCH_ENABLED`).
+	 * Nitro Modules requires the New Architecture; set this to `false` only when the host app
+	 * configures it elsewhere.
 	 *
 	 * @defaultValue `true`
 	 */

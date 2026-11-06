@@ -81,10 +81,11 @@ export default function useAsync<T>(
 		undefined,
 		createInitialAsyncState<T>
 	)
-	const { begin, mountedRef } = useAsyncLifecycle()
+	const { begin, cancel, mountedRef } = useAsyncLifecycle()
 
 	const execute = useCallback(async () => {
 		if (skip) {
+			cancel()
 			dispatch({ type: 'reset' })
 			return
 		}
@@ -110,7 +111,16 @@ export default function useAsync<T>(
 				preserveData: preserveDataOnError,
 			})
 		}
-	}, [skip, begin, mountedRef, run, operation, hint, preserveDataOnError])
+	}, [
+		skip,
+		begin,
+		cancel,
+		mountedRef,
+		run,
+		operation,
+		hint,
+		preserveDataOnError,
+	])
 
 	useEffect(() => {
 		execute().catch(() => {})

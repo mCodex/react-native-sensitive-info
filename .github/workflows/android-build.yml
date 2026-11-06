@@ -8,26 +8,40 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/android-build.yml'
-      - 'example/android/**'
-      - 'nitrogen/generated/shared/**'
-      - 'nitrogen/generated/android/**'
-      - 'cpp/**'
-      - 'android/**'
-      - '**/yarn.lock'
-      - '**/react-native.config.js'
-      - '**/nitro.json'
+      - ".github/workflows/android-build.yml"
+      - "package.json"
+      - "example/package.json"
+      - ".yarnrc.yml"
+      - "src/**"
+      - "scripts/**"
+      - "nitrogen/specs/**"
+      - "nitro.json"
+      - "example/android/**"
+      - "nitrogen/generated/shared/**"
+      - "nitrogen/generated/android/**"
+      - "cpp/**"
+      - "android/**"
+      - "**/yarn.lock"
+      - "**/react-native.config.js"
+      - "**/nitro.json"
   pull_request:
     paths:
-      - '.github/workflows/android-build.yml'
-      - 'example/android/**'
-      - '**/nitrogen/generated/shared/**'
-      - '**/nitrogen/generated/android/**'
-      - 'cpp/**'
-      - 'android/**'
-      - '**/yarn.lock'
-      - '**/react-native.config.js'
-      - '**/nitro.json'
+      - ".github/workflows/android-build.yml"
+      - "package.json"
+      - "example/package.json"
+      - ".yarnrc.yml"
+      - "src/**"
+      - "scripts/**"
+      - "nitrogen/specs/**"
+      - "nitro.json"
+      - "example/android/**"
+      - "**/nitrogen/generated/shared/**"
+      - "**/nitrogen/generated/android/**"
+      - "cpp/**"
+      - "android/**"
+      - "**/yarn.lock"
+      - "**/react-native.config.js"
+      - "**/nitro.json"
   workflow_dispatch:
 
 concurrency:
@@ -39,38 +53,32 @@ jobs:
     name: Build Android Example App (New Architecture)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: yarn
 
-      - name: Install dependencies (yarn)
-        run: yarn install --frozen-lockfile
+      - name: Enable pinned Yarn
+        run: corepack enable
 
-      - name: Install example dependencies (yarn)
-        run: cd example && yarn install --frozen-lockfile
+      - name: Install dependencies (yarn)
+        run: yarn install --immutable
 
       - name: Generate Nitro modules (codegen)
         run: yarn codegen
 
       - name: Setup JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
-          java-version: '21'
-          cache: gradle
+          java-version: "21"
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      - name: Configure Gradle cache
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
 
       - name: Run Gradle build
         working-directory: example/android
@@ -79,3 +87,11 @@ jobs:
       - name: Stop Gradle daemon
         working-directory: example/android
         run: ./gradlew --stop
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sensitive-info-example-android-debug
+          path: example/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7

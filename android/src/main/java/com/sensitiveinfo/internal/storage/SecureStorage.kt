@@ -14,7 +14,9 @@ internal class SecureStorage(context: Context) {
 
   fun save(service: String, key: String, entry: PersistedEntry) {
     val preferences = preferencesFor(service)
-    preferences.edit().putString(key, entry.toJson().toString()).apply()
+    val saved = preferences.edit().putString(key, entry.toJson().toString()).commit()
+
+    check(saved) { "Could not persist SensitiveInfo entry." }
   }
 
   fun read(service: String, key: String): PersistedEntry? {
@@ -23,12 +25,20 @@ internal class SecureStorage(context: Context) {
     return PersistedEntry.fromJson(raw)
   }
 
+  fun readAlias(service: String, key: String): String? {
+    val raw = preferencesFor(service).getString(key, null) ?: return null
+    return PersistedEntry.aliasFromJson(raw)
+  }
+
   fun delete(service: String, key: String): Boolean {
     val preferences = preferencesFor(service)
     if (!preferences.contains(key)) {
       return false
     }
-    preferences.edit().remove(key).apply()
+    check(preferences.edit().remove(key).commit()) {
+      "Could not delete SensitiveInfo entry."
+    }
+
     return true
   }
 
@@ -53,7 +63,9 @@ internal class SecureStorage(context: Context) {
 
   fun clear(service: String) {
     val preferences = preferencesFor(service)
-    preferences.edit().clear().apply()
+    check(preferences.edit().clear().commit()) {
+      "Could not clear SensitiveInfo service."
+    }
   }
 
   private fun preferencesFor(service: String): SharedPreferences {

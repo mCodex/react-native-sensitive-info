@@ -16,17 +16,25 @@ internal class KeyVersionRegistry(context: Context) {
     .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
   /** Returns the active version for [service], or [INITIAL_VERSION] if no rotation has occurred. */
-  fun get(service: String): Int = preferences.getInt(service, INITIAL_VERSION)
+  fun get(service: String): Int = synchronized(lock) {
+    preferences.getInt(service, INITIAL_VERSION)
+  }
 
   /** Increments and persists the version for [service], returning the new value. */
   fun bump(service: String): Int {
-    val next = get(service) + 1
-    preferences.edit().putInt(service, next).apply()
-    return next
+    return synchronized(lock) {
+      val next = preferences.getInt(service, INITIAL_VERSION) + 1
+      check(preferences.edit().putInt(service, next).commit()) {
+        "Could not persist SensitiveInfo key version."
+      }
+
+      next
+    }
   }
 
   companion object {
     const val INITIAL_VERSION: Int = 1
     private const val PREFS_NAME = "rnsi.key_versions"
+    private val lock = Any()
   }
 }

@@ -1,14 +1,11 @@
 {
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
-		"module": "commonjs",
+		"composite": false,
+		"declarationMap": false,
 		"jsx": "react-jsx",
-		"noEmit": false,
-		"emitDeclarationOnly": false,
-		"outDir": "./.ts-jest",
-		"verbatimModuleSyntax": false,
 		"types": ["jest", "node"]
 	},
-	"include": ["src/**/*", "jest.setup.ts"],
+	"include": ["src/**/*", "__tests__/**/*"],
 	"exclude": ["lib", "example", "nitrogen"]
 }

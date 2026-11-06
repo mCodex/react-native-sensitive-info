@@ -16,6 +16,7 @@ function loadConstructor(): NativeCtor {
 	try {
 		cachedCtor = getHybridObjectConstructor<NativeHandle>('SensitiveInfo')
 	} catch (cause) {
+		// biome-ignore lint/style/useErrorCause: SensitiveInfoError accepts cause in its third argument.
 		throw new SensitiveInfoError(
 			ErrorCode.Unknown,
 			'react-native-sensitive-info native module is not available. ' +

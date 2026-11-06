@@ -10,6 +10,8 @@ export interface AsyncLifecycleControls {
 	 * Stores the last {@link AbortController} created by {@link begin}. Exposed for advanced scenarios such as manual cancellation.
 	 */
 	readonly controllerRef: RefObject<AbortController | null>
+	/** Aborts and clears the current execution signal, if one exists. */
+	cancel: () => void
 	/**
 	 * Aborts the previous async job (if any) and returns a fresh {@link AbortController} tied to the current execution flow.
 	 */
@@ -17,8 +19,11 @@ export interface AsyncLifecycleControls {
 }
 
 /**
- * Tracks the mounting lifecycle of a component and guarantees that asynchronous callbacks always respect the latest state.
- * The helper transparently aborts in-flight requests when a new run starts or the component unmounts, preventing subtle memory leaks.
+ * Tracks whether the owning component can still receive state updates and aborts
+ * the previous signal when a request is replaced or the component unmounts.
+ *
+ * Aborting only stops work that observes the signal. It does not cancel a native
+ * secure-storage write or biometric prompt already in progress.
  *
  * @example
  * ```tsx
@@ -36,25 +41,31 @@ export interface AsyncLifecycleControls {
 const useAsyncLifecycle = (): AsyncLifecycleControls => {
 	const mountedRef = useRef(true)
 	const controllerRef = useRef<AbortController | null>(null)
+	const cancel = useCallback(() => {
+		controllerRef.current?.abort()
+		controllerRef.current = null
+	}, [])
 
-	useEffect(
-		() => () => {
+	useEffect(() => {
+		mountedRef.current = true
+
+		return () => {
 			mountedRef.current = false
-			controllerRef.current?.abort()
-		},
-		[]
-	)
+			cancel()
+		}
+	}, [cancel])
 
 	const begin = useCallback(() => {
-		controllerRef.current?.abort()
+		cancel()
 		const controller = new AbortController()
 		controllerRef.current = controller
 		return controller
-	}, [])
+	}, [cancel])
 
 	return {
 		mountedRef,
 		controllerRef,
+		cancel,
 		begin,
 	}
 }

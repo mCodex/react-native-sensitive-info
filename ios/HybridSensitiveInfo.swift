@@ -329,36 +329,28 @@ public final class HybridSensitiveInfo: HybridSensitiveInfoSpec {
     return query
   }
 
-  /// Upserts `attributes` into the keychain slot identified by `baseQuery`.
-  /// Always force-deletes with `kSecAttrSynchronizableAny` first to avoid
-  /// `errSecDuplicateItem` from stale iCloud-synced entries, then retries
-  /// once if iCloud sync re-inserts the entry between delete and add.
+  /// Updates the requested Keychain slot before adding a missing item.
+  /// Keeping the existing item until the replacement is accepted prevents a failed add or update
+  /// from deleting the last readable copy of a secret.
   private func upsertKeychainEntry(
     baseQuery: [String: Any],
     attributes: [String: Any]
   ) -> OSStatus {
-    forceDeleteExisting(query: baseQuery)
-    var status = SecItemAdd(attributes as CFDictionary, nil)
-    guard status == errSecDuplicateItem else { return status }
+    var updateAttributes = attributes
+    updateAttributes.removeValue(forKey: kSecClass as String)
+    updateAttributes.removeValue(forKey: kSecAttrService as String)
+    updateAttributes.removeValue(forKey: kSecAttrAccount as String)
+    updateAttributes.removeValue(forKey: kSecAttrSynchronizable as String)
+    updateAttributes.removeValue(forKey: kSecAttrAccessGroup as String)
 
-    // Race: another process (typically iCloud sync) restored the item between
-    // our delete and add. One bounded retry — Keychain calls on this queue are
-    // synchronous, so we cannot loop indefinitely.
-    forceDeleteExisting(query: baseQuery)
-    status = SecItemAdd(attributes as CFDictionary, nil)
-    return status
-  }
+    let updateStatus = SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
+    guard updateStatus == errSecItemNotFound else { return updateStatus }
 
-  private func forceDeleteExisting(query: [String: Any]) {
-    var deleteQuery = query
-    deleteQuery[kSecReturnData as String] = nil
-    deleteQuery[kSecReturnAttributes as String] = nil
-    // `kSecAttrSynchronizableAny` matches both local-only and iCloud-synced
-    // entries; without it the delete would silently miss the opposite-state
-    // sibling. `SecItemDelete` ignores `kSecMatchLimit` and removes every
-    // matching entry, which is exactly what we want for an upsert.
-    deleteQuery[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
-    SecItemDelete(deleteQuery as CFDictionary)
+    let addStatus = SecItemAdd(attributes as CFDictionary, nil)
+    guard addStatus == errSecDuplicateItem else { return addStatus }
+
+    // Another process may have inserted the same scoped item after the update lookup.
+    return SecItemUpdate(baseQuery as CFDictionary, updateAttributes as CFDictionary)
   }
 
   private func copyMatching(
