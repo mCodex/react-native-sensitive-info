@@ -1,5 +1,21 @@
 # Changelog
 
+## [6.1.6](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.5...v6.1.6) (2026-11-06)
+
+### 🐛 Bug Fixes
+
+* **android:** skip explicit Kotlin plugin when AGP registers the kotlin extension ([59c165a](https://github.com/mCodex/react-native-sensitive-info/commit/59c165af334de18d4db0371bfd19e1687effb9ae))
+
+### 🔄 Code Refactors
+
+* modernize React Native and Nitro support ([68b46e3](https://github.com/mCodex/react-native-sensitive-info/commit/68b46e3ef877780b250a94733aca988a32f45327))
+
+### 🛠️ Other changes
+
+* bump dependencies ([c3045c9](https://github.com/mCodex/react-native-sensitive-info/commit/c3045c9cea179c6c38c93ea1b4163db5d94b1a20))
+* migrate default branch references to main ([2e75546](https://github.com/mCodex/react-native-sensitive-info/commit/2e7554625e691a0497bea05a80d20647f507c144))
+* update TypeScript and iOS compatibility ([f10d680](https://github.com/mCodex/react-native-sensitive-info/commit/f10d6809a00aabea311da1b092c26299dcac99eb))
+
 ## [6.1.5](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.4...v6.1.5) (2026-06-30)
 
 ## [6.1.4](https://github.com/mCodex/react-native-sensitive-info/compare/v6.1.3...v6.1.4) (2026-04-29)
