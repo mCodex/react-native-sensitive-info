@@ -140,7 +140,7 @@ dependencies {
   implementation "com.facebook.react:react-android"
   implementation project(":react-native-nitro-modules")
 
-  implementation "androidx.biometric:biometric:1.4.0-alpha07"
+  implementation "androidx.biometric:biometric:1.4.0-beta01"
   implementation "androidx.core:core:1.19.1"
   implementation "androidx.fragment:fragment:1.9.1"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
