@@ -114,10 +114,10 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"devDependencies": {
-		"@babel/core": "7.x",
-		"@babel/preset-env": "7.x",
-		"@babel/preset-react": "7.x",
-		"@babel/preset-typescript": "7.x",
+		"@babel/core": "8.x",
+		"@babel/preset-env": "8.x",
+		"@babel/preset-react": "8.x",
+		"@babel/preset-typescript": "8.x",
 		"@biomejs/biome": "^2.6.5",
 		"@release-it/conventional-changelog": "^12.0.2",
 		"@testing-library/dom": "^10.4.2",
