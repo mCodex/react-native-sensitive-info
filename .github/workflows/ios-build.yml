@@ -83,7 +83,7 @@ jobs:
         run: yarn codegen
 
       - name: Setup Ruby (bundle)
-        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        uses: ruby/setup-ruby@4e97ecde5048e1e0816923020652678063ffbf65 # v1.339.0
         with:
           ruby-version: "3.4"
           bundler-cache: true
